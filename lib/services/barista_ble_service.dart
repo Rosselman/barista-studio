@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/machine_telemetry.dart';
-import '../models/phase.dart';
 import '../models/recipe.dart';
 import '../models/slot_info.dart';
 import '../protocol/barista_ble_constants.dart';
@@ -44,6 +45,7 @@ class BaristaBleService extends ChangeNotifier {
   List<SlotInfo> get slots => List.unmodifiable(_slots);
 
   // Slot Query State
+  final Queue<int> _slotFetchQueue = Queue<int>();
   int _currentFetchingSlot = -1;
   final List<int> _slotIdBuffer = [];
   Timer? _slotTimeoutTimer;
@@ -60,6 +62,8 @@ class BaristaBleService extends ChangeNotifier {
   // Protocol Log Stream
   final _logController = StreamController<String>.broadcast();
   Stream<String> get logStream => _logController.stream;
+  StreamSubscription<List<ScanResult>>? _scanSub;
+  bool _isUserDisconnect = false;
 
   void _log(String message) {
     debugPrint('[BaristaBLE] $message');
@@ -74,21 +78,95 @@ class BaristaBleService extends ChangeNotifier {
   // 1. Scanning & Connection Management
   // ===========================================================================
 
-  Future<void> startScan() async {
-    if (_telemetry.isScanning) return;
-    _updateTelemetry(_telemetry.copyWith(isScanning: true));
-    _log('Scanning for Nespresso Barista W545...');
+  bool _isBaristaDevice(String name, String advName, String mac) {
+    final n = name.trim().toUpperCase();
+    final an = advName.trim().toUpperCase();
+    final m = mac.trim().toUpperCase();
+    final lastMac = storageService.getLastConnectedMac()?.trim().toUpperCase();
+
+    // Machine advertises with prefix White_ or Black_ or Barista or W545
+    if (n.startsWith('WHITE_') || an.startsWith('WHITE_')) return true;
+    if (n.startsWith('BLACK_') || an.startsWith('BLACK_')) return true;
+    if (n.contains('BARISTA') || an.contains('BARISTA')) return true;
+    if (n.contains('W545') || an.contains('W545')) return true;
+    if (lastMac != null && lastMac.isNotEmpty && m == lastMac) return true;
+
+    return false;
+  }
+
+  Future<bool> _checkAndRequestPermissions() async {
+    if (kIsWeb || !Platform.isAndroid) return true;
 
     try {
-      // Listen to scan results
-      final sub = FlutterBluePlus.scanResults.listen((results) {
+      final scanStatus = await Permission.bluetoothScan.status;
+      final connStatus = await Permission.bluetoothConnect.status;
+
+      if (!scanStatus.isGranted || !connStatus.isGranted) {
+        _log('Requesting Bluetooth permissions (BLUETOOTH_SCAN & BLUETOOTH_CONNECT)...');
+        final statuses = await [
+          Permission.bluetoothScan,
+          Permission.bluetoothConnect,
+        ].request();
+
+        final granted = (statuses[Permission.bluetoothScan]?.isGranted == true) &&
+            (statuses[Permission.bluetoothConnect]?.isGranted == true);
+        if (!granted) {
+          _log('Warning: Bluetooth permissions denied.');
+        }
+        return granted;
+      }
+      return true;
+    } catch (e) {
+      _log('Permission check notice: $e');
+      return true;
+    }
+  }
+
+  /// Automatically connects to the known physical Barista machine or falls back to scan
+  Future<void> autoConnect() async {
+    if (_telemetry.isConnected || _telemetry.isScanning) return;
+    _isUserDisconnect = false;
+
+    final hasPerms = await _checkAndRequestPermissions();
+    if (!hasPerms) {
+      _log('Bluetooth permissions missing; cannot connect.');
+      return;
+    }
+
+    final knownMac = storageService.getLastConnectedMac();
+    if (knownMac.isNotEmpty) {
+      _log('Attempting direct GATT connection to Barista MAC: $knownMac...');
+      try {
+        final device = BluetoothDevice.fromId(knownMac);
+        await connect(device);
+        return;
+      } catch (e) {
+        _log('Direct connection attempt failed ($e), falling back to BLE scan...');
+      }
+    }
+
+    await startScan();
+  }
+
+  Future<void> startScan() async {
+    if (_telemetry.isScanning || _telemetry.isConnected) return;
+    _isUserDisconnect = false;
+
+    final hasPerms = await _checkAndRequestPermissions();
+    if (!hasPerms) return;
+
+    _updateTelemetry(_telemetry.copyWith(isScanning: true));
+    _log('Scanning for nearby Barista machines (White_* / Black_*)...');
+
+    try {
+      await _scanSub?.cancel();
+      _scanSub = FlutterBluePlus.scanResults.listen((results) {
         for (final r in results) {
           final name = r.device.platformName;
           final advName = r.advertisementData.advName;
-          if (name.contains('Barista') ||
-              advName.contains('Barista') ||
-              r.device.remoteId.str == storageService.getLastConnectedMac()) {
-            _log('Found Barista device: $name (${r.device.remoteId.str})');
+          final mac = r.device.remoteId.str;
+          if (_isBaristaDevice(name, advName, mac)) {
+            _log('Discovered Barista machine: ${name.isNotEmpty ? name : advName} ($mac)');
             stopScan();
             connect(r.device);
             break;
@@ -96,16 +174,15 @@ class BaristaBleService extends ChangeNotifier {
         }
       });
 
+      // Scan without service filter as physical Barista W545 does not advertise service UUIDs
       await FlutterBluePlus.startScan(
-        withServices: [Guid(BaristaBleConstants.deviceInfoService)],
-        timeout: const Duration(seconds: 12),
+        timeout: const Duration(seconds: 15),
       );
 
       // Auto stop scan after timeout
-      Future.delayed(const Duration(seconds: 12), () {
-        sub.cancel();
+      Future.delayed(const Duration(seconds: 15), () {
         if (_telemetry.isScanning) {
-          _updateTelemetry(_telemetry.copyWith(isScanning: false));
+          stopScan();
           _log('Scan completed.');
         }
       });
@@ -117,17 +194,20 @@ class BaristaBleService extends ChangeNotifier {
 
   Future<void> stopScan() async {
     try {
+      await _scanSub?.cancel();
+      _scanSub = null;
       await FlutterBluePlus.stopScan();
     } catch (_) {}
     _updateTelemetry(_telemetry.copyWith(isScanning: false));
   }
 
   Future<void> connect(BluetoothDevice device) async {
+    _isUserDisconnect = false;
     await disconnect();
     _device = device;
     _log('Connecting to GATT: ${device.remoteId.str}...');
 
-    _connSub = device.connectionState.listen((state) {
+    _connSub = device.connectionState.listen((state) async {
       if (state == BluetoothConnectionState.connected) {
         _log('Connected to ${device.remoteId.str}. Discovering services...');
         storageService.setLastConnectedMac(device.remoteId.str);
@@ -135,34 +215,53 @@ class BaristaBleService extends ChangeNotifier {
           isConnected: true,
           deviceName: device.platformName.isNotEmpty
               ? device.platformName
-              : 'Nespresso Barista',
+              : 'Barista (${device.remoteId.str})',
           macAddress: device.remoteId.str,
         ));
-        _discoverAndSetupServices(device);
+
+        // Note: Do NOT call requestMtu(247) on Barista W545 as its firmware disconnects!
+        await _discoverAndSetupServices(device);
       } else if (state == BluetoothConnectionState.disconnected) {
         _log('Disconnected from Barista.');
+        final wasConnected = _telemetry.isConnected;
         _handleDisconnection();
+        if (!wasConnected && !_isUserDisconnect) {
+          _log('Initial direct connect did not establish. Falling back to BLE scan...');
+          startScan();
+        }
       }
     });
 
     try {
       await device.connect(
-        timeout: const Duration(seconds: 15),
+        timeout: const Duration(seconds: 10),
         autoConnect: false,
       );
     } catch (e) {
       _log('Connection failed: $e');
       _handleDisconnection();
+      if (!_isUserDisconnect) {
+        _log('Starting scan fallback after connection error...');
+        startScan();
+      }
     }
   }
 
   Future<void> disconnect() async {
+    _isUserDisconnect = true;
     _slotTimeoutTimer?.cancel();
+    _slotFetchQueue.clear();
+    _currentFetchingSlot = -1;
     _opQueue.clear();
+
     await _statusSub?.cancel();
+    _statusSub = null;
     await _recipeResponseSub?.cancel();
+    _recipeResponseSub = null;
     await _recipeSelectionSub?.cancel();
+    _recipeSelectionSub = null;
     await _connSub?.cancel();
+    _connSub = null;
 
     if (_device != null) {
       try {
@@ -175,8 +274,9 @@ class BaristaBleService extends ChangeNotifier {
 
   void _handleDisconnection() {
     _slotTimeoutTimer?.cancel();
-    _opQueue.clear();
+    _slotFetchQueue.clear();
     _currentFetchingSlot = -1;
+    _opQueue.clear();
     _updateTelemetry(const MachineTelemetry());
   }
 
@@ -198,33 +298,27 @@ class BaristaBleService extends ChangeNotifier {
               _charCmid = c;
             } else if (cUuid == BaristaBleConstants.charCmidType.toLowerCase()) {
               _charCmidType = c;
-            } else if (cUuid ==
-                BaristaBleConstants.charTxLevelRequest.toLowerCase()) {
+            } else if (cUuid == BaristaBleConstants.charTxLevelRequest.toLowerCase()) {
               _charTxLevelRequest = c;
             }
           }
-        } else if (sUuid ==
-            BaristaBleConstants.statusControlService.toLowerCase()) {
+        } else if (sUuid == BaristaBleConstants.statusControlService.toLowerCase()) {
           for (final c in s.characteristics) {
             final cUuid = c.uuid.str.toLowerCase();
             if (cUuid == BaristaBleConstants.charMachineStatus.toLowerCase()) {
               _charMachineStatus = c;
-            } else if (cUuid ==
-                BaristaBleConstants.charCommandReq.toLowerCase()) {
+            } else if (cUuid == BaristaBleConstants.charCommandReq.toLowerCase()) {
               _charCommandReq = c;
             }
           }
         } else if (sUuid == BaristaBleConstants.recipeService.toLowerCase()) {
           for (final c in s.characteristics) {
             final cUuid = c.uuid.str.toLowerCase();
-            if (cUuid ==
-                BaristaBleConstants.charRecipeSelection.toLowerCase()) {
+            if (cUuid == BaristaBleConstants.charRecipeSelection.toLowerCase()) {
               _charRecipeSelection = c;
-            } else if (cUuid ==
-                BaristaBleConstants.charRecipeCommand.toLowerCase()) {
+            } else if (cUuid == BaristaBleConstants.charRecipeCommand.toLowerCase()) {
               _charRecipeCommand = c;
-            } else if (cUuid ==
-                BaristaBleConstants.charRecipeResponse.toLowerCase()) {
+            } else if (cUuid == BaristaBleConstants.charRecipeResponse.toLowerCase()) {
               _charRecipeResponse = c;
             }
           }
@@ -246,8 +340,8 @@ class BaristaBleService extends ChangeNotifier {
     // 1. Subscribe to MACHINE_STATUS
     if (_charMachineStatus != null) {
       try {
+        _statusSub = _charMachineStatus!.onValueReceived.listen(_handleMachineStatus);
         await _charMachineStatus!.setNotifyValue(true);
-        _statusSub = _charMachineStatus!.lastValueStream.listen(_handleMachineStatus);
         _log('MACHINE_STATUS notifications active.');
       } catch (e) {
         _log('Error setting MACHINE_STATUS notification: $e');
@@ -257,8 +351,8 @@ class BaristaBleService extends ChangeNotifier {
     // 2. Subscribe to RECIPE_RESPONSE
     if (_charRecipeResponse != null) {
       try {
+        _recipeResponseSub = _charRecipeResponse!.onValueReceived.listen(_handleRecipeResponse);
         await _charRecipeResponse!.setNotifyValue(true);
-        _recipeResponseSub = _charRecipeResponse!.lastValueStream.listen(_handleRecipeResponse);
         _log('RECIPE_RESPONSE notifications active.');
       } catch (e) {
         _log('Error setting RECIPE_RESPONSE notification: $e');
@@ -268,17 +362,32 @@ class BaristaBleService extends ChangeNotifier {
     // 3. Subscribe to RECIPE_SELECTION
     if (_charRecipeSelection != null) {
       try {
-        await _charRecipeSelection!.setNotifyValue(true);
-        _recipeSelectionSub = _charRecipeSelection!.lastValueStream.listen((val) {
+        _recipeSelectionSub = _charRecipeSelection!.onValueReceived.listen((val) {
           if (val.isNotEmpty) {
             final slot = val[0] & 0xFF;
             _updateTelemetry(_telemetry.copyWith(selectedSlot: slot));
             _log('Machine selected slot changed: Slot ${slot + 1}');
           }
         });
+        await _charRecipeSelection!.setNotifyValue(true);
       } catch (e) {
         _log('Error setting RECIPE_SELECTION notification: $e');
       }
+
+      // Read initial selection
+      _opQueue.enqueue(() async {
+        try {
+          final val = await _charRecipeSelection!.read();
+          if (val.isNotEmpty) {
+            final slot = val[0] & 0xFF;
+            _updateTelemetry(_telemetry.copyWith(selectedSlot: slot));
+            _log('Initial active slot read: Slot ${slot + 1}');
+          }
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }, description: 'Read Active Slot');
     }
 
     // 4. Read Serial Number
@@ -306,38 +415,60 @@ class BaristaBleService extends ChangeNotifier {
     _opQueue.enqueue(() async {
       try {
         final data = await _charMachineStatus!.read();
-        if (data.length < 2) return false;
+        if (data.length < 2) {
+          _log('Failed to read pairing state; proceeding directly to slots.');
+          fetchAllSlots();
+          return false;
+        }
         final b0 = data[0] & 0xFF;
         final pairingCode = (b0 & 0x60) >> 5;
-        _log('Current pairing code: $pairingCode (0=NONE, 1=TEMP, 2=FINAL)');
+        _log('Machine pairing state: $pairingCode (0=NONE, 1=TEMP, 2=FINAL)');
 
         // Step A: Only write TX_LEVEL_REQUEST (0x01) if NOT already FINAL
         if (pairingCode != 2 && _charTxLevelRequest != null) {
           _log('Sending TX_LEVEL_REQUEST (0x01)...');
-          await _charTxLevelRequest!.write([0x01], withoutResponse: false);
+          try {
+            await _charTxLevelRequest!.write([0x01], withoutResponse: false);
+          } catch (e) {
+            _log('TX_LEVEL_REQUEST write error: $e');
+          }
+        } else {
+          _log('Machine is already in FINAL pairing state; skipping TX Level Request.');
         }
 
         // Step B: Write 8-byte CMID key to authenticate the connection session
         final cmidHex = storageService.getCmidKey();
-        final cmidBytes = _hexToBytes(cmidHex);
+        final cmidBytes = deriveCmidFromSeed(cmidHex);
         if (_charCmid != null) {
-          _log('Writing 8-byte CMID to charCmid: $cmidHex');
-          await _charCmid!.write(cmidBytes, withoutResponse: false);
+          final hexStr = cmidBytes.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join();
+          _log('Authenticating session: Writing 8-byte CMID to charCmid: $hexStr');
+          try {
+            await _charCmid!.write(cmidBytes, withoutResponse: false);
+            _log('CMID key accepted by machine! Confirming session...');
+          } catch (e) {
+            _log('Authentication failed: Machine rejected CMID key ($e).');
+          }
         }
 
         // Step C: Verify CMID_TYPE confirmation
         if (_charCmidType != null) {
-          final typeData = await _charCmidType!.read();
-          if (typeData.isNotEmpty) {
-            _log('CMID_TYPE response: 0x${typeData[0].toRadixString(16)}');
+          try {
+            final typeData = await _charCmidType!.read();
+            if (typeData.isNotEmpty) {
+              final type = typeData[0] & 0xFF;
+              final typeStr = type == 2 ? 'FINAL (Authenticated)' : (type == 1 ? 'TEMPORARY' : 'REJECTED ($type)');
+              _log('CMID_TYPE response: $typeStr');
+            }
+          } catch (e) {
+            _log('CMID_TYPE read error: $e');
           }
         }
 
-        _log('Pairing session authenticated. Scanning all 13 slots...');
+        _log('Session authenticated. Fetching all 13 slots...');
         fetchAllSlots();
         return true;
       } catch (e) {
-        _log('Pairing handshake error: $e');
+        _log('Pairing handshake error: $e. Fetching slots...');
         fetchAllSlots();
         return false;
       }
@@ -379,31 +510,43 @@ class BaristaBleService extends ChangeNotifier {
   // ===========================================================================
 
   void fetchAllSlots() {
-    _opQueue.enqueue(() async {
-      for (int i = 0; i < 13; i++) {
-        _fetchSlotInternal(i);
-      }
-      return true;
-    }, description: 'Fetch All Slots');
+    _slotFetchQueue.clear();
+    for (int i = 0; i < 13; i++) {
+      _slotFetchQueue.add(i);
+    }
+    if (_currentFetchingSlot == -1) {
+      _processNextSlotQuery();
+    }
   }
 
   void fetchSlot(int slot) {
-    _opQueue.enqueue(() async {
-      _fetchSlotInternal(slot);
-      return true;
-    }, description: 'Fetch Slot $slot');
+    if (!_slotFetchQueue.contains(slot)) {
+      _slotFetchQueue.add(slot);
+    }
+    if (_currentFetchingSlot == -1) {
+      _processNextSlotQuery();
+    }
   }
 
-  void _fetchSlotInternal(int slot) {
-    if (_charRecipeCommand == null) return;
-    _currentFetchingSlot = slot;
+  void _processNextSlotQuery() {
+    _slotTimeoutTimer?.cancel();
+    if (_slotFetchQueue.isEmpty) {
+      _currentFetchingSlot = -1;
+      _log('Finished querying all queued slots.');
+      return;
+    }
+    if (_charRecipeCommand == null || !isConnected) {
+      _currentFetchingSlot = -1;
+      _slotFetchQueue.clear();
+      return;
+    }
+
+    _currentFetchingSlot = _slotFetchQueue.removeFirst();
+    final slot = _currentFetchingSlot;
+    final pos = slot + 1; // 1-based (1..13)
     _slotIdBuffer.clear();
 
-    final pos = slot + 1; // 1-based (1..13)
-    final cmd = [BaristaBleConstants.cmdGetId, 0x01, pos & 0xFF];
-
-    _slotTimeoutTimer?.cancel();
-    _slotTimeoutTimer = Timer(const Duration(milliseconds: 1500), () {
+    _slotTimeoutTimer = Timer(const Duration(milliseconds: 1400), () {
       if (_currentFetchingSlot == slot) {
         _log('Timeout querying Slot $pos.');
         _slots[slot] = SlotInfo(
@@ -413,12 +556,31 @@ class BaristaBleService extends ChangeNotifier {
         );
         _currentFetchingSlot = -1;
         notifyListeners();
+        _processNextSlotQuery();
       }
     });
 
-    _charRecipeCommand!.write(cmd, withoutResponse: false).catchError((e) {
-      _log('Error sending CMD_GET_ID for Slot $pos: $e');
-    });
+    final cmd = [BaristaBleConstants.cmdGetId, 0x01, pos & 0xFF];
+    _opQueue.enqueue(() async {
+      try {
+        await _charRecipeCommand!.write(cmd, withoutResponse: false);
+        return true;
+      } catch (e) {
+        _log('Error sending CMD_GET_ID for Slot $pos: $e');
+        _slotTimeoutTimer?.cancel();
+        if (_currentFetchingSlot == slot) {
+          _slots[slot] = SlotInfo(
+            slotIndex: slot,
+            isOccupied: false,
+            recipeName: 'Slot $pos (Empty)',
+          );
+          _currentFetchingSlot = -1;
+          notifyListeners();
+          _processNextSlotQuery();
+        }
+        return false;
+      }
+    }, description: 'Query Slot $pos', timeout: const Duration(milliseconds: 1400));
   }
 
   void _handleRecipeResponse(List<int> data) {
@@ -446,6 +608,7 @@ class BaristaBleService extends ChangeNotifier {
         );
         _currentFetchingSlot = -1;
         notifyListeners();
+        _processNextSlotQuery();
         return;
       }
 
@@ -493,6 +656,7 @@ class BaristaBleService extends ChangeNotifier {
         }
         _currentFetchingSlot = -1;
         notifyListeners();
+        _processNextSlotQuery();
       }
     } else if (cmdId == BaristaBleConstants.cmdInsert ||
         cmdId == BaristaBleConstants.cmdAppend) {
@@ -715,6 +879,30 @@ class BaristaBleService extends ChangeNotifier {
   void _updateTelemetry(MachineTelemetry newTelemetry) {
     _telemetry = newTelemetry;
     notifyListeners();
+  }
+
+  static List<int> deriveCmidFromSeed(String seedHex) {
+    var seed = seedHex.replaceAll(' ', '').trim();
+    if (seed.isEmpty) {
+      seed = BaristaBleConstants.defaultPairedCmid;
+    }
+    // If it is already an 8-byte (16 hex chars) CMID starting with 8 or 9:
+    if (seed.length == 16 && (seed.startsWith('8') || seed.startsWith('9'))) {
+      return _hexToBytes(seed);
+    }
+    final s = ('${seed}0').substring(0, 16);
+    final bArr = List<int>.filled(8, 0);
+    for (int i = 0; i < 16; i += 2) {
+      final high = int.parse(s[i], radix: 16);
+      final low = int.parse(s[i + 1], radix: 16);
+      bArr[i ~/ 2] = ((high << 4) | low) & 0xFF;
+    }
+    final res = List<int>.filled(8, 0);
+    res[0] = (((bArr[0] & 0xF0) >> 4) | 0x80) & 0xFF;
+    for (int i = 0; i < 7; i++) {
+      res[i + 1] = (((bArr[i] & 0x0F) << 4) | ((bArr[i + 1] & 0xF0) >> 4)) & 0xFF;
+    }
+    return res;
   }
 
   static List<int> _hexToBytes(String hex) {

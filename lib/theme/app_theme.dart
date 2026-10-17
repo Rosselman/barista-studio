@@ -32,12 +32,10 @@ class AppTheme {
         primary: goldPrimary,
         secondary: goldLight,
         surface: surfaceCard,
-        background: bgDark,
         error: rubyEmergency,
         onPrimary: Colors.black,
         onSecondary: Colors.black,
         onSurface: crema,
-        onBackground: crema,
       ),
       fontFamily: 'Inter',
       appBarTheme: const AppBarTheme(
@@ -93,7 +91,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: surfaceElevated,
-        selectedColor: goldPrimary.withOpacity(0.2),
+        selectedColor: goldPrimary,
         secondarySelectedColor: goldPrimary,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         labelStyle: const TextStyle(
@@ -102,10 +100,11 @@ class AppTheme {
           fontWeight: FontWeight.w500,
         ),
         secondaryLabelStyle: const TextStyle(
-          color: goldPrimary,
+          color: Colors.black,
           fontSize: 12,
           fontWeight: FontWeight.w700,
         ),
+        showCheckmark: false,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: borderSubtle, width: 1),
@@ -122,8 +121,8 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surfaceCard,
         indicatorColor: goldPrimary.withOpacity(0.25),
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return const TextStyle(
               color: goldPrimary,
               fontSize: 12,
@@ -136,8 +135,8 @@ class AppTheme {
             fontWeight: FontWeight.w500,
           );
         }),
-        iconTheme: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return const IconThemeData(color: goldPrimary, size: 24);
           }
           return const IconThemeData(color: textMuted, size: 24);

@@ -102,6 +102,21 @@ class _PresetsTabState extends State<PresetsTab> {
                           child: ChoiceChip(
                             label: Text(cat),
                             selected: isSelected,
+                            showCheckmark: false,
+                            selectedColor: AppTheme.goldPrimary,
+                            backgroundColor: AppTheme.surfaceElevated,
+                            labelStyle: TextStyle(
+                              color: isSelected ? Colors.black : AppTheme.textSecondary,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: isSelected ? AppTheme.goldPrimary : AppTheme.borderSubtle,
+                                width: 1,
+                              ),
+                            ),
                             onSelected: (selected) {
                               if (selected) {
                                 setState(() => _selectedCategory = cat);

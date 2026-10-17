@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../data/preset_catalog.dart';
-import '../../models/recipe.dart';
 import '../../services/barista_ble_service.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/flash_recipe_dialog.dart';

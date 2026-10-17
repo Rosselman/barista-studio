@@ -8,13 +8,17 @@ typedef GattTask = Future<bool> Function();
 class GattOpQueue {
   final Queue<_QueuedOp> _queue = Queue<_QueuedOp>();
   bool _isProcessing = false;
-  static const Duration opTimeout = Duration(milliseconds: 3500);
+  static const Duration defaultOpTimeout = Duration(milliseconds: 3500);
   static const Duration settlingDelay = Duration(milliseconds: 45);
 
-  /// Enqueues an async GATT operation with callback and timeout
-  Future<bool> enqueue(GattTask task, {String description = 'GATT Op'}) {
+  /// Enqueues an async GATT operation with callback and optional custom timeout
+  Future<bool> enqueue(
+    GattTask task, {
+    String description = 'GATT Op',
+    Duration? timeout,
+  }) {
     final completer = Completer<bool>();
-    _queue.add(_QueuedOp(task, completer, description));
+    _queue.add(_QueuedOp(task, completer, description, timeout ?? defaultOpTimeout));
     _processNext();
     return completer.future;
   }
@@ -28,7 +32,7 @@ class GattOpQueue {
 
     try {
       result = await op.task().timeout(
-        opTimeout,
+        op.timeout,
         onTimeout: () {
           print('[GattOpQueue] Operation timed out: ${op.description}');
           return false;
@@ -67,6 +71,7 @@ class _QueuedOp {
   final GattTask task;
   final Completer<bool> completer;
   final String description;
+  final Duration timeout;
 
-  _QueuedOp(this.task, this.completer, this.description);
+  _QueuedOp(this.task, this.completer, this.description, this.timeout);
 }

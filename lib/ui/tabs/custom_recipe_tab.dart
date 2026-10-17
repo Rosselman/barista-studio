@@ -212,11 +212,11 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
             // Multi-Phase Selector (Phase 1, 2, 3)
             Row(
               children: [
-                _buildPhaseTab(0, 'Phase 1 (Whip)'),
+                _buildPhaseTab(0, 'Phase 1', 'Whip'),
                 const SizedBox(width: 8),
-                _buildPhaseTab(1, 'Phase 2 (Texture)'),
+                _buildPhaseTab(1, 'Phase 2', 'Texture'),
                 const SizedBox(width: 8),
-                _buildPhaseTab(2, 'Phase 3 (Polish)'),
+                _buildPhaseTab(2, 'Phase 3', 'Polish'),
               ],
             ),
             const SizedBox(height: 14),
@@ -454,7 +454,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     );
   }
 
-  Widget _buildPhaseTab(int index, String title) {
+  Widget _buildPhaseTab(int index, String title, String subtitle) {
     final isActive = _activePhaseIndex == index;
     final isConfigured = _phases[index].duration > 0;
 
@@ -462,7 +462,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
       child: GestureDetector(
         onTap: () => setState(() => _activePhaseIndex = index),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          height: 58,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           decoration: BoxDecoration(
             color: isActive ? AppTheme.goldPrimary.withOpacity(0.18) : AppTheme.surfaceCard,
             borderRadius: BorderRadius.circular(12),
@@ -473,6 +474,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           ),
           alignment: Alignment.center,
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 title,
@@ -481,15 +483,19 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 2),
               Text(
-                isConfigured ? '${_phases[index].duration}s' : 'Off',
+                isConfigured ? '${_phases[index].duration}s ($subtitle)' : 'Off ($subtitle)',
                 style: TextStyle(
                   color: isConfigured ? AppTheme.crema : AppTheme.textMuted,
                   fontSize: 10,
                   fontFamily: 'monospace',
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -524,27 +530,23 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   }
 
   Widget _buildChipRow(List<_PresetChip> chips) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: chips.map((c) {
-          return Padding(
-            padding: const EdgeInsets.only(right: 6, top: 4),
-            child: ActionChip(
-              label: Text(c.label),
-              labelStyle: TextStyle(
-                color: c.color ?? AppTheme.textMuted,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-              ),
-              backgroundColor: AppTheme.surfaceElevated,
-              side: const BorderSide(color: AppTheme.borderSubtle, width: 0.6),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              onPressed: c.onTap,
-            ),
-          );
-        }).toList(),
-      ),
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: chips.map((c) {
+        return ActionChip(
+          label: Text(c.label),
+          labelStyle: TextStyle(
+            color: c.color ?? AppTheme.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+          backgroundColor: AppTheme.surfaceElevated,
+          side: const BorderSide(color: AppTheme.borderSubtle, width: 0.8),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          onPressed: c.onTap,
+        );
+      }).toList(),
     );
   }
 }
