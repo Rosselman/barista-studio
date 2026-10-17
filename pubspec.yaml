@@ -1,0 +1,25 @@
+name: barista_studio
+description: "A clean, public consumer app for flashing and managing custom recipes on the Nespresso Barista Recipe Maker W545."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_blue_plus: ^1.35.0
+  uuid: ^4.5.1
+  shared_preferences: ^2.3.2
+  permission_handler: ^11.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
