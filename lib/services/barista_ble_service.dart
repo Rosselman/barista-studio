@@ -77,44 +77,81 @@ class BaristaBleService extends ChangeNotifier {
   // 1. Scanning & Connection Management
   // ===========================================================================
 
-  bool _isBaristaDevice(String name, String advName, String mac) {
+  bool _isBaristaDevice({
+    required String name,
+    required String advName,
+    required String mac,
+    required List<Guid> serviceUuids,
+    required Map<Guid, List<int>> serviceData,
+    required Map<int, List<int>> manufacturerData,
+  }) {
     final n = name.trim().toUpperCase();
     final an = advName.trim().toUpperCase();
 
-    // Universal Nespresso Barista W545 naming patterns
+    // 1. Universal Nespresso Barista W545 naming patterns
     if (n.startsWith('WHITE_') || an.startsWith('WHITE_')) return true;
     if (n.startsWith('BLACK_') || an.startsWith('BLACK_')) return true;
     if (n.contains('BARISTA') || an.contains('BARISTA')) return true;
     if (n.contains('W545') || an.contains('W545')) return true;
 
-    // Also match if this specific device matches the phone's previously paired MAC
+    // 2. Match previously paired MAC or Device UUID
     final lastMac = storageService.getLastConnectedMac()?.trim().toUpperCase();
     final m = mac.trim().toUpperCase();
-    if (lastMac != null && lastMac.isNotEmpty && m == lastMac) return true;
+    if (lastMac != null && lastMac.isNotEmpty && (m == lastMac || n == lastMac)) return true;
+
+    // 3. Match by custom Barista GATT Service UUIDs
+    // All Nespresso Barista services share the Eugster base: 6524xxxx-0253-11e7-93ae-92361f002671
+    // (DeviceInfo: 65241910, Status: 65241920, Error: 65241930, Recipe: 65241990, Language: 652419a0)
+    for (final uuid in serviceUuids) {
+      final s = uuid.str128.toLowerCase();
+      if (s.contains('-0253-11e7-93ae-92361f002671') || s.startsWith('652419')) {
+        return true;
+      }
+    }
+
+    // 4. Match in Service Data keys
+    for (final uuid in serviceData.keys) {
+      final s = uuid.str128.toLowerCase();
+      if (s.contains('-0253-11e7-93ae-92361f002671') || s.startsWith('652419')) {
+        return true;
+      }
+    }
 
     return false;
   }
 
   Future<bool> _checkAndRequestPermissions() async {
-    if (kIsWeb || !Platform.isAndroid) return true;
+    if (kIsWeb) return true;
 
     try {
-      final scanStatus = await Permission.bluetoothScan.status;
-      final connStatus = await Permission.bluetoothConnect.status;
+      if (Platform.isAndroid) {
+        final scanStatus = await Permission.bluetoothScan.status;
+        final connStatus = await Permission.bluetoothConnect.status;
 
-      if (!scanStatus.isGranted || !connStatus.isGranted) {
-        _log('Requesting Bluetooth permissions (BLUETOOTH_SCAN & BLUETOOTH_CONNECT)...');
-        final statuses = await [
-          Permission.bluetoothScan,
-          Permission.bluetoothConnect,
-        ].request();
+        if (!scanStatus.isGranted || !connStatus.isGranted) {
+          _log('Requesting Bluetooth permissions (BLUETOOTH_SCAN & BLUETOOTH_CONNECT)...');
+          final statuses = await [
+            Permission.bluetoothScan,
+            Permission.bluetoothConnect,
+          ].request();
 
-        final granted = (statuses[Permission.bluetoothScan]?.isGranted == true) &&
-            (statuses[Permission.bluetoothConnect]?.isGranted == true);
-        if (!granted) {
-          _log('Warning: Bluetooth permissions denied.');
+          final granted = (statuses[Permission.bluetoothScan]?.isGranted == true) &&
+              (statuses[Permission.bluetoothConnect]?.isGranted == true);
+          if (!granted) {
+            _log('Warning: Bluetooth permissions denied.');
+          }
+          return granted;
         }
-        return granted;
+      } else if (Platform.isIOS || Platform.isMacOS) {
+        final status = await Permission.bluetooth.status;
+        if (!status.isGranted) {
+          _log('Requesting Bluetooth permission on macOS/iOS...');
+          final res = await Permission.bluetooth.request();
+          if (!res.isGranted) {
+            _log('Warning: Bluetooth permission denied on macOS/iOS.');
+            return false;
+          }
+        }
       }
       return true;
     } catch (e) {
@@ -142,7 +179,23 @@ class BaristaBleService extends ChangeNotifier {
     if (_telemetry.isScanning || _telemetry.isConnected) return;
 
     final hasPerms = await _checkAndRequestPermissions();
-    if (!hasPerms) return;
+    if (!hasPerms) {
+      _log('Bluetooth permissions missing; cannot start scan.');
+      return;
+    }
+
+    // Ensure Bluetooth adapter is powered on before starting scan (especially on macOS / iOS / Windows)
+    try {
+      if (FlutterBluePlus.adapterStateNow != BluetoothAdapterState.on) {
+        _log('Waiting for Bluetooth adapter to power on...');
+        await FlutterBluePlus.adapterState
+            .where((s) => s == BluetoothAdapterState.on)
+            .first
+            .timeout(const Duration(seconds: 4), onTimeout: () => BluetoothAdapterState.unknown);
+      }
+    } catch (e) {
+      _log('Notice waiting for adapterState: $e');
+    }
 
     _updateTelemetry(_telemetry.copyWith(isScanning: true));
     _log('Scanning for nearby Barista machines (White_* / Black_* / W545)...');
@@ -154,8 +207,20 @@ class BaristaBleService extends ChangeNotifier {
           final name = r.device.platformName;
           final advName = r.advertisementData.advName;
           final mac = r.device.remoteId.str;
-          if (_isBaristaDevice(name, advName, mac)) {
-            _log('Discovered active Barista machine: ${name.isNotEmpty ? name : advName} ($mac)');
+          final serviceUuids = r.advertisementData.serviceUuids;
+
+          if (_isBaristaDevice(
+            name: name,
+            advName: advName,
+            mac: mac,
+            serviceUuids: serviceUuids,
+            serviceData: r.advertisementData.serviceData,
+            manufacturerData: r.advertisementData.manufacturerData,
+          )) {
+            final displayName = name.isNotEmpty
+                ? name
+                : (advName.isNotEmpty ? advName : 'Barista W545');
+            _log('Discovered active Barista machine: $displayName ($mac)');
             stopScan();
             connect(r.device);
             break;
@@ -163,13 +228,14 @@ class BaristaBleService extends ChangeNotifier {
         }
       });
 
-      // Scan for 8 seconds
+      // Scan for 10 seconds with continuousUpdates to ensure scan responses with names are received
       await FlutterBluePlus.startScan(
-        timeout: const Duration(seconds: 8),
+        timeout: const Duration(seconds: 10),
+        continuousUpdates: true,
       );
 
       // Auto stop scan after timeout
-      Future.delayed(const Duration(seconds: 8), () {
+      Future.delayed(const Duration(seconds: 10), () {
         if (_telemetry.isScanning) {
           stopScan();
           _log('Scan completed. No active Barista machine found.');

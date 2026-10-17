@@ -16,8 +16,8 @@ void main() async {
   // Initialize Native BLE Service
   final bleService = BaristaBleService(storageService: storageService);
 
-  // Request Runtime Permissions on Mobile Platforms
-  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+  // Request Runtime Permissions on Mobile & Desktop Platforms
+  if (!kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS)) {
     await _requestBlePermissions();
   }
 
@@ -35,7 +35,7 @@ Future<void> _requestBlePermissions() async {
         Permission.bluetoothConnect,
         Permission.location,
       ].request();
-    } else if (Platform.isIOS) {
+    } else if (Platform.isIOS || Platform.isMacOS) {
       await Permission.bluetooth.request();
     }
   } catch (e) {
