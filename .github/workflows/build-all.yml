@@ -21,25 +21,12 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.24.3'
           channel: 'stable'
+          cache: true
 
-      - name: Scaffold Fresh Android Wrapper
-        run: |
-          rm -rf android
-          flutter create . --platforms=android --org com.baristastudio --project-name=barista_studio
-
-      - name: Inject BLE Permissions, Custom Icons & App Label
-        run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          PERMS='    <uses-permission android:name="android.permission.BLUETOOTH" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />'
-          sed -i "/<manifest/a $PERMS" "$MANIFEST"
-          sed -i 's/android:label="barista_studio"/android:label="Barista Studio"/g' "$MANIFEST"
-          cp -r assets/android_res/mipmap-* android/app/src/main/res/
-
-      - name: Get Dependencies & Upgrade Plugin compileSdk to 36
-        run: |
-          flutter pub get
-          find ~/.pub-cache -name "build.gradle" -exec sed -i 's/compileSdkVersion 3[0-5]/compileSdkVersion 36/g; s/compileSdk 3[0-5]/compileSdk 36/g' {} +
+      - name: Get Dependencies
+        run: flutter pub get
 
       - name: Build APK
         run: flutter build apk --release
@@ -59,15 +46,9 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.24.3'
           channel: 'stable'
-
-      - name: Scaffold Fresh macOS Runner & Inject BLE Entitlements
-        run: |
-          rm -rf macos
-          flutter create . --platforms=macos --org com.baristastudio --project-name=barista_studio
-          /usr/libexec/PlistBuddy -c "Add :NSBluetoothAlwaysUsageDescription string 'Barista Studio uses Bluetooth to connect and flash recipes to your Nespresso Barista.'" macos/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :com.apple.security.device.bluetooth bool true" macos/Runner/DebugProfile.entitlements
-          /usr/libexec/PlistBuddy -c "Add :com.apple.security.device.bluetooth bool true" macos/Runner/Release.entitlements
+          cache: true
 
       - name: Get Dependencies
         run: flutter pub get
@@ -100,12 +81,9 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.24.3'
           channel: 'stable'
-
-      - name: Scaffold Fresh Linux Runner
-        run: |
-          rm -rf linux
-          flutter create . --platforms=linux --org com.baristastudio --project-name=barista_studio
+          cache: true
 
       - name: Get Dependencies
         run: flutter pub get
@@ -132,16 +110,9 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: '3.24.3'
           channel: 'stable'
-
-      - name: Scaffold Fresh Windows Runner & Silence MSVC Coroutine Warning
-        shell: pwsh
-        run: |
-          flutter create . --platforms=windows --org com.baristastudio --project-name=barista_studio
-          $cmake = Get-Content windows\CMakeLists.txt -Raw
-          $fix = "project(barista_studio LANGUAGES CXX)`nadd_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)"
-          $cmake = $cmake -replace 'project\(barista_studio LANGUAGES CXX\)', $fix
-          Set-Content windows\CMakeLists.txt -Value $cmake
+          cache: true
 
       - name: Get Dependencies
         run: flutter pub get

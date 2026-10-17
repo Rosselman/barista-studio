@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Barista Studio uses Bluetooth to connect and flash recipes to your Nespresso Barista.</string>
 </dict>
 </plist>
