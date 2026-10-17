@@ -167,7 +167,7 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
 
   Widget _buildTelemetryTab(MachineTelemetry t) {
     final cmid = widget.storageService.getCmidKey();
-    final lastMac = widget.storageService.getLastConnectedMac() ?? 'None (Auto-Discovery)';
+    final lastMac = widget.storageService.getLastConnectedMac();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(18),
@@ -189,7 +189,7 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
                 _buildInfoRow('Connection Status', t.isConnected ? 'CONNECTED' : (t.isScanning ? 'SCANNING' : 'DISCONNECTED'),
                     color: t.isConnected ? AppTheme.emeraldSuccess : (t.isScanning ? AppTheme.amberHeat : AppTheme.rubyEmergency)),
                 _buildInfoRow('Device Name', t.deviceName ?? 'Unknown'),
-                _buildInfoRow('MAC Address', t.macAddress ?? lastMac),
+                _buildInfoRow('MAC Address', t.macAddress ?? (lastMac != null ? '$lastMac (Last Paired)' : 'None (Disconnected)')),
                 _buildInfoRow('Serial Number', t.serialNumber ?? 'Not Read'),
                 _buildInfoRow('Machine State', t.machineState),
                 _buildInfoRow('Pairing State', t.pairingState),

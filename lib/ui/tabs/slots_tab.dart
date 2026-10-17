@@ -107,6 +107,7 @@ class SlotsTab extends StatelessWidget {
     return ListenableBuilder(
       listenable: bleService,
       builder: (context, _) {
+        final isConnected = bleService.isConnected;
         final slots = bleService.slots;
         final selectedSlot = bleService.telemetry.selectedSlot;
         final occupiedCount = slots.where((s) => s.isOccupied).length;
@@ -134,33 +135,57 @@ class SlotsTab extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            Text(
-                              '$occupiedCount of 13 Slots Occupied',
-                              style: const TextStyle(
-                                color: AppTheme.goldPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                            if (isConnected)
+                              Text(
+                                '$occupiedCount of 13 Slots Occupied',
+                                style: const TextStyle(
+                                  color: AppTheme.goldPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              )
+                            else
+                              const Row(
+                                children: [
+                                  Icon(Icons.link_off, size: 13, color: AppTheme.textMuted),
+                                  SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      'Machine Offline • Connect to sync EEPROM',
+                                      style: TextStyle(
+                                        color: AppTheme.textMuted,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
                           ],
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.refresh, color: AppTheme.goldLight, size: 22),
-                        tooltip: 'Refresh Slots',
-                        onPressed: () => bleService.fetchAllSlots(),
+                        icon: Icon(
+                          Icons.refresh,
+                          color: isConnected ? AppTheme.goldLight : AppTheme.textMuted,
+                          size: 22,
+                        ),
+                        tooltip: isConnected ? 'Refresh Slots' : 'Connect machine to refresh',
+                        onPressed: isConnected ? () => bleService.fetchAllSlots() : null,
                       ),
                       const SizedBox(width: 4),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppTheme.rubyEmergency,
-                          side: const BorderSide(color: AppTheme.rubyEmergency),
+                          foregroundColor: isConnected ? AppTheme.rubyEmergency : AppTheme.textMuted,
+                          side: BorderSide(color: isConnected ? AppTheme.rubyEmergency : AppTheme.borderSubtle),
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           minimumSize: const Size(80, 32),
                         ),
                         icon: const Icon(Icons.delete_sweep, size: 15),
                         label: const Text('Clear All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
-                        onPressed: () => _confirmClearAll(context),
+                        onPressed: isConnected ? () => _confirmClearAll(context) : null,
                       ),
                     ],
                   ),
@@ -185,7 +210,7 @@ class SlotsTab extends StatelessWidget {
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
                           final slot = slots[index];
-                          final isSelected = selectedSlot == index;
+                          final isSelected = isConnected && (selectedSlot == index);
                           return _buildSlotCard(context, slot, isSelected);
                         },
                         childCount: 13,
@@ -325,81 +350,106 @@ class SlotsTab extends StatelessWidget {
                 isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
                 size: 20,
               ),
-              color: isSelected ? AppTheme.goldPrimary : AppTheme.textSecondary,
-              tooltip: 'Select on Screen',
+              color: isSelected
+                  ? AppTheme.goldPrimary
+                  : (bleService.isConnected ? AppTheme.textSecondary : AppTheme.borderSubtle),
+              tooltip: bleService.isConnected ? 'Select on Screen' : 'Machine offline',
               constraints: const BoxConstraints.tightFor(width: 32, height: 32),
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
-              onPressed: () => bleService.selectSlot(slotIdx),
+              onPressed: bleService.isConnected ? () => bleService.selectSlot(slotIdx) : null,
             ),
             // Options overflow
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, size: 18, color: AppTheme.textMuted),
-              color: AppTheme.surfaceCard,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppTheme.borderSubtle),
+            SizedBox(
+              width: 32,
+              height: 32,
+              child: PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert,
+                  size: 18,
+                  color: bleService.isConnected ? AppTheme.textMuted : AppTheme.borderSubtle,
+                ),
+                color: AppTheme.surfaceCard,
+                elevation: 8,
+                tooltip: 'Slot Options',
+                enabled: bleService.isConnected,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: AppTheme.borderSubtle),
+                ),
+                padding: EdgeInsets.zero,
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'select',
+                    child: Row(
+                      children: [
+                        Icon(Icons.touch_app, size: 16, color: AppTheme.goldPrimary),
+                        SizedBox(width: 10),
+                        Text('Select on Machine', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'move',
+                    child: Row(
+                      children: [
+                        Icon(Icons.swap_vert, size: 16, color: AppTheme.crema),
+                        SizedBox(width: 10),
+                        Text('Move Position', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        Icon(Icons.delete_outline, size: 16, color: AppTheme.rubyEmergency),
+                        SizedBox(width: 10),
+                        Text('Delete Recipe', style: TextStyle(color: AppTheme.rubyEmergency, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ],
+                onSelected: (val) {
+                  if (val == 'select') {
+                    bleService.selectSlot(slotIdx);
+                  } else if (val == 'move') {
+                    _showMoveDialog(context, slotIdx);
+                  } else if (val == 'delete') {
+                    bleService.deleteSlot(slotIdx);
+                  }
+                },
               ),
-              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-              padding: EdgeInsets.zero,
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(
-                  value: 'select',
-                  child: Row(
-                    children: [
-                      Icon(Icons.touch_app, size: 16, color: AppTheme.goldPrimary),
-                      SizedBox(width: 8),
-                      Text('Select on Machine', style: TextStyle(color: AppTheme.crema, fontSize: 13)),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'move',
-                  child: Row(
-                    children: [
-                      Icon(Icons.swap_vert, size: 16, color: AppTheme.crema),
-                      SizedBox(width: 8),
-                      Text('Move Position', style: TextStyle(color: AppTheme.crema, fontSize: 13)),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline, size: 16, color: AppTheme.rubyEmergency),
-                      SizedBox(width: 8),
-                      Text('Delete Recipe', style: TextStyle(color: AppTheme.rubyEmergency, fontSize: 13)),
-                    ],
-                  ),
-                ),
-              ],
-              onSelected: (val) {
-                if (val == 'select') {
-                  bleService.selectSlot(slotIdx);
-                } else if (val == 'move') {
-                  _showMoveDialog(context, slotIdx);
-                } else if (val == 'delete') {
-                  bleService.deleteSlot(slotIdx);
-                }
-              },
             ),
           ] else ...[
             TextButton.icon(
-              icon: const Icon(Icons.add, size: 15, color: AppTheme.goldPrimary),
-              label: const Text('Flash', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+              icon: Icon(
+                Icons.add,
+                size: 15,
+                color: bleService.isConnected ? AppTheme.goldPrimary : AppTheme.textMuted,
+              ),
+              label: Text(
+                'Flash',
+                style: TextStyle(
+                  color: bleService.isConnected ? AppTheme.goldPrimary : AppTheme.textMuted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 minimumSize: const Size(60, 30),
               ),
-              onPressed: () {
-                FlashRecipeDialog.show(
-                  context,
-                  recipe: PresetCatalog.presets.first,
-                  bleService: bleService,
-                  initialTargetSlot: slotIdx,
-                );
-              },
+              onPressed: bleService.isConnected
+                  ? () {
+                      FlashRecipeDialog.show(
+                        context,
+                        recipe: PresetCatalog.presets.first,
+                        bleService: bleService,
+                        initialTargetSlot: slotIdx,
+                      );
+                    }
+                  : null,
             ),
           ],
         ],

@@ -20,8 +20,11 @@ class AboutBaristaDialog extends StatelessWidget {
         side: const BorderSide(color: AppTheme.borderSubtle),
       ),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
-        child: Padding(
+        constraints: BoxConstraints(
+          maxWidth: 440,
+          maxHeight: MediaQuery.of(context).size.height * 0.88,
+        ),
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(22),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -55,7 +58,7 @@ class AboutBaristaDialog extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'v1.1.0 • Release',
+                          'v1.1.2 • Release',
                           style: TextStyle(
                             color: AppTheme.goldPrimary,
                             fontSize: 12,

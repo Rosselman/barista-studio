@@ -63,7 +63,6 @@ class BaristaBleService extends ChangeNotifier {
   final _logController = StreamController<String>.broadcast();
   Stream<String> get logStream => _logController.stream;
   StreamSubscription<List<ScanResult>>? _scanSub;
-  bool _isUserDisconnect = false;
 
   void _log(String message) {
     debugPrint('[BaristaBLE] $message');
@@ -81,14 +80,16 @@ class BaristaBleService extends ChangeNotifier {
   bool _isBaristaDevice(String name, String advName, String mac) {
     final n = name.trim().toUpperCase();
     final an = advName.trim().toUpperCase();
-    final m = mac.trim().toUpperCase();
-    final lastMac = storageService.getLastConnectedMac()?.trim().toUpperCase();
 
-    // Machine advertises with prefix White_ or Black_ or Barista or W545
+    // Universal Nespresso Barista W545 naming patterns
     if (n.startsWith('WHITE_') || an.startsWith('WHITE_')) return true;
     if (n.startsWith('BLACK_') || an.startsWith('BLACK_')) return true;
     if (n.contains('BARISTA') || an.contains('BARISTA')) return true;
     if (n.contains('W545') || an.contains('W545')) return true;
+
+    // Also match if this specific device matches the phone's previously paired MAC
+    final lastMac = storageService.getLastConnectedMac()?.trim().toUpperCase();
+    final m = mac.trim().toUpperCase();
     if (lastMac != null && lastMac.isNotEmpty && m == lastMac) return true;
 
     return false;
@@ -122,10 +123,9 @@ class BaristaBleService extends ChangeNotifier {
     }
   }
 
-  /// Automatically connects to the known physical Barista machine or falls back to scan
+  /// Automatically connects to an active nearby Barista machine via BLE scan
   Future<void> autoConnect() async {
     if (_telemetry.isConnected || _telemetry.isScanning) return;
-    _isUserDisconnect = false;
 
     final hasPerms = await _checkAndRequestPermissions();
     if (!hasPerms) {
@@ -133,30 +133,19 @@ class BaristaBleService extends ChangeNotifier {
       return;
     }
 
-    final knownMac = storageService.getLastConnectedMac();
-    if (knownMac != null && knownMac.isNotEmpty) {
-      _log('Attempting direct GATT connection to Barista MAC: $knownMac...');
-      try {
-        final device = BluetoothDevice.fromId(knownMac);
-        await connect(device);
-        return;
-      } catch (e) {
-        _log('Direct connection attempt failed ($e), falling back to BLE scan...');
-      }
-    }
-
+    // Always scan for live advertising machines instead of blind direct connection.
+    // If the machine is powered off, scanning simply completes with DISCONNECTED state.
     await startScan();
   }
 
   Future<void> startScan() async {
     if (_telemetry.isScanning || _telemetry.isConnected) return;
-    _isUserDisconnect = false;
 
     final hasPerms = await _checkAndRequestPermissions();
     if (!hasPerms) return;
 
     _updateTelemetry(_telemetry.copyWith(isScanning: true));
-    _log('Scanning for nearby Barista machines (White_* / Black_*)...');
+    _log('Scanning for nearby Barista machines (White_* / Black_* / W545)...');
 
     try {
       await _scanSub?.cancel();
@@ -166,7 +155,7 @@ class BaristaBleService extends ChangeNotifier {
           final advName = r.advertisementData.advName;
           final mac = r.device.remoteId.str;
           if (_isBaristaDevice(name, advName, mac)) {
-            _log('Discovered Barista machine: ${name.isNotEmpty ? name : advName} ($mac)');
+            _log('Discovered active Barista machine: ${name.isNotEmpty ? name : advName} ($mac)');
             stopScan();
             connect(r.device);
             break;
@@ -174,16 +163,16 @@ class BaristaBleService extends ChangeNotifier {
         }
       });
 
-      // Scan without service filter as physical Barista W545 does not advertise service UUIDs
+      // Scan for 8 seconds
       await FlutterBluePlus.startScan(
-        timeout: const Duration(seconds: 15),
+        timeout: const Duration(seconds: 8),
       );
 
       // Auto stop scan after timeout
-      Future.delayed(const Duration(seconds: 15), () {
+      Future.delayed(const Duration(seconds: 8), () {
         if (_telemetry.isScanning) {
           stopScan();
-          _log('Scan completed.');
+          _log('Scan completed. No active Barista machine found.');
         }
       });
     } catch (e) {
@@ -202,53 +191,34 @@ class BaristaBleService extends ChangeNotifier {
   }
 
   Future<void> connect(BluetoothDevice device) async {
-    _isUserDisconnect = false;
     await disconnect();
     _device = device;
     _log('Connecting to GATT: ${device.remoteId.str}...');
 
     _connSub = device.connectionState.listen((state) async {
       if (state == BluetoothConnectionState.connected) {
-        _log('Connected to ${device.remoteId.str}. Discovering services...');
-        storageService.setLastConnectedMac(device.remoteId.str);
-        _updateTelemetry(_telemetry.copyWith(
-          isConnected: true,
-          deviceName: device.platformName.isNotEmpty
-              ? device.platformName
-              : 'Barista (${device.remoteId.str})',
-          macAddress: device.remoteId.str,
-        ));
-
-        // Note: Do NOT call requestMtu(247) on Barista W545 as its firmware disconnects!
+        _log('GATT transport connected to ${device.remoteId.str}. Discovering services...');
+        // Do NOT mark isConnected = true yet! Wait for GATT discovery and CMID handshake confirmation.
         await _discoverAndSetupServices(device);
       } else if (state == BluetoothConnectionState.disconnected) {
         _log('Disconnected from Barista.');
-        final wasConnected = _telemetry.isConnected;
         _handleDisconnection();
-        if (!wasConnected && !_isUserDisconnect) {
-          _log('Initial direct connect did not establish. Falling back to BLE scan...');
-          startScan();
-        }
       }
     });
 
     try {
       await device.connect(
-        timeout: const Duration(seconds: 10),
+        timeout: const Duration(seconds: 8),
         autoConnect: false,
       );
     } catch (e) {
       _log('Connection failed: $e');
       _handleDisconnection();
-      if (!_isUserDisconnect) {
-        _log('Starting scan fallback after connection error...');
-        startScan();
-      }
     }
   }
 
   Future<void> disconnect() async {
-    _isUserDisconnect = true;
+    _stopLivenessHeartbeat();
     _slotTimeoutTimer?.cancel();
     _slotFetchQueue.clear();
     _currentFetchingSlot = -1;
@@ -273,11 +243,59 @@ class BaristaBleService extends ChangeNotifier {
   }
 
   void _handleDisconnection() {
+    _stopLivenessHeartbeat();
     _slotTimeoutTimer?.cancel();
     _slotFetchQueue.clear();
     _currentFetchingSlot = -1;
     _opQueue.clear();
+    for (int i = 0; i < 13; i++) {
+      _slots[i] = SlotInfo(slotIndex: i, recipeName: 'Slot ${i + 1}');
+    }
     _updateTelemetry(const MachineTelemetry());
+  }
+
+  // ===========================================================================
+  // 1.5. Liveness Heartbeat
+  // ===========================================================================
+
+  Timer? _heartbeatTimer;
+  int _consecutiveHeartbeatFailures = 0;
+
+  void _startLivenessHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _consecutiveHeartbeatFailures = 0;
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+      if (!isConnected || _device == null || _charMachineStatus == null) {
+        _stopLivenessHeartbeat();
+        return;
+      }
+
+      // If active upload or slot queue is running, link is proven by active packets
+      if (_isUploading || _currentFetchingSlot != -1) {
+        _consecutiveHeartbeatFailures = 0;
+        return;
+      }
+
+      try {
+        final data = await _charMachineStatus!.read().timeout(const Duration(seconds: 2));
+        _consecutiveHeartbeatFailures = 0;
+        _handleMachineStatus(data);
+      } catch (e) {
+        _consecutiveHeartbeatFailures++;
+        _log('Liveness probe missed ($_consecutiveHeartbeatFailures/2): $e');
+        if (_consecutiveHeartbeatFailures >= 2) {
+          _log('Machine powered down or unreachable. Disconnecting.');
+          _stopLivenessHeartbeat();
+          disconnect();
+        }
+      }
+    });
+  }
+
+  void _stopLivenessHeartbeat() {
+    _heartbeatTimer?.cancel();
+    _heartbeatTimer = null;
+    _consecutiveHeartbeatFailures = 0;
   }
 
   // ===========================================================================
@@ -325,10 +343,17 @@ class BaristaBleService extends ChangeNotifier {
         }
       }
 
+      if (_charMachineStatus == null || _charRecipeCommand == null) {
+        _log('Essential Barista GATT characteristics missing. Aborting connection.');
+        await disconnect();
+        return;
+      }
+
       _log('GATT Characteristics cached. Enabling notifications & handshake...');
-      await _setupNotificationsAndAuth();
+      await _setupNotificationsAndAuth(device);
     } catch (e) {
-      _log('Service discovery error: $e');
+      _log('Service discovery error: $e. Disconnecting.');
+      await disconnect();
     }
   }
 
@@ -336,7 +361,7 @@ class BaristaBleService extends ChangeNotifier {
   // 3. Notifications & CMID Authentication Handshake
   // ===========================================================================
 
-  Future<void> _setupNotificationsAndAuth() async {
+  Future<void> _setupNotificationsAndAuth(BluetoothDevice device) async {
     // 1. Subscribe to MACHINE_STATUS
     if (_charMachineStatus != null) {
       try {
@@ -409,18 +434,21 @@ class BaristaBleService extends ChangeNotifier {
     }
 
     // 5. CMID Handshake
-    _performPairingHandshake();
+    _performPairingHandshake(device);
   }
 
-  void _performPairingHandshake() {
-    if (_charMachineStatus == null) return;
+  void _performPairingHandshake(BluetoothDevice device) {
+    if (_charMachineStatus == null) {
+      disconnect();
+      return;
+    }
 
     _opQueue.enqueue(() async {
       try {
-        final data = await _charMachineStatus!.read();
+        final data = await _charMachineStatus!.read().timeout(const Duration(seconds: 4));
         if (data.length < 2) {
-          _log('Failed to read pairing state; proceeding directly to slots.');
-          fetchAllSlots();
+          _log('Failed to read pairing state; aborting connection.');
+          disconnect();
           return false;
         }
         final b0 = data[0] & 0xFF;
@@ -447,9 +475,9 @@ class BaristaBleService extends ChangeNotifier {
           _log('Authenticating session: Writing 8-byte CMID to charCmid: $hexStr');
           try {
             await _charCmid!.write(cmidBytes, withoutResponse: false);
-            _log('CMID key accepted by machine! Confirming session...');
+            _log('CMID key accepted by machine!');
           } catch (e) {
-            _log('Authentication failed: Machine rejected CMID key ($e).');
+            _log('CMID key write warning: $e');
           }
         }
 
@@ -467,12 +495,23 @@ class BaristaBleService extends ChangeNotifier {
           }
         }
 
-        _log('Session authenticated. Fetching all 13 slots...');
+        // Confirmed active & authenticated connection!
+        storageService.setLastConnectedMac(device.remoteId.str);
+        _updateTelemetry(_telemetry.copyWith(
+          isConnected: true,
+          deviceName: device.platformName.isNotEmpty
+              ? device.platformName
+              : 'Barista (${device.remoteId.str})',
+          macAddress: device.remoteId.str,
+        ));
+
+        _startLivenessHeartbeat();
+        _log('Machine authenticated and confirmed ONLINE. Fetching all 13 slots...');
         fetchAllSlots();
         return true;
       } catch (e) {
-        _log('Pairing handshake error: $e. Fetching slots...');
-        fetchAllSlots();
+        _log('Pairing handshake error: $e. Aborting connection.');
+        disconnect();
         return false;
       }
     }, description: 'Pairing Handshake');
