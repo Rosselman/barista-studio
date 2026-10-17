@@ -52,7 +52,6 @@ class _HomeShellState extends State<HomeShell> {
         final telemetry = widget.bleService.telemetry;
         final isConnected = telemetry.isConnected;
         final isScanning = telemetry.isScanning;
-        final isMotorRunning = telemetry.motorRunning;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -233,52 +232,6 @@ class _HomeShellState extends State<HomeShell> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (isConnected) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: isMotorRunning
-                                  ? AppTheme.emeraldSuccess.withOpacity(0.18)
-                                  : AppTheme.surfaceElevated,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: isMotorRunning ? AppTheme.emeraldSuccess : AppTheme.borderSubtle,
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Text(
-                              isMotorRunning ? 'MOTOR ON' : 'MOTOR OFF',
-                              style: TextStyle(
-                                color: isMotorRunning ? AppTheme.emeraldSuccess : AppTheme.textMuted,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: telemetry.inductionHeatingActive
-                                  ? AppTheme.amberHeat.withOpacity(0.18)
-                                  : AppTheme.surfaceElevated,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: telemetry.inductionHeatingActive ? AppTheme.amberHeat : AppTheme.borderSubtle,
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Text(
-                              telemetry.inductionHeatingActive ? 'HEAT ON' : 'HEAT OFF',
-                              style: TextStyle(
-                                color: telemetry.inductionHeatingActive ? AppTheme.amberHeat : AppTheme.textMuted,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),

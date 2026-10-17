@@ -441,19 +441,125 @@ class SlotsTab extends StatelessWidget {
                 minimumSize: const Size(60, 30),
               ),
               onPressed: bleService.isConnected
-                  ? () {
-                      FlashRecipeDialog.show(
-                        context,
-                        recipe: PresetCatalog.presets.first,
-                        bleService: bleService,
-                        initialTargetSlot: slotIdx,
-                      );
-                    }
+                  ? () => _showRecipePickerForSlot(context, slotIdx)
                   : null,
             ),
           ],
         ],
       ),
+    );
+  }
+
+  void _showRecipePickerForSlot(BuildContext context, int slotIdx) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.surfaceCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        String filter = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = PresetCatalog.presets.where((r) {
+              if (filter.isEmpty) return true;
+              final q = filter.toLowerCase().trim();
+              return r.name.toLowerCase().contains(q) ||
+                  r.category.toLowerCase().contains(q) ||
+                  r.tags.any((t) => t.toLowerCase().contains(q));
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.72,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: AppTheme.borderSubtle,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Text(
+                        'Select Recipe for Slot ${slotIdx + 1}',
+                        style: const TextStyle(
+                          color: AppTheme.crema,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: AppTheme.textMuted),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    style: const TextStyle(color: AppTheme.crema, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Search 40+ recipes...',
+                      hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                      prefixIcon: const Icon(Icons.search, size: 18, color: AppTheme.textMuted),
+                      filled: true,
+                      fillColor: AppTheme.bgDark,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppTheme.borderSubtle),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: AppTheme.borderSubtle),
+                      ),
+                    ),
+                    onChanged: (val) => setModalState(() => filter = val),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(color: AppTheme.borderSubtle, height: 1),
+                      itemBuilder: (context, i) {
+                        final recipe = filtered[i];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          title: Text(
+                            recipe.name,
+                            style: const TextStyle(color: AppTheme.crema, fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            '${recipe.category} • ${recipe.isCold ? "Cold" : "${recipe.maxTemp}°C"} • ${recipe.totalDurationSeconds}s',
+                            style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                          ),
+                          trailing: const Icon(Icons.flash_on, size: 16, color: AppTheme.goldPrimary),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            FlashRecipeDialog.show(
+                              context,
+                              recipe: recipe,
+                              bleService: bleService,
+                              initialTargetSlot: slotIdx,
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

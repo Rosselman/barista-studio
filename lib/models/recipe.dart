@@ -5,7 +5,8 @@ class Recipe {
   final String id;
   final String name; // Displayed on front LED matrix (Max 16 ASCII)
   final String description;
-  final String category; // 'Hot', 'Iced / Cold Foam', 'Plant-Based / Non-Dairy', 'Chocolate & Matcha', 'Specialty'
+  final String category; // Primary category for display
+  final List<String> tags; // Classification tags for multi-filter matching ('Non-Coffee', 'Dairy', 'Non-Dairy', 'Cold Foam & Textures', etc.)
   final List<Phase> phases; // Max 3 phases
   final List<String> ingredients;
   final List<String> instructions;
@@ -16,6 +17,7 @@ class Recipe {
     required this.name,
     required this.description,
     required this.category,
+    this.tags = const [],
     required this.phases,
     this.ingredients = const [],
     this.instructions = const [],
@@ -66,6 +68,7 @@ class Recipe {
     String? name,
     String? description,
     String? category,
+    List<String>? tags,
     List<Phase>? phases,
     List<String>? ingredients,
     List<String>? instructions,
@@ -76,6 +79,7 @@ class Recipe {
       name: name ?? this.name,
       description: description ?? this.description,
       category: category ?? this.category,
+      tags: tags ?? this.tags,
       phases: phases ?? this.phases,
       ingredients: ingredients ?? this.ingredients,
       instructions: instructions ?? this.instructions,
@@ -88,6 +92,7 @@ class Recipe {
         'name': name,
         'description': description,
         'category': category,
+        'tags': tags,
         'phases': phases.map((p) => p.toJson()).toList(),
         'ingredients': ingredients,
         'instructions': instructions,
@@ -100,6 +105,10 @@ class Recipe {
       name: json['name'] as String? ?? 'Custom Froth',
       description: json['description'] as String? ?? '',
       category: json['category'] as String? ?? 'Specialty',
+      tags: (json['tags'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       phases: (json['phases'] as List<dynamic>?)
               ?.map((e) => Phase.fromJson(e as Map<String, dynamic>))
               .toList() ??

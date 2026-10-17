@@ -26,13 +26,17 @@ class _PresetsTabState extends State<PresetsTab> {
   final TextEditingController _searchController = TextEditingController();
 
   List<Recipe> get _filteredRecipes {
+    final query = _searchQuery.toLowerCase().trim();
     return PresetCatalog.presets.where((r) {
-      final matchesCategory =
-          _selectedCategory == 'All' || r.category == _selectedCategory;
-      final matchesSearch = _searchQuery.isEmpty ||
-          r.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          r.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          r.ingredients.any((i) => i.toLowerCase().contains(_searchQuery.toLowerCase()));
+      final matchesCategory = _selectedCategory == 'All' ||
+          r.category == _selectedCategory ||
+          r.tags.contains(_selectedCategory);
+      final matchesSearch = query.isEmpty ||
+          r.name.toLowerCase().contains(query) ||
+          r.description.toLowerCase().contains(query) ||
+          r.category.toLowerCase().contains(query) ||
+          r.tags.any((t) => t.toLowerCase().contains(query)) ||
+          r.ingredients.any((i) => i.toLowerCase().contains(query));
       return matchesCategory && matchesSearch;
     }).toList();
   }
