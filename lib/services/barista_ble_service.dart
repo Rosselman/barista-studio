@@ -134,7 +134,7 @@ class BaristaBleService extends ChangeNotifier {
     }
 
     final knownMac = storageService.getLastConnectedMac();
-    if (knownMac.isNotEmpty) {
+    if (knownMac != null && knownMac.isNotEmpty) {
       _log('Attempting direct GATT connection to Barista MAC: $knownMac...');
       try {
         final device = BluetoothDevice.fromId(knownMac);
