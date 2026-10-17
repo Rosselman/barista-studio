@@ -61,9 +61,9 @@ jobs:
         run: |
           rm -rf macos
           flutter create . --platforms=macos --project-name=barista_studio
-          plutil -insert NSBluetoothAlwaysUsageDescription -string "Barista Studio uses Bluetooth to connect and flash recipes to your Nespresso Barista." macos/Runner/Info.plist
-          plutil -insert com.apple.security.device.bluetooth -bool true macos/Runner/DebugProfile.entitlements
-          plutil -insert com.apple.security.device.bluetooth -bool true macos/Runner/Release.entitlements
+          /usr/libexec/PlistBuddy -c "Add :NSBluetoothAlwaysUsageDescription string 'Barista Studio uses Bluetooth to connect and flash recipes to your Nespresso Barista.'" macos/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :com.apple.security.device.bluetooth bool true" macos/Runner/DebugProfile.entitlements
+          /usr/libexec/PlistBuddy -c "Add :com.apple.security.device.bluetooth bool true" macos/Runner/Release.entitlements
 
       - name: Get Dependencies
         run: flutter pub get
@@ -130,9 +130,14 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Scaffold Fresh Windows Runner
+      - name: Scaffold Fresh Windows Runner & Silence MSVC Coroutine Warning
+        shell: pwsh
         run: |
           flutter create . --platforms=windows --project-name=barista_studio
+          $cmake = Get-Content windows\CMakeLists.txt -Raw
+          $fix = "project(barista_studio LANGUAGES CXX)`nadd_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)"
+          $cmake = $cmake -replace 'project\(barista_studio LANGUAGES CXX\)', $fix
+          Set-Content windows\CMakeLists.txt -Value $cmake
 
       - name: Get Dependencies
         run: flutter pub get
