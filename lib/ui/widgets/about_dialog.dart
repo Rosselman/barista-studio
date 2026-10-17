@@ -1,0 +1,189 @@
+import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
+
+class AboutBaristaDialog extends StatelessWidget {
+  const AboutBaristaDialog({super.key});
+
+  static void show(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => const AboutBaristaDialog(),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppTheme.surfaceCard,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppTheme.borderSubtle),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppTheme.goldPrimary.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.goldPrimary, width: 1),
+                    ),
+                    child: const Icon(Icons.coffee, color: AppTheme.goldPrimary, size: 26),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'BARISTA STUDIO',
+                          style: TextStyle(
+                            color: AppTheme.crema,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'v1.1.0 • Release',
+                          style: TextStyle(
+                            color: AppTheme.goldPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // Description
+              const Text(
+                'A dedicated Bluetooth LE companion and custom recipe manager for the Nespresso Barista W545 recipe maker.',
+                style: TextStyle(
+                  color: AppTheme.crema,
+                  fontSize: 13,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Developer Info Card
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.code, size: 16, color: AppTheme.goldPrimary),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'DEVELOPMENT & PROTOCOL',
+                            style: TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Rosselman',
+                      style: TextStyle(
+                        color: AppTheme.crema,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Reconstructed SDataWay BLE protocol, proprietary 16-byte CRC-16 CCITT packet sequencer, and hardware EEPROM synchronization.',
+                      style: TextStyle(
+                        color: AppTheme.textMuted,
+                        fontSize: 11,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Capabilities
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildFeatureItem(Icons.memory, '13 Hardware EEPROM Recipe Slots'),
+                    const SizedBox(height: 6),
+                    _buildFeatureItem(Icons.speed, 'Variable Whisk Motor (300 – 4000 RPM)'),
+                    const SizedBox(height: 6),
+                    _buildFeatureItem(Icons.local_fire_department, 'Induction Heater Coiling (Cold – 70°C)'),
+                    const SizedBox(height: 6),
+                    _buildFeatureItem(Icons.sync_alt, 'Real-time Rotary Dial Telemetry'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close', style: TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildFeatureItem(IconData icon, String label) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: AppTheme.goldLight),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+          ),
+        ),
+      ],
+    );
+  }
+}

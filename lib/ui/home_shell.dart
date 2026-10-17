@@ -6,6 +6,8 @@ import '../theme/app_theme.dart';
 import 'tabs/custom_recipe_tab.dart';
 import 'tabs/presets_tab.dart';
 import 'tabs/slots_tab.dart';
+import 'widgets/about_dialog.dart';
+import 'widgets/developer_dialog.dart';
 
 class HomeShell extends StatefulWidget {
   final BaristaBleService bleService;
@@ -140,30 +142,51 @@ class _HomeShellState extends State<HomeShell> {
                         onPressed: () => widget.bleService.disconnect(),
                       ),
                     ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 4),
 
-                  // Emergency STOP Button
+                  // Overflow Menu (Developer Menu & About)
                   Padding(
-                    padding: const EdgeInsets.only(right: 12, top: 10, bottom: 10),
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isMotorRunning
-                            ? AppTheme.rubyEmergency
-                            : const Color(0xFF8B1E1E),
-                        foregroundColor: Colors.white,
-                        elevation: isMotorRunning ? 4 : 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                        minimumSize: const Size(54, 32),
-                        side: isMotorRunning
-                            ? const BorderSide(color: Colors.white, width: 1.5)
-                            : BorderSide.none,
+                    padding: const EdgeInsets.only(right: 6),
+                    child: PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: AppTheme.crema, size: 22),
+                      color: AppTheme.surfaceCard,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: const BorderSide(color: AppTheme.borderSubtle),
                       ),
-                      icon: const Icon(Icons.stop_circle, size: 15),
-                      label: const Text(
-                        'STOP',
-                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11),
-                      ),
-                      onPressed: () => widget.bleService.emergencyStop(),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'developer',
+                          child: Row(
+                            children: [
+                              Icon(Icons.terminal, color: AppTheme.goldPrimary, size: 18),
+                              SizedBox(width: 10),
+                              Text('Developer Menu', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'about',
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, color: AppTheme.goldLight, size: 18),
+                              SizedBox(width: 10),
+                              Text('About Barista Studio', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onSelected: (val) {
+                        if (val == 'developer') {
+                          DeveloperDialog.show(
+                            context,
+                            bleService: widget.bleService,
+                            storageService: widget.storageService,
+                          );
+                        } else if (val == 'about') {
+                          AboutBaristaDialog.show(context);
+                        }
+                      },
                     ),
                   ),
                 ],

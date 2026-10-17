@@ -26,13 +26,28 @@ jobs:
       - name: Scaffold Fresh Android Wrapper
         run: |
           rm -rf android
-          flutter create . --platforms=android --project-name=barista_studio
+          flutter create . --platforms=android --org com.baristastudio --project-name=barista_studio
 
-      - name: Inject Android BLE Permissions
+      - name: Inject BLE Permissions, Custom Icons, App Label & compileSdk 36
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           PERMS='    <uses-permission android:name="android.permission.BLUETOOTH" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />'
           sed -i "/<manifest/a $PERMS" "$MANIFEST"
+          sed -i 's/android:label="barista_studio"/android:label="Barista Studio"/g' "$MANIFEST"
+          cp -r assets/android_res/mipmap-* android/app/src/main/res/
+          if [ -f android/build.gradle.kts ]; then
+            cat << 'EOKTS' >> android/build.gradle.kts
+          subprojects {
+              afterEvaluate {
+                  if (extensions.findByName("android") != null) {
+                      extensions.configure<com.android.build.gradle.BaseExtension>("android") {
+                          compileSdkVersion(36)
+                      }
+                  }
+              }
+          }
+          EOKTS
+          fi
 
       - name: Get Dependencies
         run: flutter pub get
@@ -60,7 +75,7 @@ jobs:
       - name: Scaffold Fresh macOS Runner & Inject BLE Entitlements
         run: |
           rm -rf macos
-          flutter create . --platforms=macos --project-name=barista_studio
+          flutter create . --platforms=macos --org com.baristastudio --project-name=barista_studio
           /usr/libexec/PlistBuddy -c "Add :NSBluetoothAlwaysUsageDescription string 'Barista Studio uses Bluetooth to connect and flash recipes to your Nespresso Barista.'" macos/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Add :com.apple.security.device.bluetooth bool true" macos/Runner/DebugProfile.entitlements
           /usr/libexec/PlistBuddy -c "Add :com.apple.security.device.bluetooth bool true" macos/Runner/Release.entitlements
@@ -101,7 +116,7 @@ jobs:
       - name: Scaffold Fresh Linux Runner
         run: |
           rm -rf linux
-          flutter create . --platforms=linux --project-name=barista_studio
+          flutter create . --platforms=linux --org com.baristastudio --project-name=barista_studio
 
       - name: Get Dependencies
         run: flutter pub get
@@ -133,7 +148,7 @@ jobs:
       - name: Scaffold Fresh Windows Runner & Silence MSVC Coroutine Warning
         shell: pwsh
         run: |
-          flutter create . --platforms=windows --project-name=barista_studio
+          flutter create . --platforms=windows --org com.baristastudio --project-name=barista_studio
           $cmake = Get-Content windows\CMakeLists.txt -Raw
           $fix = "project(barista_studio LANGUAGES CXX)`nadd_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)"
           $cmake = $cmake -replace 'project\(barista_studio LANGUAGES CXX\)', $fix

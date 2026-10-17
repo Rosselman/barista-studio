@@ -364,9 +364,11 @@ class BaristaBleService extends ChangeNotifier {
       try {
         _recipeSelectionSub = _charRecipeSelection!.onValueReceived.listen((val) {
           if (val.isNotEmpty) {
-            final slot = val[0] & 0xFF;
-            _updateTelemetry(_telemetry.copyWith(selectedSlot: slot));
-            _log('Machine selected slot changed: Slot ${slot + 1}');
+            final raw = val[0] & 0xFF;
+            // Physical Barista sends 1-based position (1..13). Convert to 0-based index for app UI (0..12).
+            final slotIndex = raw > 0 ? (raw - 1) : 0;
+            _updateTelemetry(_telemetry.copyWith(selectedSlot: slotIndex));
+            _log('Machine selected slot changed: Slot ${slotIndex + 1}');
           }
         });
         await _charRecipeSelection!.setNotifyValue(true);
@@ -379,9 +381,10 @@ class BaristaBleService extends ChangeNotifier {
         try {
           final val = await _charRecipeSelection!.read();
           if (val.isNotEmpty) {
-            final slot = val[0] & 0xFF;
-            _updateTelemetry(_telemetry.copyWith(selectedSlot: slot));
-            _log('Initial active slot read: Slot ${slot + 1}');
+            final raw = val[0] & 0xFF;
+            final slotIndex = raw > 0 ? (raw - 1) : 0;
+            _updateTelemetry(_telemetry.copyWith(selectedSlot: slotIndex));
+            _log('Initial active slot read: Slot ${slotIndex + 1}');
           }
           return true;
         } catch (_) {
@@ -793,19 +796,21 @@ class BaristaBleService extends ChangeNotifier {
   // ===========================================================================
 
   /// Selects slot on the machine display matrix
-  Future<void> selectSlot(int slot) async {
+  Future<void> selectSlot(int slotIndex) async {
     if (_charRecipeSelection == null) return;
-    final payload = [slot & 0xFF];
+    // Physical Barista expects 1-based position (1..13)
+    final hardwarePos = (slotIndex + 1).clamp(1, 13);
+    final payload = [hardwarePos & 0xFF];
     await _opQueue.enqueue(() async {
       try {
         await _charRecipeSelection!.write(payload, withoutResponse: false);
-        _log('Slot ${slot + 1} selected on physical machine.');
+        _log('Slot $hardwarePos selected on physical machine.');
         return true;
       } catch (e) {
         _log('Error selecting slot: $e');
         return false;
       }
-    }, description: 'Select Slot $slot');
+    }, description: 'Select Slot $hardwarePos');
   }
 
   /// Emergency STOP: cuts motor rotation and kills induction heater coil

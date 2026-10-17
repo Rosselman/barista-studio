@@ -7,17 +7,20 @@ import '../widgets/flash_recipe_dialog.dart';
 class SlotsTab extends StatelessWidget {
   final BaristaBleService bleService;
 
-  const SlotsTab({super.key, required this.bleService});
+  const SlotsTab({
+    super.key,
+    required this.bleService,
+  });
 
   void _confirmClearAll(BuildContext context) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppTheme.surfaceCard,
-        title: const Text('Clear All 13 Slots?', style: TextStyle(color: AppTheme.crema)),
+        title: const Text('Clear All Slots?', style: TextStyle(color: AppTheme.crema)),
         content: const Text(
-          'This will purge all custom and preset recipes stored in the Barista machine memory.',
-          style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          'This will erase all 13 recipe slots in the physical Barista EEPROM memory.',
+          style: TextStyle(color: AppTheme.textSecondary),
         ),
         actions: [
           TextButton(
@@ -115,51 +118,49 @@ class SlotsTab extends StatelessWidget {
               // Top Action Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Physical Hardware Memory',
-                            style: TextStyle(
-                              color: AppTheme.crema,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Hardware Memory',
+                              style: TextStyle(
+                                color: AppTheme.crema,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '$occupiedCount of 13 Slots Occupied',
-                            style: const TextStyle(
-                              color: AppTheme.goldPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                            const SizedBox(height: 2),
+                            Text(
+                              '$occupiedCount of 13 Slots Occupied',
+                              style: const TextStyle(
+                                color: AppTheme.goldPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.refresh, color: AppTheme.goldLight),
-                            tooltip: 'Refresh Slots',
-                            onPressed: () => bleService.fetchAllSlots(),
-                          ),
-                          const SizedBox(width: 4),
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppTheme.rubyEmergency,
-                              side: const BorderSide(color: AppTheme.rubyEmergency),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            icon: const Icon(Icons.delete_sweep, size: 16),
-                            label: const Text('Clear All', style: TextStyle(fontSize: 12)),
-                            onPressed: () => _confirmClearAll(context),
-                          ),
-                        ],
+                      IconButton(
+                        icon: const Icon(Icons.refresh, color: AppTheme.goldLight, size: 22),
+                        tooltip: 'Refresh Slots',
+                        onPressed: () => bleService.fetchAllSlots(),
+                      ),
+                      const SizedBox(width: 4),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.rubyEmergency,
+                          side: const BorderSide(color: AppTheme.rubyEmergency),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: const Size(80, 32),
+                        ),
+                        icon: const Icon(Icons.delete_sweep, size: 15),
+                        label: const Text('Clear All', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                        onPressed: () => _confirmClearAll(context),
                       ),
                     ],
                   ),
@@ -168,7 +169,7 @@ class SlotsTab extends StatelessWidget {
 
               // 13 Slots List/Grid
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                 sliver: SliverLayoutBuilder(
                   builder: (context, constraints) {
                     final width = constraints.crossAxisExtent;
@@ -177,9 +178,9 @@ class SlotsTab extends StatelessWidget {
                     return SliverGrid(
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 14,
-                        mainAxisSpacing: 12,
-                        mainAxisExtent: 110,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 8,
+                        mainAxisExtent: 78,
                       ),
                       delegate: SliverChildBuilderDelegate(
                         (context, index) {
@@ -208,26 +209,35 @@ class SlotsTab extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isSelected
               ? AppTheme.goldPrimary
               : (isOccupied ? AppTheme.borderSubtle : AppTheme.surfaceElevated),
           width: isSelected ? 1.6 : 1,
         ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: AppTheme.goldPrimary.withOpacity(0.12),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
           // Slot Number Indicator
           Container(
-            width: 38,
-            height: 38,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: isSelected
                   ? AppTheme.goldPrimary
                   : (isOccupied ? AppTheme.surfaceElevated : AppTheme.surfaceInput),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isSelected ? AppTheme.goldLight : AppTheme.borderSubtle,
               ),
@@ -237,13 +247,13 @@ class SlotsTab extends StatelessWidget {
               '$slotNum',
               style: TextStyle(
                 color: isSelected ? Colors.black : AppTheme.crema,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
                 fontFamily: 'monospace',
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 10),
 
           // Slot Details
           Expanded(
@@ -258,93 +268,140 @@ class SlotsTab extends StatelessWidget {
                         slot.recipeName,
                         style: TextStyle(
                           color: isOccupied ? AppTheme.crema : AppTheme.textMuted,
-                          fontSize: 14,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w700,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    if (isSelected)
+                    if (isSelected) ...[
+                      const SizedBox(width: 6),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                         decoration: BoxDecoration(
                           color: AppTheme.goldPrimary.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(4),
                           border: Border.all(color: AppTheme.goldPrimary, width: 0.6),
                         ),
                         child: const Text(
-                          'ACTIVE ON SCREEN',
+                          'ACTIVE',
                           style: TextStyle(
                             color: AppTheme.goldLight,
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   isOccupied
                       ? (slot.recipeUuid != null
-                          ? 'UUID: ${slot.recipeUuid!.substring(0, 8)}... • CRC: ${slot.crc ?? '-'}'
+                          ? 'CRC: ${slot.crc ?? '-'} • UUID: ${slot.recipeUuid!.substring(0, 8)}'
                           : 'Custom Recipe Flash')
                       : 'Slot Available (Empty)',
                   style: const TextStyle(
                     color: AppTheme.textMuted,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontFamily: 'monospace',
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 6),
 
           // Slot Actions
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isOccupied) ...[
-                // Tap to select on physical machine
-                IconButton(
-                  icon: const Icon(Icons.radio_button_checked, size: 20),
-                  color: isSelected ? AppTheme.goldPrimary : AppTheme.textMuted,
-                  tooltip: 'Select on Barista Screen',
-                  onPressed: () => bleService.selectSlot(slotIdx),
+          if (isOccupied) ...[
+            // Direct machine selection action
+            IconButton(
+              icon: Icon(
+                isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                size: 20,
+              ),
+              color: isSelected ? AppTheme.goldPrimary : AppTheme.textSecondary,
+              tooltip: 'Select on Screen',
+              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.compact,
+              onPressed: () => bleService.selectSlot(slotIdx),
+            ),
+            // Options overflow
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, size: 18, color: AppTheme.textMuted),
+              color: AppTheme.surfaceCard,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: AppTheme.borderSubtle),
+              ),
+              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+              padding: EdgeInsets.zero,
+              itemBuilder: (ctx) => [
+                const PopupMenuItem(
+                  value: 'select',
+                  child: Row(
+                    children: [
+                      Icon(Icons.touch_app, size: 16, color: AppTheme.goldPrimary),
+                      SizedBox(width: 8),
+                      Text('Select on Machine', style: TextStyle(color: AppTheme.crema, fontSize: 13)),
+                    ],
+                  ),
                 ),
-                // Move position
-                IconButton(
-                  icon: const Icon(Icons.swap_vert, size: 20),
-                  color: AppTheme.textMuted,
-                  tooltip: 'Move Position',
-                  onPressed: () => _showMoveDialog(context, slotIdx),
+                const PopupMenuItem(
+                  value: 'move',
+                  child: Row(
+                    children: [
+                      Icon(Icons.swap_vert, size: 16, color: AppTheme.crema),
+                      SizedBox(width: 8),
+                      Text('Move Position', style: TextStyle(color: AppTheme.crema, fontSize: 13)),
+                    ],
+                  ),
                 ),
-                // Delete
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  color: AppTheme.rubyEmergency,
-                  tooltip: 'Delete Slot',
-                  onPressed: () => bleService.deleteSlot(slotIdx),
-                ),
-              ] else ...[
-                // Overwrite / Flash to this empty slot
-                TextButton.icon(
-                  icon: const Icon(Icons.add, size: 16, color: AppTheme.goldPrimary),
-                  label: const Text('Flash', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12)),
-                  onPressed: () {
-                    // Flash default or custom
-                    FlashRecipeDialog.show(
-                      context,
-                      recipe: PresetCatalog.presets.first,
-                      bleService: bleService,
-                      initialTargetSlot: slotIdx,
-                    );
-                  },
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_outline, size: 16, color: AppTheme.rubyEmergency),
+                      SizedBox(width: 8),
+                      Text('Delete Recipe', style: TextStyle(color: AppTheme.rubyEmergency, fontSize: 13)),
+                    ],
+                  ),
                 ),
               ],
-            ],
-          ),
+              onSelected: (val) {
+                if (val == 'select') {
+                  bleService.selectSlot(slotIdx);
+                } else if (val == 'move') {
+                  _showMoveDialog(context, slotIdx);
+                } else if (val == 'delete') {
+                  bleService.deleteSlot(slotIdx);
+                }
+              },
+            ),
+          ] else ...[
+            TextButton.icon(
+              icon: const Icon(Icons.add, size: 15, color: AppTheme.goldPrimary),
+              label: const Text('Flash', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: const Size(60, 30),
+              ),
+              onPressed: () {
+                FlashRecipeDialog.show(
+                  context,
+                  recipe: PresetCatalog.presets.first,
+                  bleService: bleService,
+                  initialTargetSlot: slotIdx,
+                );
+              },
+            ),
+          ],
         ],
       ),
     );

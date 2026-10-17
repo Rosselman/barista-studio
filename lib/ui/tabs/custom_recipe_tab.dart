@@ -8,7 +8,6 @@ import '../../services/barista_ble_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/flash_recipe_dialog.dart';
-import '../widgets/whisk_visualizer.dart';
 
 class CustomRecipeTab extends StatefulWidget {
   final BaristaBleService bleService;
@@ -135,14 +134,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Whisk & Induction Visualizer
-            WhiskVisualizer(
-              rpm: activePhase.speed,
-              targetTemp: activePhase.temp,
-              isRunning: activePhase.duration > 0,
-              height: 170,
-            ),
-            const SizedBox(height: 18),
+
 
             // Recipe Name Input & Hardware UUID
             Container(
