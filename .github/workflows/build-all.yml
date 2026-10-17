@@ -1,0 +1,136 @@
+name: Multi-Platform Release Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Scaffold Android Wrapper
+        run: flutter create . --platforms=android --project-name=barista_studio
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: barista-studio-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+  build-macos:
+    name: Build macOS Desktop (.zip)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Scaffold macOS Runner
+        run: flutter create . --platforms=macos --project-name=barista_studio
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build macOS App
+        run: flutter build macos --release
+
+      - name: Compress App Bundle
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r barista-studio-macos.zip barista_studio.app
+
+      - name: Upload macOS App
+        uses: actions/upload-artifact@v4
+        with:
+          name: barista-studio-macos
+          path: build/macos/Build/Products/Release/barista-studio-macos.zip
+
+  build-linux:
+    name: Build Linux Desktop (.tar.gz)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Scaffold Linux Runner
+        run: flutter create . --platforms=linux --project-name=barista_studio
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build Linux Bundle
+        run: flutter build linux --release
+
+      - name: Package Linux Binary
+        run: |
+          tar -czvf barista-studio-linux-x64.tar.gz -C build/linux/x64/release/bundle .
+
+      - name: Upload Linux App
+        uses: actions/upload-artifact@v4
+        with:
+          name: barista-studio-linux-x64
+          path: barista-studio-linux-x64.tar.gz
+
+  build-windows:
+    name: Build Windows Desktop (.zip)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Scaffold Windows Runner
+        run: flutter create . --platforms=windows --project-name=barista_studio
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Executable
+        run: flutter build windows --release
+
+      - name: Compress Windows Bundle
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath barista-studio-windows-x64.zip
+
+      - name: Upload Windows App
+        uses: actions/upload-artifact@v4
+        with:
+          name: barista-studio-windows-x64
+          path: barista-studio-windows-x64.zip
