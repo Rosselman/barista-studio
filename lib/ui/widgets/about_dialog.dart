@@ -58,7 +58,7 @@ class AboutBaristaDialog extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'v1.1.3 • Release',
+                          'v1.2.0 • Release',
                           style: TextStyle(
                             color: AppTheme.goldPrimary,
                             fontSize: 12,

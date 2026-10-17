@@ -6,8 +6,6 @@ class MachineTelemetry {
   final String? serialNumber;
   final String machineState; // STANDBY, READY, RECIPE_EXECUTING, etc.
   final String pairingState; // NONE, TEMPORARY, FINAL, UNDEFINED
-  final bool motorRunning;
-  final bool inductionHeatingActive;
   final int? selectedSlot; // 0..12
 
   const MachineTelemetry({
@@ -18,8 +16,6 @@ class MachineTelemetry {
     this.serialNumber,
     this.machineState = 'DISCONNECTED',
     this.pairingState = 'NONE',
-    this.motorRunning = false,
-    this.inductionHeatingActive = false,
     this.selectedSlot,
   });
 
@@ -31,8 +27,6 @@ class MachineTelemetry {
     String? serialNumber,
     String? machineState,
     String? pairingState,
-    bool? motorRunning,
-    bool? inductionHeatingActive,
     int? selectedSlot,
   }) {
     return MachineTelemetry(
@@ -43,9 +37,6 @@ class MachineTelemetry {
       serialNumber: serialNumber ?? this.serialNumber,
       machineState: machineState ?? this.machineState,
       pairingState: pairingState ?? this.pairingState,
-      motorRunning: motorRunning ?? this.motorRunning,
-      inductionHeatingActive:
-          inductionHeatingActive ?? this.inductionHeatingActive,
       selectedSlot: selectedSlot ?? this.selectedSlot,
     );
   }

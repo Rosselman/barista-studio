@@ -60,9 +60,8 @@ app.*.map.json
 # Coverage
 coverage/
 
-# Platform runners generated in CI
-android/
-macos/
-ios/
-linux/
-windows/
+# Platform build outputs
+**/build/
+**/ephemeral/
+**/Pods/
+**/.symlinks/

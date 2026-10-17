@@ -231,29 +231,36 @@ class SlotsTab extends StatelessWidget {
     final slotNum = slot.displayNumber as int;
     final slotIdx = slot.slotIndex as int;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceCard,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected
-              ? AppTheme.goldPrimary
-              : (isOccupied ? AppTheme.borderSubtle : AppTheme.surfaceElevated),
-          width: isSelected ? 1.6 : 1,
-        ),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppTheme.goldPrimary.withOpacity(0.12),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ]
+        onTap: (isOccupied && bleService.isConnected)
+            ? () => bleService.selectSlot(slotIdx)
             : null,
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        children: [
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceCard,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected
+                  ? AppTheme.goldPrimary
+                  : (isOccupied ? AppTheme.borderSubtle : AppTheme.surfaceElevated),
+              width: isSelected ? 1.6 : 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppTheme.goldPrimary.withOpacity(0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
           // Slot Number Indicator
           Container(
             width: 34,
@@ -447,7 +454,9 @@ class SlotsTab extends StatelessWidget {
           ],
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   void _showRecipePickerForSlot(BuildContext context, int slotIdx) {

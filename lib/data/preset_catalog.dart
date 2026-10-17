@@ -1018,6 +1018,223 @@ class PresetCatalog {
         'Spoon the ultra-stiff, pure white peaks over iced espresso or iced tea.',
       ],
     ),
+    Recipe(
+      id: 'a1b2c3d4-1111-4444-8888-000000000001',
+      name: 'Nitro Milk Cascade',
+      description: 'Guinness-style cascading microfoam created via high-RPM hydrodynamic shear without nitrogen cartridges.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Dairy'],
+      phases: [
+        Phase.clamped(speed: 4000, accel: 1800, temp: 0, duration: 28),
+        Phase.clamped(speed: 1200, accel: 300, temp: 0, duration: 15),
+      ],
+      ingredients: [
+        '100 ml Ice-cold whole milk',
+        '1 Freshly extracted espresso shot',
+        '3 Large ice cubes in a tall glass',
+      ],
+      instructions: [
+        'Ensure the Barista jug and whisk are thoroughly chilled.',
+        'Pour 100 ml cold whole milk into the jug.',
+        'Run Nitro Milk Cascade. Shearing aeration creates tiny micro-bubbles.',
+        'Pour over iced glass and watch the cascading surge and creamy head develop.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-2222-4444-8888-000000000002',
+      name: 'Nitro Oat Cloud',
+      description: 'Dairy-free cascading microfoam specifically tuned for oat milk proteins and starches.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Non-Dairy'],
+      phases: [
+        Phase.clamped(speed: 3800, accel: 1600, temp: 0, duration: 30),
+        Phase.clamped(speed: 1400, accel: 400, temp: 0, duration: 12),
+      ],
+      ingredients: [
+        '100 ml Cold Barista edition oat milk',
+        '1 tsp Pure maple syrup or agave',
+        'Cold brew coffee or iced Americano',
+      ],
+      instructions: [
+        'Add cold oat milk and maple syrup to the jug.',
+        'Run Nitro Oat Cloud cycle.',
+        'Pour gently over a glass of cold brew. The oat cloud will cascade and float smoothly.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-3333-4444-8888-000000000003',
+      name: 'Nitro Sweet Cream',
+      description: 'Starbucks-inspired vanilla sweet cream cold foam with velvety cascading density.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Dairy'],
+      phases: [
+        Phase.clamped(speed: 3400, accel: 1200, temp: 0, duration: 22),
+        Phase.clamped(speed: 900, accel: 300, temp: 0, duration: 10),
+      ],
+      ingredients: [
+        '60 ml Heavy whipping cream (36% fat)',
+        '40 ml Cold whole milk',
+        '15 ml Vanilla syrup',
+        'Glass of iced cold brew',
+      ],
+      instructions: [
+        'Pour heavy cream, cold milk, and vanilla syrup into the jug.',
+        'Run Nitro Sweet Cream. Low-to-high velocity blend creates thick, slow-cascading cream.',
+        'Layer gently over cold brew with ice.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-4444-4444-8888-000000000004',
+      name: 'Nitro Coconut Silk',
+      description: 'Tropical, luxurious vegan cold foam with glossy micro-bubbles and natural coconut sweetness.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Non-Dairy', 'Non-Coffee'],
+      phases: [
+        Phase.clamped(speed: 3600, accel: 1400, temp: 0, duration: 25),
+        Phase.clamped(speed: 1100, accel: 350, temp: 0, duration: 12),
+      ],
+      ingredients: [
+        '80 ml Chilled culinary coconut milk',
+        '20 ml Chilled filtered water or coconut water',
+        '1 tsp Simple syrup',
+      ],
+      instructions: [
+        'Pour coconut milk, water, and syrup into the cold jug.',
+        'Run Nitro Coconut Silk cycle.',
+        'Pour over iced matcha or cold brew for an exotic layered beverage.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-5555-4444-8888-000000000005',
+      name: 'Nitro Almond Mist',
+      description: 'Delicate, nutty, zero-heat cold foam formulated for light almond milk.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Non-Dairy'],
+      phases: [
+        Phase.clamped(speed: 3700, accel: 1500, temp: 0, duration: 26),
+        Phase.clamped(speed: 1300, accel: 400, temp: 0, duration: 10),
+      ],
+      ingredients: [
+        '100 ml Unsweetened barista almond milk',
+        '1 tsp Agave nectar',
+        'Dash of ground cinnamon',
+      ],
+      instructions: [
+        'Add cold almond milk and agave to the jug.',
+        'Run Nitro Almond Mist.',
+        'Spoon the delicate, nutty foam over iced espresso or cold brew.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-6666-4444-8888-000000000006',
+      name: 'Viennese Chantilly',
+      description: 'Bourbon vanilla whipped double cream for traditional Austrian Café Viennois.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Dairy'],
+      phases: [
+        Phase.clamped(speed: 2600, accel: 700, temp: 0, duration: 20),
+        Phase.clamped(speed: 1100, accel: 300, temp: 0, duration: 12),
+      ],
+      ingredients: [
+        '80 ml Chilled double cream',
+        '10g Powdered confectioners sugar',
+        '3 drops Pure Madagascar vanilla extract',
+      ],
+      instructions: [
+        'Pour chilled cream, sugar, and vanilla into the jug.',
+        'Run cycle. Precise rotation creates glossy, soft peaks without turning to butter.',
+        'Spoon lavishly over hot espresso lungo and dust with cocoa.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-7777-4444-8888-000000000007',
+      name: 'Irish Velvet Cream',
+      description: 'Warm whiskey-infused velvety textured cream crown for Irish Coffee lovers.',
+      category: 'Hot Coffee',
+      tags: const ['Hot Coffee', 'Dairy'],
+      phases: [
+        Phase.clamped(speed: 2200, accel: 500, temp: 45, duration: 20),
+        Phase.clamped(speed: 800, accel: 200, temp: 58, duration: 15),
+      ],
+      ingredients: [
+        '60 ml Single cream',
+        '40 ml Whole milk',
+        '15 ml Irish whiskey or Irish cream syrup',
+        '1 Nespresso double espresso or lungo',
+      ],
+      instructions: [
+        'Combine cream, milk, and whiskey/syrup in the jug.',
+        'Run Irish Velvet Cream cycle for gentle warming and thick emulsion.',
+        'Pour freshly extracted hot espresso into an Irish coffee glass with brown sugar.',
+        'Float the warm velvet cream over the back of a warm spoon.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-8888-4444-8888-000000000008',
+      name: 'Whipped Espresso',
+      description: 'Authentic Italian Crema di Caffè — thick, frosty, whipped coffee soft-serve foam.',
+      category: 'Iced & Cold Coffee',
+      tags: const ['Iced & Cold Coffee', 'Cold Foam & Textures'],
+      phases: [
+        Phase.clamped(speed: 3900, accel: 1600, temp: 0, duration: 35),
+        Phase.clamped(speed: 1500, accel: 400, temp: 0, duration: 15),
+      ],
+      ingredients: [
+        '40 ml Cold espresso (1 espresso shot cooled in fridge)',
+        '15g Fine caster sugar',
+        '2 Small ice cubes',
+      ],
+      instructions: [
+        'Drop ice cubes, chilled espresso, and sugar into the Barista jug.',
+        'Run Whipped Espresso cycle.',
+        'The high-velocity shear turns the liquid coffee into a thick, mousse-like frozen cream.',
+        'Spoon directly into glass cups and serve immediately.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-9999-4444-8888-000000000009',
+      name: 'Pistachio Velvet',
+      description: 'Decadent sweet pistachio cream cold foam for dessert drinks and iced lattes.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Dairy', 'Non-Coffee'],
+      phases: [
+        Phase.clamped(speed: 3200, accel: 1000, temp: 0, duration: 24),
+        Phase.clamped(speed: 1100, accel: 300, temp: 0, duration: 12),
+      ],
+      ingredients: [
+        '70 ml Cold whole milk',
+        '30 ml Heavy cream',
+        '1 tbsp Sweet pistachio cream paste',
+        'Crushed roasted pistachios for garnish',
+      ],
+      instructions: [
+        'Add milk, cream, and pistachio paste into the jug.',
+        'Run Pistachio Velvet cycle.',
+        'Pour over iced espresso or cold milk and garnish with crushed pistachios.',
+      ],
+    ),
+    Recipe(
+      id: 'a1b2c3d4-aaaa-4444-8888-00000000000a',
+      name: 'Golden Chai Foam',
+      description: 'Anti-inflammatory turmeric, ginger, and cardamom spiced cold cloud atop iced tea or oat latte.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Non-Dairy', 'Non-Coffee'],
+      phases: [
+        Phase.clamped(speed: 3600, accel: 1200, temp: 0, duration: 26),
+        Phase.clamped(speed: 1000, accel: 300, temp: 0, duration: 12),
+      ],
+      ingredients: [
+        '100 ml Cold barista oat or almond milk',
+        '1/4 tsp Ground turmeric',
+        'Pinch of ground cinnamon, cardamom, and black pepper',
+        '1 tsp Honey or maple syrup',
+      ],
+      instructions: [
+        'Add plant milk, spices, and honey into the jug.',
+        'Run Golden Chai Foam cycle.',
+        'Spoon the vibrant golden foam over iced black tea, cold brew, or iced chai.',
+      ],
+    ),
   ];
 
   /// Lookup preset by 16-byte UUID

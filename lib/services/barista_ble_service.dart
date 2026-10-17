@@ -526,8 +526,6 @@ class BaristaBleService extends ChangeNotifier {
     final b0 = data[0] & 0xFF;
     final b1 = data[1] & 0xFF;
 
-    final motorRunning = (b0 & 0x10) != 0;
-    final heatingActive = (b0 & 0x20) != 0;
     final pairingCode = (b0 & 0x60) >> 5;
     final stateCode = (b1 & 0xFC) >> 2;
 
@@ -540,8 +538,6 @@ class BaristaBleService extends ChangeNotifier {
         : 'UNKNOWN';
 
     _updateTelemetry(_telemetry.copyWith(
-      motorRunning: motorRunning,
-      inductionHeatingActive: heatingActive,
       machineState: stateStr,
       pairingState: pStateStr,
     ));
@@ -840,7 +836,7 @@ class BaristaBleService extends ChangeNotifier {
     // Physical Barista expects 1-based position (1..13)
     final hardwarePos = (slotIndex + 1).clamp(1, 13);
     final payload = [hardwarePos & 0xFF];
-    await _opQueue.enqueue(() async {
+    final success = await _opQueue.enqueue(() async {
       try {
         await _charRecipeSelection!.write(payload, withoutResponse: false);
         _log('Slot $hardwarePos selected on physical machine.');
@@ -850,6 +846,10 @@ class BaristaBleService extends ChangeNotifier {
         return false;
       }
     }, description: 'Select Slot $hardwarePos');
+
+    if (success == true) {
+      _updateTelemetry(_telemetry.copyWith(selectedSlot: slotIndex));
+    }
   }
 
   /// Emergency STOP: cuts motor rotation and kills induction heater coil
