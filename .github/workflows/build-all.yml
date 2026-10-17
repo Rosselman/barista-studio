@@ -23,8 +23,16 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Scaffold Android Wrapper
-        run: flutter create . --platforms=android --project-name=barista_studio
+      - name: Scaffold Fresh Android Wrapper
+        run: |
+          rm -rf android
+          flutter create . --platforms=android --project-name=barista_studio
+
+      - name: Inject Android BLE Permissions
+        run: |
+          MANIFEST="android/app/src/main/AndroidManifest.xml"
+          PERMS='    <uses-permission android:name="android.permission.BLUETOOTH" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />'
+          sed -i "/<manifest/a $PERMS" "$MANIFEST"
 
       - name: Get Dependencies
         run: flutter pub get
@@ -49,8 +57,13 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Scaffold macOS Runner
-        run: flutter create . --platforms=macos --project-name=barista_studio
+      - name: Scaffold Fresh macOS Runner & Inject BLE Entitlements
+        run: |
+          rm -rf macos
+          flutter create . --platforms=macos --project-name=barista_studio
+          plutil -insert NSBluetoothAlwaysUsageDescription -string "Barista Studio uses Bluetooth to connect and flash recipes to your Nespresso Barista." macos/Runner/Info.plist
+          plutil -insert com.apple.security.device.bluetooth -bool true macos/Runner/DebugProfile.entitlements
+          plutil -insert com.apple.security.device.bluetooth -bool true macos/Runner/Release.entitlements
 
       - name: Get Dependencies
         run: flutter pub get
@@ -85,8 +98,10 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Scaffold Linux Runner
-        run: flutter create . --platforms=linux --project-name=barista_studio
+      - name: Scaffold Fresh Linux Runner
+        run: |
+          rm -rf linux
+          flutter create . --platforms=linux --project-name=barista_studio
 
       - name: Get Dependencies
         run: flutter pub get
@@ -115,8 +130,9 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Scaffold Windows Runner
-        run: flutter create . --platforms=windows --project-name=barista_studio
+      - name: Scaffold Fresh Windows Runner
+        run: |
+          flutter create . --platforms=windows --project-name=barista_studio
 
       - name: Get Dependencies
         run: flutter pub get
