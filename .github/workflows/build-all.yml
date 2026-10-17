@@ -28,29 +28,18 @@ jobs:
           rm -rf android
           flutter create . --platforms=android --org com.baristastudio --project-name=barista_studio
 
-      - name: Inject BLE Permissions, Custom Icons, App Label & compileSdk 36
+      - name: Inject BLE Permissions, Custom Icons & App Label
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           PERMS='    <uses-permission android:name="android.permission.BLUETOOTH" />\n    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />\n    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" android:usesPermissionFlags="neverForLocation" />\n    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />\n    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />'
           sed -i "/<manifest/a $PERMS" "$MANIFEST"
           sed -i 's/android:label="barista_studio"/android:label="Barista Studio"/g' "$MANIFEST"
           cp -r assets/android_res/mipmap-* android/app/src/main/res/
-          if [ -f android/build.gradle.kts ]; then
-            cat << 'EOKTS' >> android/build.gradle.kts
-          subprojects {
-              afterEvaluate {
-                  if (extensions.findByName("android") != null) {
-                      extensions.configure<com.android.build.gradle.BaseExtension>("android") {
-                          compileSdkVersion(36)
-                      }
-                  }
-              }
-          }
-          EOKTS
-          fi
 
-      - name: Get Dependencies
-        run: flutter pub get
+      - name: Get Dependencies & Upgrade Plugin compileSdk to 36
+        run: |
+          flutter pub get
+          find ~/.pub-cache -name "build.gradle" -exec sed -i 's/compileSdkVersion 3[0-5]/compileSdkVersion 36/g; s/compileSdk 3[0-5]/compileSdk 36/g' {} +
 
       - name: Build APK
         run: flutter build apk --release
