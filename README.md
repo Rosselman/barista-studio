@@ -38,7 +38,7 @@ barista-studio/
 │   └── Runner/Info.plist            # NSBluetoothAlwaysUsageDescription
 ├── lib/
 │   ├── data/
-│   │   └── preset_catalog.dart      # 42+ curated recipes with ingredients, phases & tags
+│   │   └── preset_catalog.dart      # 50+ curated recipes with ingredients, phases & tags
 │   ├── models/
 │   │   ├── machine_telemetry.dart   # Machine state, rotary dial slot, pairing state, device name
 │   │   ├── phase.dart               # Phase model (speed 300-4000, accel, temp 0-70, duration)
@@ -257,7 +257,7 @@ BLE controllers can drop rapid sequential write commands. To ensure 100% transmi
 
 ## 4. Presets & Recipe Categories
 
-Barista Studio features 52+ professionally tuned presets organized into intuitive categories with multi-tag filtering:
+Barista Studio features 50+ professionally tuned presets organized into intuitive categories with multi-tag filtering:
 
 | Category / Tag | Description | Sample Recipes |
 |---|---|---|
