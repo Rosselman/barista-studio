@@ -42,7 +42,8 @@ barista-studio/
 │   ├── data/
 │   │   └── preset_catalog.dart      # 60+ curated recipes with ingredients, multi-step phases & tags
 │   ├── models/
-│   │   ├── machine_telemetry.dart   # Machine state, rotary dial slot, pairing state, device name
+│   │   ├── machine_state.dart       # Official SDataWay 8-state hardware enum & bitmask parser
+│   │   ├── machine_telemetry.dart   # Live machine state, active dial slot, pairing state
 │   │   ├── phase.dart               # Phase model (speed 300-4000, accel, temp 0-70, duration)
 │   │   ├── recipe_step.dart         # Multi-step model (name, phases, culinary action prompt)
 │   │   ├── recipe.dart              # Multi-step recipe with 16-char ASCII sanitization & tags
@@ -193,14 +194,16 @@ Byte 1:
 - **Bit 3 (`0x08`)**: Induction heating active telemetry indicator.
 
 #### Byte 1 (Machine Operational Mode)
-- **Bits 2–7 (`(statusBytes[1] & 0xFC) >> 2`)**: Machine operational state code:
-  - `0` (`0x00`): **`STANDBY`** (Low-power idle)
-  - `1` (`0x01`): **`READY`** (Awake and ready to start)
+- **Bits 2–7 (`(statusBytes[1] & 0xFC) >> 2`)**: Machine operational state code.
+  > [!IMPORTANT]
+  > In Dart and Python, bitwise right shift (`>>`) has higher operator precedence than bitwise AND (`&`). Therefore, unparenthesized `b1 & 0xFC >> 2` erroneously evaluates as `b1 & 0x3F`. Extracting bits 2–7 strictly requires parentheses: `(b1 & 0xFC) >> 2`.
+  - `0` (`0x00`): **`STANDBY`** (Machine idle / low-power sleep on counter)
+  - `1` (`0x01`): **`READY`** (Awake and recipe selected on dial, ready to run)
   - `2` (`0x02`): **`RECIPE_EXECUTING`** (Whisk motor or heater actively executing recipe)
-  - `3` (`0x03`): **`LOCAL_SETTINGS`** (User interacting with machine on-device menu)
-  - `4` (`0x04`): **`ERROR`** (Hardware error or safety cutoff)
+  - `3` (`0x03`): **`LOCAL_SETTINGS_MODE`** (User interacting with machine on-device menu)
+  - `4` (`0x04`): **`ERROR`** (Hardware fault or safety cutoff)
   - `5` (`0x05`): **`OVERHEATED`** (Thermal safety threshold reached, cooling required)
-  - `6` (`0x06`): **`OOBE`** (Out-of-the-box first setup mode)
+  - `6` (`0x06`): **`OUT_OF_THE_BOX_SETTINGS`** (First-time setup mode)
   - `7` (`0x07`): **`RECIPE_PAUSED`** (Firmware pause between Step 1 and Step 2! Motor & heater stopped, OLED displays prompt, awaiting center dial press)
 
 When the physical rotary dial on the front of the Barista is turned, `CHAR_RECIPE_SELECTION` fires a notification containing the 0-based active slot index (`0` to `12`), keeping the app's UI synchronized in real time.

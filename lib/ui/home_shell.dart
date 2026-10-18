@@ -211,8 +211,10 @@ class _HomeShellState extends State<HomeShell> {
                     ),
                     child: Builder(
                           builder: (context) {
-                            final isPaused = telemetry.machineState == 'RECIPE_PAUSED';
-                            final isExecuting = telemetry.machineState == 'RECIPE_EXECUTING';
+                            final isPaused = telemetry.machineState.isPaused;
+                            final isExecuting = telemetry.machineState.isExecuting;
+                            final isReady = telemetry.machineState.isReady;
+                            final isStandby = telemetry.machineState.isStandby;
 
                             Color indicatorColor;
                             if (!isConnected) {
@@ -221,20 +223,33 @@ class _HomeShellState extends State<HomeShell> {
                               indicatorColor = AppTheme.goldLight;
                             } else if (isExecuting) {
                               indicatorColor = AppTheme.cyanCold;
-                            } else {
+                            } else if (isReady) {
                               indicatorColor = AppTheme.emeraldSuccess;
+                            } else if (isStandby) {
+                              indicatorColor = AppTheme.crema.withOpacity(0.65);
+                            } else {
+                              indicatorColor = AppTheme.amberHeat;
                             }
 
-                            final deviceTitle = (telemetry.deviceName != null && telemetry.deviceName!.isNotEmpty)
-                                ? telemetry.deviceName!
-                                : 'Barista W545';
                             final slot = telemetry.selectedSlot;
                             final slotStatus = (slot != null && slot >= 0 && slot < 13)
                                 ? ' • Slot ${slot + 1}'
                                 : '';
-                            final stateSuffix = isPaused
-                                ? ' • ⏸️ PAUSED: ADD MILK & PRESS MACHINE DIAL'
-                                : (isExecuting ? ' • 🔄 EXECUTING...' : '');
+
+                            String statusText;
+                            if (!isConnected) {
+                              statusText = isScanning
+                                  ? 'SEARCHING FOR BARISTA W545...'
+                                  : 'DISCONNECTED • TAP CONNECT TO PAIR';
+                            } else {
+                              if (isPaused) {
+                                statusText = 'Barista connected • ⏸️ Paused (Press Machine Dial)';
+                              } else if (isExecuting) {
+                                statusText = 'Barista connected • 🔄 Executing$slotStatus';
+                              } else {
+                                statusText = 'Barista connected • ${telemetry.machineState.label}$slotStatus';
+                              }
+                            }
 
                             return Row(
                               children: [
@@ -249,9 +264,7 @@ class _HomeShellState extends State<HomeShell> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    isConnected
-                                        ? '$deviceTitle$slotStatus$stateSuffix'
-                                        : (isScanning ? 'SEARCHING FOR BARISTA W545...' : 'DISCONNECTED • TAP CONNECT TO PAIR'),
+                                    statusText,
                                     style: TextStyle(
                                       color: indicatorColor,
                                       fontSize: 11,

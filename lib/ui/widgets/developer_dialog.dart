@@ -202,10 +202,10 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
                 ),
                 _buildInfoRow(
                   'Machine State',
-                  t.machineState,
-                  color: t.machineState == 'RECIPE_PAUSED'
+                  '${t.machineState.label} (${t.machineState.code})',
+                  color: t.machineState.isPaused
                       ? AppTheme.goldLight
-                      : (t.machineState == 'RECIPE_EXECUTING'
+                      : (t.machineState.isExecuting
                           ? AppTheme.amberHeat
                           : (t.isConnected ? AppTheme.emeraldSuccess : AppTheme.textMuted)),
                 ),

@@ -1,10 +1,13 @@
+import 'machine_state.dart';
+export 'machine_state.dart';
+
 class MachineTelemetry {
   final bool isConnected;
   final bool isScanning;
   final String? deviceName;
   final String? macAddress;
   final String? serialNumber;
-  final String machineState; // STANDBY, READY, RECIPE_EXECUTING, etc.
+  final MachineState machineState;
   final String pairingState; // NONE, TEMPORARY, FINAL, UNDEFINED
   final int? selectedSlot; // 0..12
 
@@ -14,7 +17,7 @@ class MachineTelemetry {
     this.deviceName,
     this.macAddress,
     this.serialNumber,
-    this.machineState = 'DISCONNECTED',
+    this.machineState = MachineState.standby,
     this.pairingState = 'NONE',
     this.selectedSlot,
   });
@@ -25,7 +28,7 @@ class MachineTelemetry {
     String? deviceName,
     String? macAddress,
     String? serialNumber,
-    String? machineState,
+    MachineState? machineState,
     String? pairingState,
     int? selectedSlot,
   }) {

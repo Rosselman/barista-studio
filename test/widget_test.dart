@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barista_studio/data/preset_catalog.dart';
+import 'package:barista_studio/models/machine_state.dart';
 import 'package:barista_studio/models/phase.dart';
 import 'package:barista_studio/models/recipe.dart';
 import 'package:barista_studio/models/recipe_step.dart';
@@ -149,4 +150,50 @@ void main() {
     expect(notifications, 3);
     expect(storage.getCustomRecipes().isEmpty, true);
   });
+
+  test('MachineState correctly decodes all 8 official SDataWay firmware states', () {
+    // 0: STANDBY (0x00)
+    expect(MachineState.fromByte(0x00), MachineState.standby);
+    expect(MachineState.fromByte(0x00).label, 'Standby');
+    expect(MachineState.fromByte(0x00).isStandby, true);
+
+    // 1: READY ((1 << 2) = 0x04)
+    expect(MachineState.fromByte(0x04), MachineState.ready);
+    expect(MachineState.fromByte(0x04).label, 'Ready');
+    expect(MachineState.fromByte(0x04).isReady, true);
+
+    // 2: RECIPE_EXECUTING ((2 << 2) = 0x08)
+    expect(MachineState.fromByte(0x08), MachineState.recipeExecuting);
+    expect(MachineState.fromByte(0x08).label, 'Executing');
+    expect(MachineState.fromByte(0x08).isExecuting, true);
+
+    // 3: LOCAL_SETTINGS_MODE ((3 << 2) = 0x0C)
+    expect(MachineState.fromByte(0x0C), MachineState.localSettingsMode);
+    expect(MachineState.fromByte(0x0C).label, 'Settings Mode');
+
+    // 4: ERROR ((4 << 2) = 0x10)
+    expect(MachineState.fromByte(0x10), MachineState.error);
+    expect(MachineState.fromByte(0x10).label, 'Error');
+    expect(MachineState.fromByte(0x10).isError, true);
+
+    // 5: OVERHEATED ((5 << 2) = 0x14)
+    expect(MachineState.fromByte(0x14), MachineState.overheated);
+    expect(MachineState.fromByte(0x14).label, 'Overheated');
+    expect(MachineState.fromByte(0x14).isOverheated, true);
+
+    // 6: OUT_OF_THE_BOX_SETTINGS ((6 << 2) = 0x18)
+    expect(MachineState.fromByte(0x18), MachineState.outOfTheBoxSettings);
+    expect(MachineState.fromByte(0x18).label, 'First Setup');
+
+    // 7: RECIPE_PAUSED ((7 << 2) = 0x1C)
+    expect(MachineState.fromByte(0x1C), MachineState.recipePaused);
+    expect(MachineState.fromByte(0x1C).label, 'Paused (Press Button)');
+    expect(MachineState.fromByte(0x1C).isPaused, true);
+
+    // Verify operator precedence masking with noise in lower bits (0..1)
+    expect(MachineState.fromByte(0x1F), MachineState.recipePaused); // 0x1C | 0x03 -> 7
+    expect(MachineState.fromByte(0x0B), MachineState.recipeExecuting); // 0x08 | 0x03 -> 2
+    expect(MachineState.fromByte(0x07), MachineState.ready); // 0x04 | 0x03 -> 1
+  });
 }
+

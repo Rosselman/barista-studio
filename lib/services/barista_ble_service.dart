@@ -569,8 +569,10 @@ class BaristaBleService extends ChangeNotifier {
           return false;
         }
         final b0 = data[0] & 0xFF;
+        final b1 = data[1] & 0xFF;
         final pairingCode = (b0 & 0x60) >> 5;
-        _log('Machine pairing state: $pairingCode (0=NONE, 1=TEMP, 2=FINAL)');
+        final initialState = MachineState.fromByte(b1);
+        _log('Machine pairing state: $pairingCode (0=NONE, 1=TEMP, 2=FINAL), state: ${initialState.label}');
 
         // Step A: Only write TX_LEVEL_REQUEST (0x01) if NOT already FINAL
         if (pairingCode != 2 && _charTxLevelRequest != null) {
@@ -620,6 +622,8 @@ class BaristaBleService extends ChangeNotifier {
               ? device.platformName
               : 'Barista (${device.remoteId.str})',
           macAddress: device.remoteId.str,
+          machineState: initialState,
+          pairingState: pairingCode == 2 ? 'FINAL' : (pairingCode == 1 ? 'TEMPORARY' : 'NONE'),
         ));
 
         _startLivenessHeartbeat();
@@ -644,18 +648,15 @@ class BaristaBleService extends ChangeNotifier {
     final b1 = data[1] & 0xFF;
 
     final pairingCode = (b0 & 0x60) >> 5;
-    final stateCode = (b1 & 0xFC) >> 2;
-
-    final stateStr = (stateCode < BaristaBleConstants.machineStates.length)
-        ? BaristaBleConstants.machineStates[stateCode]
-        : 'UNKNOWN($stateCode)';
+    // CRITICAL: Parentheses strictly required because (b1 & 0xFC) >> 2 has different precedence than b1 & 0xFC >> 2
+    final state = MachineState.fromByte(b1);
 
     final pStateStr = (pairingCode < BaristaBleConstants.pairingStates.length)
         ? BaristaBleConstants.pairingStates[pairingCode]
         : 'UNKNOWN';
 
     _updateTelemetry(_telemetry.copyWith(
-      machineState: stateStr,
+      machineState: state,
       pairingState: pStateStr,
     ));
   }
