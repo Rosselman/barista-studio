@@ -2,8 +2,6 @@
 
 A clean, modern, open-source, standalone Flutter application for crafting, sequencing, and flashing custom recipes into the **Nespresso Barista Recipe Maker (Model W545)** via native Bluetooth Low Energy.
 <img width="1253" height="765" alt="Screenshot 2026-10-18 at 10 51 30 AM" src="https://github.com/user-attachments/assets/fd550bc0-4849-4f8c-ba93-03ba73e83908" />
-<img width="1251" height="765" alt="Screenshot 2026-10-18 at 10 51 50 AM" src="https://github.com/user-attachments/assets/d385d677-83a5-4303-9a72-6a7adde855a1" />
-<img width="1247" height="759" alt="Screenshot 2026-10-18 at 10 52 18 AM" src="https://github.com/user-attachments/assets/7f7880c2-9586-409b-9b5a-e4e9accc6bfe" />
 
 ---
 
