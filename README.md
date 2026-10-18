@@ -1,27 +1,334 @@
 # Barista Studio
 
 A clean, modern, open-source, standalone Flutter application for crafting, sequencing, and flashing custom recipes into the **Nespresso Barista Recipe Maker (Model W545)** via native Bluetooth Low Energy.
-<img width="1200" height="817" alt="Screenshot 2026-10-18 at 2 27 12 PM" src="https://github.com/user-attachments/assets/5c78b328-0c44-4d1b-a286-b2425d121710" />
+
+<img width="1200" height="817" alt="Barista Studio Interface" src="https://github.com/user-attachments/assets/5c78b328-0c44-4d1b-a286-b2425d121710" />
 
 ---
 
 ## 1. Overview & Highlights
 
-**Barista Studio** provides direct, cloudless, low-level control over the Nespresso Barista Recipe Maker hardware without proprietary vendor applications, cloud logins, or internet requirements:
+**Barista Studio** provides direct, cloudless, low-level control over the Nespresso Barista Recipe Maker hardware without proprietary vendor applications, mandatory accounts, cloud backends, or internet connectivity:
 
-- **100% Offline & Privacy-First**: Communicates directly with the machine's local Bluetooth Low Energy (BLE) GATT profile. No telemetry collection, user registration, or cloud dependencies.
-- **Native Multi-Step Recipes (v1.3.0+)**: Hardware-sequenced multi-step recipes natively supported by the Barista firmware. Executes Step 1, automatically cuts motor power and induction heating, transitions to `RECIPE_PAUSED` with an OLED screen prompt for adding milk/ingredients, and resumes seamlessly into Step 2 upon center dial press.
-- **Full 13-Slot EEPROM Hardware Memory Management**: Read, flash, reorder, and erase recipes across all 13 physical EEPROM slots on the machine.
-- **Expanded Gourmet Preset Library (70+ Recipes)**: An extensive catalog of tuned presets covering **Multi-Step (18 signature dual-stage recipes)**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & Textures**.
-- **Multi-Step & 3-Phase Custom Recipe Builder**: Fine-tuned control over motor speed (300–4000 RPM), ramp acceleration (50–2000 RPM/s), induction heating temperature (0–70°C, with 0°C cold froth toggle), duration (1–240s per phase), custom step naming, and intermediate action prompts.
-- **Targeted Telemetry Background Polling**: Proactively polls `CHAR_MACHINE_STATUS` periodically for real-time execution/pause state tracking and liveness detection, while physical rotary dial selection (`CHAR_RECIPE_SELECTION`) is synchronized via instant hardware GATT notifications.
-- **"My Recipes" Customization & Instant Sync**: Save, organize, edit descriptions, and flash custom recipes with immediate reactive UI refresh.
-- **Dynamic BLE Auto-Discovery**: Automatically discovers any nearby Barista machine (`White_*`, `Black_*`, `Barista*`, `W545*`) without hardcoded MAC addresses.
+- **100% Offline & Privacy-First**: Communicates directly with the machine's local Bluetooth Low Energy (BLE) GATT profile. No telemetry collection, analytics, user registration, or cloud dependencies.
+- **Native Multi-Step Recipes (v1.3.0+)**: Hardware-sequenced multi-step recipes natively supported by the Barista firmware. Executes Step 1, automatically halts motor power and induction heating, transitions to `RECIPE_PAUSED` (`7`) with an OLED screen prompt to add milk or ingredients, and resumes seamlessly into Step 2 upon physical center dial press.
+- **Full 13-Slot EEPROM Hardware Memory Management**: Read, flash, reorder, and erase recipes across all 13 physical EEPROM slots on the machine with real-time slot occupancy tracking.
+- **Expanded Gourmet Preset Library (70+ Recipes)**: An extensive catalog of tuned presets covering **Multi-Step (18 signature dual-stage recipes)**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & High-Shear Textures**.
+- **Dual-Mode Recipe Builder**:
+  - **Guided Formulator**: An interactive 5-question culinary questionnaire that formulates balanced recipes on the spot.
+  - **Granular Sequencer**: Fine-tuned control over motor speed (300–4000 RPM), ramp acceleration (50–2000 RPM/s), induction heating temperature (0–70°C, with 0°C cold froth toggle), phase durations (1–240s), custom step naming, and intermediate action prompts.
+- **Targeted Telemetry & Event-Driven Dial Sync**: Proactively polls `CHAR_MACHINE_STATUS` periodically for real-time execution and pause state tracking, while rotary dial selection (`CHAR_RECIPE_SELECTION`) is synchronized via instant hardware GATT notifications.
+- **"My Recipes" Customization & Instant Sync**: Save, organize, edit descriptions, and flash custom recipes with immediate reactive UI updates.
+- **Dynamic BLE Auto-Discovery**: Automatically discovers nearby Barista machines (`White_*`, `Black_*`, `Barista*`, `W545*`) without hardcoded MAC addresses.
 - **Interactive Preparation Guides**: Complete step-by-step culinary preparation instructions, ingredient ratios, and temperature guidance for every recipe.
 
 ---
 
-## 2. Architecture & Directory Layout
+## 2. Core Features & Presets Library
+
+### Curated Presets Catalog (70+ Recipes)
+
+Barista Studio features 70+ professionally calibrated presets organized into intuitive categories with multi-tag filtering:
+
+| Category / Tag | Description | Sample Recipes |
+|---|---|---|
+| **Multi-Step** | Natively sequenced 2-step recipes featuring automatic firmware pause for intermediate culinary additions | *Espresso Tonic*, *Mocha Truffle*, *Pistachio Cloud*, *Irish Velvet*, *Cascara Spark*, *Biscoff Swirl*, *Salted Crown*, *Chai Ganache*, *Latte Double*, *Nitro Swt Cream*, *Viennese Choco*, *Affogato Foam*, *Matcha Cloud*, *Caramel Macch* |
+| **Hot Coffee** | Traditional European espresso classics & rich textured specialties | *Cappuccino*, *Latte Macchiato*, *Flat White*, *Velvet Cortado*, *Vienna Melange*, *Spanish Latte*, *Caffè Breve*, *Mocha Viennois* |
+| **Iced & Cold Coffee** | Chilled coffee drinks utilizing high mechanical shear and zero-heat cold froth | *Iced Frappé*, *Nitro Cold Foam*, *Espresso Freddo*, *Cold Shakerato*, *Iced Caramel Macchiato*, *Brown Sugar Oat* |
+| **Non-Coffee** | Decadent warmers, artisan hot chocolates, and botanical tea infusions | *Hot Chocolate*, *Mexican Cocoa*, *White Hot Cocoa*, *Matcha Silk*, *Turmeric Elixir*, *Spiced Chai*, *London Fog*, *Babyccino*, *Vanilla Steamer*, *Rooibos Honey*, *Spiced Cider* |
+| **Dairy** | High-fat milk, half-and-half, and heavy cream textured recipes | *Flat White*, *Vienna Melange*, *Affogato Cream*, *Pistachio Crema*, *Cardamom Rose*, *Vanilla Sweet Foam*, *Salted Caramel Foam* |
+| **Non-Dairy** | Plant-based milks with strictly controlled temperatures to prevent protein curdling | *Oat Microfoam 58* (max 58°C), *Almond Velvet 55* (max 55°C), *Soy Latte Silk*, *Coconut Cold Whip*, *Cashew Silk Foam*, *Pea Milk Cloud* |
+| **Cold Foam & Textures** | High-velocity microfoam floats, nitro emulsions, and sweet cold creams | *Nitro Cold Foam* (4000 RPM), *Butterfly Foam* (blue herbal cold foam), *Matcha Cloud*, *Strawberry Foam*, *Cold Whip Cream* |
+
+### Dual-Mode Recipe Builder
+
+- **Guided AI Formulator**: Formulates calibrated multi-phase recipes based on 5 parameters: temperature profile, beverage style, base liquid, foam density, and flavor inclusions. Provides 1-tap direct flashing, saving to My Recipes, and transfer to manual mode for granular tuning.
+- **Granular Sequencer**: Full manual control over 1 or 2 steps, with up to 3 execution phases per step. Controls whisk motor speed (300 to 4000 RPM), acceleration (50 to 2000 RPM/s), induction coil temperature (0 to 70°C), and duration (1 to 240 seconds per phase). Includes a live packet preview with real-time CRC-16 computation.
+
+### 13-Slot EEPROM Hardware Manager
+
+- Inspects all 13 physical EEPROM slots on the machine.
+- Identifies empty vs occupied slots with recipe names, UUIDs, and CRC checksums.
+- Flash new recipes into any slot, reorder slots on the machine dial, or delete resident recipes.
+
+---
+
+## 3. Culinary & Hardware Safety Guidelines
+
+When formulating custom recipes or modifying presets, observe the following hardware constraints:
+
+- **Safe Temperature Envelope (0–70°C)**: The Barista induction coil is rated for liquid heating up to 70°C. The app strictly enforces this ceiling across all custom recipes to prevent thermal trip cutoffs.
+- **Mechanical Shear & Cold Foam (0°C)**: Setting temperature to 0°C disables the induction heater entirely. High-RPM mechanical shear (up to 4000 RPM) aerates milk, cold brew, or cream without heat, generating stable cold microfoam.
+- **Plant-Based Milk Guidelines**: Plant proteins in oat, almond, and soy milks denature and curdle if heated above 60°C. Plant-based presets clamp heating to 55–58°C for optimal sweetness and microfoam stability.
+- **Display Matrix Name Limits**: The Barista OLED screen displays recipe names up to 16 ASCII characters. Recipe titles are automatically sanitized and clamped to conform to this display constraint.
+
+---
+
+## 4. Bluetooth Low Energy (BLE) Protocol Specification
+
+The Nespresso Barista Recipe Maker (Model W545) communicates over standard Bluetooth Low Energy (BLE). The protocol was reverse-engineered through low-level packet capture, live BLE traffic inspection, and hardware state analysis.
+
+### 4.1 GATT Architecture & Characteristic Map
+
+All custom vendor services and characteristics share the base 128-bit UUID prefix:
+`6524xxxx-0253-11e7-93ae-92361f002671`
+
+#### Primary Services
+
+| Service | UUID Prefix | Description |
+|---|---|---|
+| **Device Info & Auth** | `...1910-...` | Hardware serialization, pairing authentication, and CMID security handshake |
+| **Status & Control** | `...1920-...` | Machine operational state, live dial tracking, and hardware commands |
+| **Recipe Management** | `...1990-...` | 13-slot EEPROM synchronization, recipe flashing, and slot deletion |
+
+#### Key Characteristics
+
+| Characteristic | UUID | Properties | Purpose |
+|---|---|---|---|
+| `CHAR_SERIAL_NUMBER` | `...3a31-...` | Read | Machine manufacturing serial number |
+| `CHAR_CMID` | `...3a41-...` | Write | 8-byte security authorization key |
+| `CHAR_CMID_TYPE` | `...3a51-...` | Read | CMID authorization level confirmation (`0x02` = `FINAL`) |
+| `CHAR_TX_LEVEL_REQUEST`| `...3a61-...` | Write | Transmission power level negotiation |
+| `CHAR_MACHINE_STATUS` | `...3a12-...` | Read, Notify | Bitmask of pairing state, execution state, and machine status |
+| `CHAR_COMMAND_REQ` | `...3a42-...` | Write | Hardware control commands and emergency stop |
+| `CHAR_RECIPE_SELECTION`| `...3a19-...` | Read, Write, Notify | Currently active slot index (1..13 hardware, mapped to 0..12 client) |
+| `CHAR_RECIPE_COMMAND` | `...3a29-...` | Write | Flashing binary recipe packets & EEPROM slot queries |
+| `CHAR_RECIPE_RESPONSE` | `...3a39-...` | Notify | Responses from EEPROM (slot occupancy, UUIDs, CRC-16) |
+
+---
+
+### 4.2 Security Handshake & CMID Authentication
+
+Before the Barista accepts recipe modifications or flashes, a pairing authorization handshake must be established:
+
+```
+Client App                                                    Barista (W545)
+    │                                                               │
+    ├───────── Read CHAR_MACHINE_STATUS ───────────────────────────►│
+    │◄──────── Returns Status Bytes (Check Pairing Code) ───────────┤
+    │                                                               │
+    │  [If Pairing Code != 2 (FINAL)]                               │
+    ├───────── Write [0x01] to CHAR_TX_LEVEL_REQUEST ──────────────►│
+    ├───────── Write 8-byte CMID (MSB set) to CHAR_CMID ───────────►│
+    ├───────── Read CHAR_CMID_TYPE ────────────────────────────────►│
+    │◄──────── Returns 0x02 (FINAL Authorization Verified) ─────────┤
+```
+
+1. **Query Pairing Status**:
+   - The app reads `CHAR_MACHINE_STATUS` to extract the pairing state from Byte 0:
+     ```dart
+     final pairingCode = (statusBytes[0] & 0x60) >> 5;
+     // 0 = NONE, 1 = TEMPORARY, 2 = FINAL
+     ```
+2. **Authorize Session**:
+   - If `pairingCode != 2` (not yet permanently authorized):
+     - Write `[0x01]` to `CHAR_TX_LEVEL_REQUEST`.
+     - Generate or load an 8-byte CMID key. The Most Significant Bit of Byte 0 **must** be set:
+       ```dart
+       cmid[0] |= 0x80;
+       ```
+     - Write the 8-byte key to `CHAR_CMID`.
+     - Read `CHAR_CMID_TYPE` to verify authorization (`0x02` confirms `FINAL` pairing).
+3. **Session Persistence**:
+   - The verified CMID is cached in local encrypted device storage. Once authenticated, the machine recognizes the client on subsequent connections without re-pairing.
+
+---
+
+### 4.3 Telemetry & Machine State Architecture
+
+The Barista machine communicates its operational state through `CHAR_MACHINE_STATUS` (2-byte status payload):
+
+```
+Byte 0:
+┌────────┬───────────────────┬────────┬────────┬─────────────────────────┐
+│ Bit 7  │ Bit 6     Bit 5   │ Bit 4  │ Bit 3  │ Bit 2   Bit 1   Bit 0   │
+│ Unused │   Pairing Code    │ Motor  │ Heat   │        Unused           │
+└────────┴───────────────────┴────────┴────────┴─────────────────────────┘
+
+Byte 1:
+┌────────────────────────────────────────────────────────┬────────┬────────┐
+│ Bit 7   Bit 6   Bit 5   Bit 4   Bit 3   Bit 2          │ Bit 1  │ Bit 0  │
+│                   Machine State Code                   │    Unused       │
+└────────────────────────────────────────────────────────┴────────┴────────┘
+```
+
+#### Status Bitmask Layout
+
+- **Pairing State (`(b0 & 0x60) >> 5`)**:
+  - `0`: `NONE`
+  - `1`: `TEMPORARY`
+  - `2`: `FINAL` (Authenticated)
+- **Machine State Code (`(b1 & 0xFC) >> 2`)**:
+  > [!IMPORTANT]
+  > In Dart and Python, bitwise right shift (`>>`) has higher operator precedence than bitwise AND (`&`). Therefore, unparenthesized `b1 & 0xFC >> 2` erroneously evaluates as `b1 & 0x3F`. Extracting bits 2–7 strictly requires parentheses: `(b1 & 0xFC) >> 2`.
+
+| Code | Value | State Enum | Description |
+|---|---|---|---|
+| `0` | `0x00` | **`STANDBY`** | Low-power display sleep mode on counter |
+| `1` | `0x01` | **`READY`** | Awake and recipe selected on dial, ready to run |
+| `2` | `0x02` | **`RECIPE_EXECUTING`** | Motor or induction heater actively running recipe |
+| `3` | `0x03` | **`LOCAL_SETTINGS_MODE`** | User interacting with machine on-device hardware menu |
+| `4` | `0x04` | **`ERROR`** | Hardware safety cutoff or error condition |
+| `5` | `0x05` | **`OVERHEATED`** | Thermal safety threshold reached, cooling required |
+| `6` | `0x06` | **`OUT_OF_THE_BOX_SETTINGS`** | First-time out-of-box setup mode |
+| `7` | `0x07` | **`RECIPE_PAUSED`** | Firmware pause between Step 1 and Step 2; motor & heater off, awaiting dial press |
+
+#### Event-Driven Rotary Dial Tracking
+
+- Physical rotary dial adjustments emit **spontaneous GATT notifications** on `CHAR_RECIPE_SELECTION`.
+- The machine sends a 1-based position byte (`1` to `13`), which the client maps to a 0-based index (`0` to `12`).
+- Rotary dial adjustments are updated instantly in the app UI via notification listener without polling.
+
+#### Targeted 1.5s Polling for Machine Status
+
+While dial turns emit spontaneous notifications, the physical firmware **does not stream notifications for autonomous internal state transitions** (e.g. user pressing center button to start, machine pausing between steps, or recipe finishing).
+
+To solve this, Barista Studio runs an active **1.5-second polling loop** targeting `CHAR_MACHINE_STATUS`:
+- **State Transition Detection**: Real-time detection of `STANDBY`, `READY`, `RECIPE_EXECUTING`, and `RECIPE_PAUSED` (triggering live HUD pause alerts).
+- **Liveness Heartbeat**: Verifies active connection health and triggers disconnect if the machine is powered off.
+- **Queue-Safe Yielding**: The polling loop skips execution whenever a recipe flash (`isFlashing`), 13-slot EEPROM scan (`isScanningSlots`), or pending queue operations are in flight, ensuring background status reads never contend with multi-chunk recipe transfers.
+
+#### Hardware Sensor Stream Realities
+
+- **No Live RPM / Temperature Stream**: Across all 15 characteristics in the GATT profile, there is no characteristic reporting motor RPM, whisk speed, temperature in °C, or wattage. Any whisk animation in client applications is simulated locally while `machineState == RECIPE_EXECUTING`.
+- **Legacy 1-Bit Flags**: Byte 0 bit 4 (`motorRunning`) and bit 5 (`inductionHeatingActive`) are non-functional on physical hardware (bit 5 collides with `PairingKeyState` `0x60`, and bit 4 is inactive in firmware).
+
+---
+
+### 4.4 Multi-Step Recipe Execution Lifecycle
+
+The physical Barista machine natively supports multi-step recipes (`stepCount = 2`). The machine firmware autonomous execution sequence is illustrated below:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as Barista Studio
+    participant Barista as Barista Machine (W545)
+    participant User as User (Physical)
+
+    App->>Barista: Upload Recipe with stepCount = 2
+    User->>Barista: Select Recipe on Wheel & Press Center Button
+    Barista->>Barista: State: RECIPE_EXECUTING (2)
+    Note over Barista: Step 1 runs (e.g. Cold Froth coffee for 15s)
+    Barista->>Barista: Motor stops, Heater off
+    Barista->>Barista: State: RECIPE_PAUSED (7)
+    Note over Barista: OLED Screen prompts user (Arrow / Prompt)
+    User->>Barista: Adds milk/ingredients & Presses Center Button
+    Barista->>Barista: State: RECIPE_EXECUTING (2)
+    Note over Barista: Step 2 runs (e.g. Hot Froth at 65°C for 35s)
+    Barista->>Barista: State: READY (1) (Beeps done)
+```
+
+1. **Step 1 Execution**: When the user presses the center dial button on a 2-step recipe, the machine enters `MachineState.RECIPE_EXECUTING` (`2`). Step 1 phases execute sequentially.
+2. **Firmware Pause**: When Step 1 completes, the firmware shuts off whisk motor PWM and induction heating, transitioning to `MachineState.RECIPE_PAUSED` (`7`).
+3. **Hardware Prompt**: The OLED display shows an animated arrow/prompt instructing the user to add milk or ingredients into the jug.
+4. **Step 2 Resumption**: When the user presses the center dial button, the machine transitions back to `RECIPE_EXECUTING` (`2`) to execute Step 2.
+5. **Completion**: When Step 2 completes, the machine sounds an audible chime and returns to `MachineState.READY` (`1`).
+
+---
+
+### 4.5 Binary Recipe Serialization & Memory Framing
+
+A Barista recipe payload encodes metadata, step headers, and 1 to 3 execution phases per step. The binary format natively accommodates single-step and multi-step recipes (`stepCount = 1` or `2`).
+
+#### Inserting / Overwriting a Slot (`CMD_INSERT = 0x00`)
+
+```
+Offset   Length   Field                     Description
+---------------------------------------------------------------------------------
+0x00     1        Target Slot Position      1-based slot index (1 to 13)
+0x01     2        CRC-16 CCITT              Big-Endian uint16 (calculated over bytes 0x03..end)
+0x03     2        Payload Length            Big-Endian uint16 (length of remaining bytes 0x05..end)
+0x05     16       Recipe UUID               16-byte raw UUID
+0x15     1        Recipe Name Length (N)    Number of ASCII bytes in name (1 to 16)
+0x16     N        Recipe Name               ASCII string (sanitized, max 16 chars)
+0x16+N   1        Step Count (S)            Number of steps (1 or 2)
+  -- For each Step (1 to S) --
+  +0     1        Step Name Length (M)      Length of step label (e.g. 6 for "STEP 1")
+  +1     M        Step Label                ASCII string ("STEP 1", "STEP 2", etc.)
+  +1+M   1        Phase Count (P)           Number of active phases in step (1 to 3)
+    -- For each Phase (6 bytes each) --
+    +0   2        Motor Speed               uint16 Big-Endian (300 to 4000 RPM)
+    +2   2        Ramp Acceleration         uint16 Big-Endian (50 to 2000 RPM/s)
+    +4   1        Target Temperature        uint8 (0 to 70°C; 0 = cold froth / heater off)
+    +5   1        Phase Duration            uint8 (1 to 240 seconds)
+```
+
+#### Appending to Free Memory (`CMD_APPEND = 0x01`)
+
+When appending to the next unallocated EEPROM slot, the 1-byte Target Slot Position is omitted; CRC-16 begins at offset `0x00` and covers bytes `0x02..end`.
+
+#### CRC-16 CCITT Algorithm Parameters
+
+| Parameter | Value |
+|---|---|
+| **Polynomial** | `0x1021` ($x^{16} + x^{12} + x^5 + 1$) |
+| **Initial Value** | `0x0000` |
+| **Input Reflection** | False |
+| **Output Reflection** | False |
+| **Final XOR Value** | `0x0000` |
+
+---
+
+### 4.6 ATT Transmission Chunking & Flow Control
+
+Due to BLE ATT MTU constraints, binary recipe packets are segmented into 16-byte maximum transmission chunks written sequentially to `CHAR_RECIPE_COMMAND`:
+
+```
+Chunk Framing:
+┌──────────────┬──────────────────┬─────────────────────────────────┐
+│ Byte 0       │ Byte 1           │ Bytes 2..N                      │
+│ Command Code │ Control Byte     │ Chunk Data Payload (1–16 bytes) │
+└──────────────┴──────────────────┴─────────────────────────────────┘
+```
+
+- **Byte 0**: Command ID (`0x00` for Insert, `0x01` for Append).
+- **Byte 1 (Control Byte)**:
+  - Bit 7 (`0x80`): `hasNext` flag (`1` if more chunks remain, `0` on final chunk).
+  - Bit 6 (`0x40`): `toggle` parity bit (`chunkIndex % 2 == 0`).
+  - Bits 0–4 (`0x1F`): Chunk payload length (1 to 16 bytes).
+- **Bytes 2..**: Raw packet slice.
+
+#### GATT Sequential Queue (`GattOpQueue`)
+
+BLE peripheral chipsets drop unacknowledged packets if writes are issued concurrently. To guarantee 100% transmission reliability:
+- All writes, reads, and descriptor registrations pass through a sequential FIFO queue.
+- Each chunk awaits native BLE stack confirmation before transmitting the subsequent chunk.
+- If an error occurs, the transfer gracefully aborts with a descriptive status message.
+
+---
+
+### 4.7 EEPROM Slot Queries & Management Opcodes
+
+#### Hardware Command Opcodes
+
+| Operation | Characteristic | Opcode / Payload | Description |
+|---|---|---|---|
+| **Select Slot** | `CHAR_RECIPE_SELECTION` | `[hardwarePos]` (1..13) | Sets active slot on physical dial & LED display |
+| **Query Slot ID** | `CHAR_RECIPE_COMMAND` | `[0x0A, 0x01, targetPos]` | Fetches slot status, CRC, and UUID (targetPos: 1..13) |
+| **Insert / Overwrite**| `CHAR_RECIPE_COMMAND` | `[0x00, controlByte, ...]` | Flashes binary recipe packet into specified slot |
+| **Append Recipe** | `CHAR_RECIPE_COMMAND` | `[0x01, controlByte, ...]` | Flashes recipe into next free EEPROM slot |
+| **Delete Slot** | `CHAR_RECIPE_COMMAND` | `[0x03, 0x01, targetPos]` | Erases recipe from designated EEPROM slot |
+| **Move / Reorder** | `CHAR_RECIPE_COMMAND` | `[0x04, 0x02, fromPos, toPos]` | Shifts recipe position within EEPROM |
+| **Clear All** | `CHAR_RECIPE_COMMAND` | `[0x06, 0x00]` | Bulk erases all recipes from hardware memory |
+| **Emergency Stop** | `CHAR_COMMAND_REQ` | `[0x01, 0x00]` | Instantly cuts motor rotation and induction heating |
+
+#### Hardware Response Codes (`CHAR_RECIPE_RESPONSE`)
+
+| Code | Hex | Status | Description |
+|---|---|---|---|
+| `32` | `0x20` | `rspSuccess` | Command successfully acknowledged and executed |
+| `33` | `0x21` | `rspFailed` | Command execution failed |
+| `34` | `0x22` | `rspInvalidState` | Machine in invalid state for command execution |
+| `35` | `0x23` | `rspOutOfRange` | Slot unallocated / empty (`[0x0A, 0x01, 0x23]`) |
+| `36` | `0x24` | `rspWrongCrc` | CRC-16 checksum mismatch |
+| `37` | `0x25` | `rspFormatError` | Packet structure or length validation error |
+| `38` | `0x26` | `rspNotSupported` | Command not supported by firmware version |
+| `39` | `0x27` | `rspMemoryFull` | All 13 hardware slots are occupied |
+
+---
+
+## 5. Architecture & Directory Layout
 
 ```
 barista-studio/
@@ -31,18 +338,18 @@ barista-studio/
 │   │   └── src/main/AndroidManifest.xml # BLUETOOTH_SCAN (neverForLocation), BLUETOOTH_CONNECT
 │   ├── build.gradle
 │   └── settings.gradle
-├── macos/                           # macOS platform configuration & entitlements
-│   └── Runner/
-│       ├── Info.plist               # NSBluetoothAlwaysUsageDescription
-│       ├── DebugProfile.entitlements # com.apple.security.device.bluetooth
-│       └── Release.entitlements     # com.apple.security.device.bluetooth
-├── ios/                             # iOS platform configuration
-│   └── Runner/Info.plist            # NSBluetoothAlwaysUsageDescription
+├── ios/                             # iOS runner, Info.plist with CoreBluetooth permissions & xcassets
+├── macos/                           # macOS runner, entitlements & Liquid Glass asset catalog
+├── windows/                         # Windows runner, CMakeLists & Win32 icon
+├── linux/                           # Linux desktop runner
+├── web/                             # Web runner, index.html & manifest.json
+├── assets/
+│   └── icons/                       # High-resolution icons & vector assets
 ├── lib/
 │   ├── data/
-│   │   └── preset_catalog.dart      # 60+ curated recipes with ingredients, multi-step phases & tags
+│   │   └── preset_catalog.dart      # 70+ curated recipes with ingredients, multi-step phases & tags
 │   ├── models/
-│   │   ├── machine_state.dart       # Official SDataWay 8-state hardware enum & bitmask parser
+│   │   ├── machine_state.dart       # 8-state hardware enum & bitmask parser
 │   │   ├── machine_telemetry.dart   # Live machine state, active dial slot, pairing state
 │   │   ├── phase.dart               # Phase model (speed 300-4000, accel, temp 0-70, duration)
 │   │   ├── recipe_step.dart         # Multi-step model (name, phases, culinary action prompt)
@@ -54,8 +361,8 @@ barista-studio/
 │   │   ├── gatt_op_queue.dart       # Sequential FIFO operation queue preventing BLE write collisions
 │   │   └── recipe_packet_builder.dart # Binary serialization, multi-step framing & chunking engine
 │   ├── services/
-│   │   ├── barista_ble_service.dart # Core BLE state manager, auto-scan, CMID handshake, slot query
-│   │   └── storage_service.dart     # SharedPreferences persistence (ChangeNotifier, custom recipes)
+│   │   ├── barista_ble_service.dart # Core BLE state manager, auto-scan, CMID handshake, slot sync & polling
+│   │   └── storage_service.dart     # Encrypted local key-value persistence for recipes & paired tokens
 │   ├── theme/
 │   │   └── app_theme.dart           # Rich espresso & gold luxury dark design system
 │   ├── ui/
@@ -79,290 +386,58 @@ barista-studio/
 
 ---
 
-## 3. Reverse-Engineered BLE Protocol Specification
-
-The Nespresso Barista Recipe Maker (Model W545) communicates over Bluetooth Low Energy (BLE). The protocol was reverse-engineered through low-level packet capture and hardware traffic analysis.
-
-### 3.1 Multi-Step Recipe Execution Flow
-
-The physical Barista machine natively supports multi-step recipes (`stepCount = 2`). The machine firmware autonomous execution sequence is illustrated below:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant App as Client App
-    participant Barista as Barista Machine (W545)
-    participant User as User (Physical)
-
-    App->>Barista: Upload Recipe with stepCount = 2
-    User->>Barista: Select Recipe on Wheel & Press Center Button
-    Barista->>Barista: State: RECIPE_EXECUTING (2)
-    Note over Barista: Step 1 runs (e.g. Cold Froth coffee for 15s)
-    Barista->>Barista: Motor stops, Heater off
-    Barista->>Barista: State: RECIPE_PAUSED (7)
-    Note over Barista: OLED Screen prompts user (Arrow / Prompt)
-    User->>Barista: Adds milk to jug & Presses Center Button
-    Barista->>Barista: State: RECIPE_EXECUTING (2)
-    Note over Barista: Step 2 runs (e.g. Hot Froth at 65°C for 35s)
-    Barista->>Barista: State: READY (1) (Beeps done)
-```
-
-1. **Step 1 Execution**: When the user presses the center dial on a 2-step recipe, the machine enters `MachineState.RECIPE_EXECUTING` (`2`). Step 1's phases execute sequentially (e.g., whisking base cold coffee or cold foam).
-2. **Firmware Pause**: Once Step 1 finishes, the machine firmware instantly shuts down whisk motor PWM and induction heating, transitioning to `MachineState.RECIPE_PAUSED` (`7`).
-3. **Hardware Prompt**: The physical OLED display shows an animated arrow / pause prompt instructing the user to add ingredients (e.g., pouring milk or syrup into the jug).
-4. **Step 2 Resumption**: When the user adds milk and presses the physical dial button, the machine automatically transitions back to `RECIPE_EXECUTING` (`2`) to run Step 2.
-5. **Completion**: When Step 2 completes, the machine beeps and returns to `MachineState.READY` (`1`).
-
----
-
-### 3.2 GATT Services & Characteristics
-
-All custom services and characteristics share the base 128-bit vendor UUID prefix:
-`6524xxxx-0253-11e7-93ae-92361f002671`
-
-| Service | UUID | Description |
-|---|---|---|
-| **Device Info & Auth** | `...1910-...` | Hardware serialization, pairing state, and CMID security handshake |
-| **Status & Control** | `...1920-...` | Machine operational state, live dial tracking, and hardware commands |
-| **Recipe Management** | `...1990-...` | 13-slot EEPROM synchronization, recipe flashing, and slot deletion |
-
-#### Key Characteristics
-
-| Characteristic | UUID | Properties | Purpose |
-|---|---|---|---|
-| `CHAR_SERIAL_NUMBER` | `...3a31-...` | Read | Machine manufacturing serial number |
-| `CHAR_CMID` | `...3a41-...` | Write | 8-byte security authorization key |
-| `CHAR_CMID_TYPE` | `...3a51-...` | Read | CMID authorization level response |
-| `CHAR_TX_LEVEL_REQUEST`| `...3a61-...` | Write | Request transmission power level negotiation |
-| `CHAR_MACHINE_STATUS` | `...3a12-...` | Read, Notify | Bitmask of motor, heater, pairing, and machine states |
-| `CHAR_COMMAND_REQ` | `...3a42-...` | Write | Emergency cutoff and hardware control commands |
-| `CHAR_RECIPE_SELECTION`| `...3a19-...` | Read, Write, Notify | Currently active slot index (0..12) selected by rotary dial |
-| `CHAR_RECIPE_COMMAND` | `...3a29-...` | Write | Flashing binary recipe packets & EEPROM slot queries |
-| `CHAR_RECIPE_RESPONSE` | `...3a39-...` | Notify | Responses from EEPROM (slot occupancy, UUIDs, names, CRCs) |
-
----
-
-### 3.3 Authentication & The CMID Handshake
-
-Before the Barista W545 accepts recipe commands, a cryptographic/pairing authorization must take place:
-
-1. **Query Pairing Status**:
-   - The app reads `CHAR_MACHINE_STATUS` (or receives its initial notification).
-   - The pairing code is extracted from Byte 0:
-     ```dart
-     final pairingCode = (statusBytes[0] & 0x60) >> 5;
-     // 0 = NONE, 1 = TEMPORARY, 2 = FINAL
-     ```
-2. **Authorize Session**:
-   - If `pairingCode != 2` (not yet permanently authorized):
-     - Write `[0x01]` to `CHAR_TX_LEVEL_REQUEST`.
-     - Generate or load a stored 8-byte CMID key. The Most Significant Bit of Byte 0 **must** be set:
-       ```dart
-       cmid[0] |= 0x80;
-       ```
-     - Write the 8-byte key to `CHAR_CMID`.
-     - Read `CHAR_CMID_TYPE` to verify authorization (`0x02` indicates `FINAL`).
-3. **Session Persistence**:
-   - The verified CMID is cached in local encrypted device storage. Once authenticated, the machine recognizes the companion app on subsequent connections.
-
----
-
-### 3.4 Telemetry Reality: Machine State vs Sensor Stream
-
-Through low-level hardware traffic analysis and live BLE packet inspection, we confirmed the exact telemetry capabilities of the Barista BLE profile:
-
-#### 1. What the Machine DOES NOT Report
-- **No Live Sensor Stream**: Across the entire BLE GATT profile (15 characteristics), there is **no characteristic** for motor RPM, whisk speed, temperature in °C, or induction coil wattage. Any live whisk animation in client applications is simulated locally while `machineState == RECIPE_EXECUTING`.
-- **Non-Functional 1-Bit Flags (Byte 0)**:
-  - **Bit 5 Collision**: Bits 5 and 6 (`0x60`) encode `PairingKeyState` (`2` = `FINAL` / `0b10`). Setting Bit 5 would flip pairing state to 3 (`UNDEFINED`) and break authentication. The firmware permanently avoids setting Bit 5, making `inductionHeatingActive` always false.
-  - **Bit 4 is Dead**: The physical firmware never sets Bit 4 (`motorRunning`), which consistently reports false across live hardware captures.
-
-#### 2. What the Machine DOES Actually Report
-The machine transmits its telemetry in `CHAR_MACHINE_STATUS`:
-
-```
-Byte 0:
-┌────────┬───────────────────┬────────┬────────┬─────────────────────────┐
-│ Bit 7  │ Bit 6     Bit 5   │ Bit 4  │ Bit 3  │ Bit 2   Bit 1   Bit 0   │
-│ Unused │   Pairing Code    │ Motor  │ Heat   │        Unused           │
-└────────┴───────────────────┴────────┴────────┴─────────────────────────┘
-
-Byte 1:
-┌────────────────────────────────────────────────────────┬────────┬────────┐
-│ Bit 7   Bit 6   Bit 5   Bit 4   Bit 3   Bit 2          │ Bit 1  │ Bit 0  │
-│                   Machine State Code                   │    Unused       │
-└────────────────────────────────────────────────────────┴────────┴────────┘
-```
-
-- **Pairing State (`(b0 & 0x60) >> 5`)**: `0` = NONE, `1` = TEMPORARY, `2` = FINAL.
-- **Machine State Code (`(b1 & 0xFC) >> 2`)**:
-  > [!IMPORTANT]
-  > In Dart and Python, bitwise right shift (`>>`) has higher operator precedence than bitwise AND (`&`). Therefore, unparenthesized `b1 & 0xFC >> 2` erroneously evaluates as `b1 & 0x3F`. Extracting bits 2–7 strictly requires parentheses: `(b1 & 0xFC) >> 2`.
-  - `0` (`0x00`): **`STANDBY`** (Machine idle / low-power sleep on counter)
-  - `1` (`0x01`): **`READY`** (Awake and recipe selected on dial, ready to run)
-  - `2` (`0x02`): **`RECIPE_EXECUTING`** (Whisk motor or heater actively executing recipe)
-  - `3` (`0x03`): **`LOCAL_SETTINGS_MODE`** (User interacting with machine on-device menu)
-  - `4` (`0x04`): **`ERROR`** (Hardware fault or safety cutoff)
-  - `5` (`0x05`): **`OVERHEATED`** (Thermal safety threshold reached, cooling required)
-  - `6` (`0x06`): **`OUT_OF_THE_BOX_SETTINGS`** (First-time setup mode)
-  - `7` (`0x07`): **`RECIPE_PAUSED`** (Firmware pause between Step 1 and Step 2! Motor & heater stopped, OLED displays prompt, awaiting center dial press)
-
-- **Rotary Dial Selection (`CHAR_RECIPE_SELECTION`)**: 1-based position byte (`1` to `13`), mapped by the client to 0-based slots (`0` to `12`). The machine fires immediate, reliable GATT notifications whenever the physical rotary dial is rotated.
-
-#### 3. Targeted Background Polling for Machine Status
-While rotary dial movements fire spontaneous GATT notifications reliably, the physical Barista firmware **does not emit GATT notifications for autonomous internal state transitions** (such as when the user presses the center dial button to start a recipe, when Step 1 completes and the machine pauses, or when a recipe finishes and returns to ready/standby). Without periodic status reads, client applications remain frozen on stale connection states.
-
-To solve this, Barista Studio v1.3.1 runs an active **1.5-second background polling loop** through `GattOpQueue` targeting **`CHAR_MACHINE_STATUS` only**. This serves dual duty:
-1. **Real-Time State Telemetry**: Instantly detects autonomous firmware transitions between `STANDBY`, `READY`, `RECIPE_EXECUTING`, and `RECIPE_PAUSED` (triggering the live amber HUD prompt for Step 2).
-2. **Heartbeat & Liveness**: Verifies the BLE link and detects machine power-off.
-3. **Queue Awareness**: The polling loop automatically skips ticks whenever a recipe upload (`isFlashing`), 13-slot EEPROM scan (`isScanningSlots`), or pending queue operations are in flight, ensuring background status reads never contend with multi-chunk recipe transfers.
-
----
-
-### 3.5 13-Slot EEPROM Memory Queries
-
-To query the contents of EEPROM hardware memory without prior knowledge:
-
-1. The app writes a slot query to `CHAR_RECIPE_COMMAND`:
-   ```
-   [0x0A, 0x01, targetPos]  // 0x0A = CMD_GET_ID, targetPos: 1..13 (1-based)
-   ```
-2. The machine emits notification packets on `CHAR_RECIPE_RESPONSE`:
-   - **Empty Slot Notification**: `[0x0A, 0x01, 0x23]` (where `0x23` is `rspOutOfRange`, indicating the slot is unallocated).
-   - **Occupied Slot Notification**: Response chunks beginning with command ID `0x0A` and control byte, followed by the 2-byte resident CRC-16 and 16-byte recipe UUID. The companion app matches this UUID against the local recipe registry or displays resident identifiers.
-
----
-
-### 3.6 Binary Recipe Serialization & Packet Framing
-
-A Barista recipe payload encodes metadata, step headers, and 1 to 3 execution phases per step. The binary format natively accommodates multi-step recipes (`stepCount = 1` or `2`).
-
-#### Payload Structure: Inserting / Overwriting (`CMD_INSERT = 0x00`)
-```
-Offset   Length   Field                     Description
----------------------------------------------------------------------------------
-0x00     1        Target Slot Position      1-based slot index (1 to 13)
-0x01     2        CRC-16 CCITT              Big-Endian uint16 (calculated over all following bytes: 0x03..end)
-0x03     2        Payload Length            Big-Endian uint16 (length of remaining bytes 0x05..end)
-0x05     16       Recipe UUID               16-byte raw UUID
-0x15     1        Recipe Name Length (N)    Number of ASCII bytes in name (1 to 16)
-0x16     N        Recipe Name               ASCII string (sanitized, max 16 chars)
-0x16+N   1        Step Count (S)            Number of steps (1 or 2)
-  -- For each Step (1 to S) --
-  +0     1        Step Name Length (M)      Length of step label (e.g. 6 for "STEP 1")
-  +1     M        Step Label                ASCII string ("STEP 1", "STEP 2", etc.)
-  +1+M   1        Phase Count (P)           Number of active phases in step (1 to 3)
-    -- For each Phase (6 bytes each) --
-    +0   2        Motor Speed               uint16 Big-Endian (300 to 4000 RPM)
-    +2   2        Ramp Acceleration         uint16 Big-Endian (50 to 2000 RPM/s)
-    +4   1        Target Temperature        uint8 (0 to 70°C; 0 = cold froth / heater off)
-    +5   1        Phase Duration            uint8 (1 to 240 seconds)
-```
-
-#### Payload Structure: Appending (`CMD_APPEND = 0x01`)
-When appending to the next available free EEPROM slot, the 1-byte Target Slot Position is omitted; CRC-16 begins at offset `0x00` and covers bytes `0x02..end`.
-
-#### CRC-16 CCITT Specification
-- **Polynomial**: `0x1021` ($x^{16} + x^{12} + x^5 + 1$)
-- **Initial Value**: `0x0000`
-- **Reflection**: No input reflection, no output reflection
-- **Final XOR**: `0x0000`
-
----
-
-### 3.7 BLE Transmission Chunking & Flow Control
-
-Because standard BLE ATT packets are bounded, the binary payload is segmented into 16-byte maximum transmission chunks written to `CHAR_RECIPE_COMMAND`:
-
-```
-Chunk Framing:
-┌──────────────┬──────────────────┬─────────────────────────────────┐
-│ Byte 0       │ Byte 1           │ Bytes 2..N                      │
-│ Command Code │ Control Byte     │ Chunk Data Payload (1–16 bytes) │
-└──────────────┴──────────────────┴─────────────────────────────────┘
-```
-- **Byte 0**: Command ID (`0x00` for Insert, `0x01` for Append).
-- **Byte 1 (Control Byte)**:
-  - Bit 7 (`0x80`): `hasNext` flag (set to `1` if more chunks remain, `0` on final chunk).
-  - Bit 6 (`0x40`): `toggle` parity bit (`chunkIndex % 2 == 0`).
-  - Bits 0–4 (`0x1F`): Chunk data length (number of data bytes following in this packet).
-- **Bytes 2..**: Chunk payload slice.
-
-#### GATT Sequential Queue (`GattOpQueue`)
-BLE controllers can drop rapid sequential write commands. To ensure 100% transmission reliability:
-- All writes, reads, and descriptor registrations pass through a sequential FIFO queue.
-- Each chunk waits for the native BLE stack write confirmation before advancing to the next chunk.
-- If the machine reports an error or fails to acknowledge, the transfer gracefully aborts with a descriptive status error rather than locking the interface.
-
----
-
-### 3.8 Slot Management Opcodes
-
-| Operation | Characteristic | Opcode / Payload | Description |
-|---|---|---|---|
-| **Select Slot** | `CHAR_RECIPE_SELECTION` | `[slotIndex]` (0..12) | Sets active slot on physical dial & LED display |
-| **Query Slot ID** | `CHAR_RECIPE_COMMAND` | `[0x0A, 0x01, targetPos]` | Fetches slot status, CRC, and UUID (targetPos: 1..13) |
-| **Delete Slot** | `CHAR_RECIPE_COMMAND` | `[0x03, 0x01, targetPos]` | Erases recipe from designated EEPROM slot |
-| **Move / Reorder** | `CHAR_RECIPE_COMMAND` | `[0x04, 0x02, fromPos, toPos]` | Shifts recipe position within EEPROM |
-| **Clear All** | `CHAR_RECIPE_COMMAND` | `[0x06, 0x00]` | Bulk erases all recipes from hardware memory |
-| **Emergency Stop** | `CHAR_COMMAND_REQ` | `[0x02]` | Instantly cuts motor power and induction heating |
-
----
-
-## 4. Presets & Recipe Categories
-
-Barista Studio features 70+ professionally tuned presets organized into intuitive categories with multi-tag filtering:
-
-| Category / Tag | Description | Sample Recipes |
-|---|---|---|
-| **Multi-Step** | Natively sequenced multi-step recipes featuring automatic firmware pause for intermediate culinary addition | Latte Double, Nitro Swt Cream, Viennese Choco, Affogato Foam, Matcha Cloud, Caramel Macch, Espresso Tonic, Mocha Truffle, Pistachio Cloud, Irish Velvet, Cascara Spark, Biscoff Swirl, Salted Crown, Chai Ganache |
-| **Hot Coffee** | Traditional European espresso classics & rich textured specialties | Cappuccino, Latte Macchiato, Flat White, Velvet Cortado, Vienna Melange, Spanish Latte, Caffè Breve, Mocha Viennois |
-| **Iced & Cold Coffee** | Chilled coffee drinks utilizing high shear and zero-heat cold froth | Iced Frappé, Nitro Cold Foam, Espresso Freddo, Cold Shakerato, Iced Caramel Macchiato, Brown Sugar Oat |
-| **Non-Coffee** | Decadent warmers, chocolates, and botanical tea infusions | Hot Chocolate, Mexican Cocoa, White Hot Cocoa, Matcha Silk, Turmeric Elixir, Spiced Chai, London Fog, Babyccino, Vanilla Steamer, Rooibos Honey, Spiced Cider |
-| **Dairy** | High-fat milk, half-and-half, and heavy cream textured recipes | Flat White, Vienna Melange, Affogato Cream, Pistachio Crema, Cardamom Rose, Vanilla Sweet Foam, Salted Caramel Foam |
-| **Non-Dairy** | Plant-based milks with strictly controlled temperatures to prevent protein curdling | Oat Microfoam 58 (max 58°C), Almond Velvet 55 (max 55°C), Soy Latte Silk, Coconut Cold Whip, Cashew Silk Foam, Pea Milk Cloud |
-| **Cold Foam & Textures** | High-velocity microfoam floats, nitro emulsions, and sweet cold creams | Nitro Cold Foam (4000 RPM), Butterfly Foam (blue herbal cold foam), Matcha Cloud, Strawberry Foam, Cold Whip Cream |
-
----
-
-## 5. Getting Started & Building
+## 6. Getting Started & Building
 
 ### Prerequisites
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) (>= 3.19.0)
 - [Dart SDK](https://dart.dev/get-dart) (>= 3.3.0)
 - Android Studio / Android SDK Platform-Tools (target API 34, minimum API 21)
+- Xcode (for iOS and macOS desktop builds)
 
-### Setup
+### Installation
 ```bash
 git clone https://github.com/Rosselman/barista-studio.git
 cd barista-studio
 flutter pub get
 ```
 
-### Run Unit Tests
+### Running Test Suite
+Verify protocol encoding, CRC-16 calculations, catalog integrity, and state decoders:
 ```bash
 flutter test
 ```
 
-### Build & Install on Android
-To build a debug APK:
+### Platform Builds
+
+#### Android APK
 ```bash
+# Debug APK
 flutter build apk --debug
 adb install -r build/app/outputs/flutter-apk/app-debug.apk
-```
 
-To build a release APK:
-```bash
+# Release APK
 flutter build apk --release
 ```
 
----
+#### macOS Desktop
+```bash
+flutter build macos --release
+```
 
-## 6. Safety & Hardware Guidelines
+#### Windows Desktop
+```bash
+flutter build windows --release
+```
 
-- **Safe Temperature Limits**: The app strictly enforces the 0–70°C thermal limit in accordance with the induction coil safety specifications.
-- **Cold Foam (0°C)**: Setting temperature to 0°C disables the induction heater entirely, generating rich, stiff cold microfoam solely via high-RPM mechanical shear.
-- **Plant-Based Milk Guidelines**: Oat and almond proteins degrade and break down if heated above 60°C. Our plant-based presets strictly clamp maximum temperatures at 55–58°C for optimal sweetness and microfoam stability.
+#### Linux Desktop
+```bash
+flutter build linux --release
+```
+
+#### Web Application
+```bash
+flutter build web --release
+```
 
 ---
 
