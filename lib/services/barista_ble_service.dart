@@ -200,6 +200,48 @@ class BaristaBleService extends ChangeNotifier {
     _updateTelemetry(_telemetry.copyWith(isScanning: true));
     _log('Scanning for nearby Barista machines (White_* / Black_* / W545)...');
 
+    // On iOS and macOS (CoreBluetooth), if the machine is already bonded or connected to the OS,
+    // CoreBluetooth will NOT return it in active advertising scan results. Check connected & system devices first!
+    try {
+      final baristaServiceGuids = [
+        Guid(BaristaBleConstants.recipeService),
+        Guid(BaristaBleConstants.statusControlService),
+        Guid(BaristaBleConstants.deviceInfoService),
+      ];
+
+      // 1. Check already connected devices in FlutterBluePlus
+      for (final d in FlutterBluePlus.connectedDevices) {
+        if (_isBaristaDevice(
+          name: d.platformName,
+          advName: d.advName,
+          mac: d.remoteId.str,
+          serviceUuids: const [],
+          serviceData: const {},
+          manufacturerData: const {},
+        )) {
+          final displayName = d.platformName.isNotEmpty ? d.platformName : d.remoteId.str;
+          _log('Discovered active Barista machine (already connected): $displayName');
+          stopScan();
+          connect(d);
+          return;
+        }
+      }
+
+      // 2. Query system-paired peripherals on iOS, macOS, Android
+      if (!kIsWeb && (Platform.isIOS || Platform.isMacOS || Platform.isAndroid)) {
+        final sysDevices = await FlutterBluePlus.systemDevices(baristaServiceGuids);
+        for (final d in sysDevices) {
+          final displayName = d.platformName.isNotEmpty ? d.platformName : d.remoteId.str;
+          _log('Discovered system-paired Barista machine: $displayName');
+          stopScan();
+          connect(d);
+          return;
+        }
+      }
+    } catch (e) {
+      _log('Notice checking system/connected devices: $e');
+    }
+
     try {
       await _scanSub?.cancel();
       _scanSub = FlutterBluePlus.scanResults.listen((results) {
@@ -273,13 +315,22 @@ class BaristaBleService extends ChangeNotifier {
     });
 
     try {
-      await device.connect(
-        timeout: const Duration(seconds: 8),
-        autoConnect: false,
-      );
+      if (!device.isConnected) {
+        await device.connect(
+          timeout: const Duration(seconds: 8),
+          autoConnect: false,
+        );
+      } else {
+        _log('Device already connected. Proceeding to service discovery...');
+        await _discoverAndSetupServices(device);
+      }
     } catch (e) {
-      _log('Connection failed: $e');
-      _handleDisconnection();
+      if (e.toString().contains('already connected')) {
+        await _discoverAndSetupServices(device);
+      } else {
+        _log('Connection failed: $e');
+        _handleDisconnection();
+      }
     }
   }
 
@@ -370,12 +421,12 @@ class BaristaBleService extends ChangeNotifier {
 
   Future<void> _discoverAndSetupServices(BluetoothDevice device) async {
     try {
-      final services = await device.discoverServices();
+      final services = await device.discoverServices().timeout(const Duration(seconds: 10));
       for (final s in services) {
-        final sUuid = s.uuid.str.toLowerCase();
+        final sUuid = s.uuid.str128.toLowerCase();
         if (sUuid == BaristaBleConstants.deviceInfoService.toLowerCase()) {
           for (final c in s.characteristics) {
-            final cUuid = c.uuid.str.toLowerCase();
+            final cUuid = c.uuid.str128.toLowerCase();
             if (cUuid == BaristaBleConstants.charSerialNumber.toLowerCase()) {
               _charSerialNumber = c;
             } else if (cUuid == BaristaBleConstants.charCmid.toLowerCase()) {
@@ -388,7 +439,7 @@ class BaristaBleService extends ChangeNotifier {
           }
         } else if (sUuid == BaristaBleConstants.statusControlService.toLowerCase()) {
           for (final c in s.characteristics) {
-            final cUuid = c.uuid.str.toLowerCase();
+            final cUuid = c.uuid.str128.toLowerCase();
             if (cUuid == BaristaBleConstants.charMachineStatus.toLowerCase()) {
               _charMachineStatus = c;
             } else if (cUuid == BaristaBleConstants.charCommandReq.toLowerCase()) {
@@ -397,7 +448,7 @@ class BaristaBleService extends ChangeNotifier {
           }
         } else if (sUuid == BaristaBleConstants.recipeService.toLowerCase()) {
           for (final c in s.characteristics) {
-            final cUuid = c.uuid.str.toLowerCase();
+            final cUuid = c.uuid.str128.toLowerCase();
             if (cUuid == BaristaBleConstants.charRecipeSelection.toLowerCase()) {
               _charRecipeSelection = c;
             } else if (cUuid == BaristaBleConstants.charRecipeCommand.toLowerCase()) {
