@@ -932,7 +932,7 @@ class PresetCatalog {
     // ==========================================
     Recipe(
       id: '11223344-5566-7788-9900-aabbccddeeff',
-      name: 'Matcha Cloud',
+      name: 'Matcha Cold Foam',
       description: 'Cold emerald sweet matcha froth floating atop iced milk or cold brew.',
       category: 'Cold Foam & Textures',
       tags: const ['Cold Foam & Textures', 'Non-Coffee', 'Non-Dairy'],
@@ -947,7 +947,7 @@ class PresetCatalog {
       ],
       instructions: [
         'Add cold milk, matcha, and sweetener to the Barista jug.',
-        'Run Matcha Cloud with 0°C cold froth setting.',
+        'Run Matcha Cold Foam with 0°C cold froth setting.',
         'Prepare glass with ice cubes and 120 ml iced oat or almond milk.',
         'Gently float the dense emerald matcha cloud on top.',
       ],
@@ -1579,7 +1579,7 @@ class PresetCatalog {
     ),
     Recipe(
       id: '70581e69-261a-42a1-bfe7-468a7e4dd729',
-      name: 'London Fog',
+      name: 'London Fog Royale',
       description: 'Fragrant tea latte. Step 1 extracts bergamot & lavender; Step 2 aerates hot vanilla microfoam.',
       category: 'Non-Coffee',
       tags: const ['Multi-Step', 'Non-Coffee', 'Dairy'],

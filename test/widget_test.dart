@@ -19,11 +19,14 @@ void main() {
     expect(PresetCatalog.categories.contains('Cold Foam & Textures'), true);
   });
 
-  test('All preset recipes have unique UUIDs and valid hardware names', () {
+  test('All preset recipes have unique UUIDs, unique names, and valid hardware names', () {
     final ids = <String>{};
+    final names = <String>{};
     for (final r in PresetCatalog.presets) {
       expect(ids.contains(r.id.toLowerCase()), false, reason: 'Duplicate ID: ${r.id}');
       ids.add(r.id.toLowerCase());
+      expect(names.contains(r.name.toLowerCase()), false, reason: 'Duplicate Recipe Name: ${r.name}');
+      names.add(r.name.toLowerCase());
       expect(r.hardwareName.length, lessThanOrEqualTo(16), reason: 'Hardware name too long: ${r.name}');
       expect(r.hardwareName.isNotEmpty, true);
       expect(r.steps.isNotEmpty, true);
@@ -40,12 +43,18 @@ void main() {
 
   test('Multi-Step recipes in PresetCatalog are properly configured', () {
     final multiStep = PresetCatalog.presets.where((r) => r.isMultiStep).toList();
-    expect(multiStep.length, greaterThanOrEqualTo(10));
+    expect(multiStep.length, 19);
     for (final r in multiStep) {
       expect(r.stepCount, greaterThanOrEqualTo(2));
       expect(r.steps[0].phases.isNotEmpty, true);
       expect(r.steps[1].phases.isNotEmpty, true);
       expect(r.tags.contains('Multi-Step'), true);
+    }
+
+    // Ensure no single-step recipes are accidentally tagged Multi-Step
+    final singleStep = PresetCatalog.presets.where((r) => !r.isMultiStep).toList();
+    for (final r in singleStep) {
+      expect(r.tags.contains('Multi-Step'), false, reason: '${r.name} tagged Multi-Step but has stepCount < 2');
     }
   });
 
