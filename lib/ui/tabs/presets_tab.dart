@@ -2,30 +2,52 @@ import 'package:flutter/material.dart';
 import '../../data/preset_catalog.dart';
 import '../../models/recipe.dart';
 import '../../services/barista_ble_service.dart';
+import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/flash_recipe_dialog.dart';
 import '../widgets/recipe_detail_dialog.dart';
 
-class PresetsTab extends StatefulWidget {
+class RecipesTab extends StatefulWidget {
   final BaristaBleService bleService;
+  final StorageService storageService;
   final void Function(Recipe recipe)? onCustomize;
+  final VoidCallback? onOpenBuilder;
 
-  const PresetsTab({
+  const RecipesTab({
     super.key,
     required this.bleService,
+    required this.storageService,
     this.onCustomize,
+    this.onOpenBuilder,
   });
 
   @override
-  State<PresetsTab> createState() => _PresetsTabState();
+  State<RecipesTab> createState() => _RecipesTabState();
 }
 
-class _PresetsTabState extends State<PresetsTab> {
+// Backward compatibility alias
+typedef PresetsTab = RecipesTab;
+
+class _RecipesTabState extends State<RecipesTab> {
+  int _modeIndex = 0; // 0: Curated Presets, 1: My Recipes
   String _selectedCategory = 'All';
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  List<Recipe> _customRecipes = [];
 
-  List<Recipe> get _filteredRecipes {
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomRecipes();
+  }
+
+  void _loadCustomRecipes() {
+    setState(() {
+      _customRecipes = widget.storageService.getCustomRecipes();
+    });
+  }
+
+  List<Recipe> get _filteredPresets {
     final query = _searchQuery.toLowerCase().trim();
     return PresetCatalog.presets.where((r) {
       final matchesCategory = _selectedCategory == 'All' ||
@@ -41,10 +63,66 @@ class _PresetsTabState extends State<PresetsTab> {
     }).toList();
   }
 
+  List<Recipe> get _filteredCustomRecipes {
+    final query = _searchQuery.toLowerCase().trim();
+    if (query.isEmpty) return _customRecipes;
+    return _customRecipes.where((r) {
+      return r.name.toLowerCase().contains(query) ||
+          r.description.toLowerCase().contains(query) ||
+          r.category.toLowerCase().contains(query) ||
+          r.tags.any((t) => t.toLowerCase().contains(query));
+    }).toList();
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _confirmDeleteRecipe(BuildContext context, Recipe recipe) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        title: const Text('Delete Recipe?', style: TextStyle(color: AppTheme.crema)),
+        content: Text(
+          'Are you sure you want to delete "${recipe.name}" from My Recipes? This action cannot be undone.',
+          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.rubyEmergency,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              final messenger = ScaffoldMessenger.of(context);
+              await widget.storageService.deleteCustomRecipe(recipe.id);
+              if (mounted) {
+                _loadCustomRecipes();
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Deleted "${recipe.name}"'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -53,13 +131,108 @@ class _PresetsTabState extends State<PresetsTab> {
       backgroundColor: AppTheme.bgDark,
       body: CustomScrollView(
         slivers: [
-          // Filter & Search Header
+          // Mode Toggle & Search Header
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 2-Way Segmented Pill Bar
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceCard,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppTheme.borderSubtle),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              if (_modeIndex != 0) {
+                                setState(() {
+                                  _modeIndex = 0;
+                                  _searchQuery = '';
+                                  _searchController.clear();
+                                });
+                              }
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: _modeIndex == 0 ? AppTheme.goldPrimary : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.local_cafe_outlined,
+                                    size: 16,
+                                    color: _modeIndex == 0 ? Colors.black : AppTheme.textSecondary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Curated Presets (${PresetCatalog.presets.length})',
+                                    style: TextStyle(
+                                      color: _modeIndex == 0 ? Colors.black : AppTheme.textSecondary,
+                                      fontWeight: _modeIndex == 0 ? FontWeight.w700 : FontWeight.w500,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _modeIndex = 1;
+                                _searchQuery = '';
+                                _searchController.clear();
+                                _loadCustomRecipes();
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: _modeIndex == 1 ? AppTheme.goldPrimary : Colors.transparent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.bookmark_border,
+                                    size: 16,
+                                    color: _modeIndex == 1 ? Colors.black : AppTheme.textSecondary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'My Recipes (${_customRecipes.length})',
+                                    style: TextStyle(
+                                      color: _modeIndex == 1 ? Colors.black : AppTheme.textSecondary,
+                                      fontWeight: _modeIndex == 1 ? FontWeight.w700 : FontWeight.w500,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
                   // Search Box
                   Container(
                     decoration: BoxDecoration(
@@ -71,7 +244,9 @@ class _PresetsTabState extends State<PresetsTab> {
                       controller: _searchController,
                       style: const TextStyle(color: AppTheme.crema, fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'Search gourmet recipes or ingredients...',
+                        hintText: _modeIndex == 0
+                            ? 'Search gourmet presets or ingredients...'
+                            : 'Search your custom recipes...',
                         hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
                         prefixIcon: const Icon(Icons.search, color: AppTheme.goldPrimary, size: 20),
                         suffixIcon: _searchQuery.isNotEmpty
@@ -95,86 +270,178 @@ class _PresetsTabState extends State<PresetsTab> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Filter Chips
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: PresetCatalog.categories.map((cat) {
-                        final isSelected = _selectedCategory == cat;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ChoiceChip(
-                            label: Text(cat),
-                            selected: isSelected,
-                            showCheckmark: false,
-                            selectedColor: AppTheme.goldPrimary,
-                            backgroundColor: AppTheme.surfaceElevated,
-                            labelStyle: TextStyle(
-                              color: isSelected ? Colors.black : AppTheme.textSecondary,
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                              fontSize: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              side: BorderSide(
-                                color: isSelected ? AppTheme.goldPrimary : AppTheme.borderSubtle,
-                                width: 1,
+                  // Category Chips (Only in Curated Presets mode)
+                  if (_modeIndex == 0)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: PresetCatalog.categories.map((cat) {
+                          final isSelected = _selectedCategory == cat;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              label: Text(cat),
+                              selected: isSelected,
+                              showCheckmark: false,
+                              selectedColor: AppTheme.goldPrimary,
+                              backgroundColor: AppTheme.surfaceElevated,
+                              labelStyle: TextStyle(
+                                color: isSelected ? Colors.black : AppTheme.textSecondary,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 12,
                               ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(
+                                  color: isSelected ? AppTheme.goldPrimary : AppTheme.borderSubtle,
+                                  width: 1,
+                                ),
+                              ),
+                              onSelected: (selected) {
+                                if (selected) {
+                                  setState(() => _selectedCategory = cat);
+                                }
+                              },
                             ),
-                            onSelected: (selected) {
-                              if (selected) {
-                                setState(() => _selectedCategory = cat);
-                              }
-                            },
-                          ),
-                        );
-                      }).toList(),
+                          );
+                        }).toList(),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
           ),
 
-          // Recipe Cards Grid
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            sliver: SliverLayoutBuilder(
-              builder: (context, constraints) {
-                final width = constraints.crossAxisExtent;
-                final crossAxisCount = width > 900 ? 3 : (width > 600 ? 2 : 1);
-
-                return SliverGrid(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    mainAxisExtent: 215,
-                  ),
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final recipe = _filteredRecipes[index];
-                      return _buildRecipeCard(context, recipe);
-                    },
-                    childCount: _filteredRecipes.length,
-                  ),
-                );
-              },
-            ),
-          ),
+          // Content Area (Presets or My Recipes)
+          if (_modeIndex == 0)
+            _buildPresetsGrid()
+          else if (_customRecipes.isEmpty)
+            _buildEmptyCustomRecipesState()
+          else
+            _buildCustomRecipesGrid(),
         ],
       ),
     );
   }
 
-  Widget _buildRecipeCard(BuildContext context, Recipe recipe) {
+  Widget _buildEmptyCustomRecipesState() {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: AppTheme.goldPrimary.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.35)),
+                ),
+                child: const Icon(Icons.auto_awesome, size: 44, color: AppTheme.goldPrimary),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'No Custom Recipes Yet',
+                style: TextStyle(
+                  color: AppTheme.crema,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Design bespoke temperature, RPM, and duration profiles tailored to your exact taste in the Custom Builder.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Open Custom Builder'),
+                onPressed: widget.onOpenBuilder,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPresetsGrid() {
+    final recipes = _filteredPresets;
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      sliver: SliverLayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.crossAxisExtent;
+          final crossAxisCount = width > 900 ? 3 : (width > 600 ? 2 : 1);
+
+          return SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              mainAxisExtent: 215,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final recipe = recipes[index];
+                return _buildRecipeCard(context, recipe, isCustom: false);
+              },
+              childCount: recipes.length,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCustomRecipesGrid() {
+    final recipes = _filteredCustomRecipes;
+    return SliverPadding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+      sliver: SliverLayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.crossAxisExtent;
+          final crossAxisCount = width > 900 ? 3 : (width > 600 ? 2 : 1);
+
+          return SliverGrid(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              mainAxisExtent: 215,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
+                final recipe = recipes[index];
+                return _buildRecipeCard(context, recipe, isCustom: true);
+              },
+              childCount: recipes.length,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRecipeCard(BuildContext context, Recipe recipe, {required bool isCustom}) {
     final isCold = recipe.isCold;
 
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surfaceCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.borderSubtle),
+        border: Border.all(
+          color: isCustom ? AppTheme.goldPrimary.withOpacity(0.3) : AppTheme.borderSubtle,
+        ),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -241,6 +508,10 @@ class _PresetsTabState extends State<PresetsTab> {
               _buildPill(Icons.rotate_right, '${recipe.peakRpm} RPM'),
               const SizedBox(width: 6),
               _buildPill(Icons.layers_outlined, '${recipe.activePhases.length}p'),
+              if (isCustom) ...[
+                const SizedBox(width: 6),
+                _buildPill(Icons.star, 'Custom'),
+              ],
             ],
           ),
           const SizedBox(height: 8),
@@ -271,14 +542,18 @@ class _PresetsTabState extends State<PresetsTab> {
                     foregroundColor: AppTheme.crema,
                   ),
                   onPressed: () {
-                    RecipeDetailDialog.show(
-                      context,
-                      recipe: recipe,
-                      bleService: widget.bleService,
-                      onCustomize: widget.onCustomize,
-                    );
+                    if (isCustom) {
+                      widget.onCustomize?.call(recipe);
+                    } else {
+                      RecipeDetailDialog.show(
+                        context,
+                        recipe: recipe,
+                        bleService: widget.bleService,
+                        onCustomize: widget.onCustomize,
+                      );
+                    }
                   },
-                  child: const Text('Guide', style: TextStyle(fontSize: 12)),
+                  child: Text(isCustom ? 'Edit in Builder' : 'Guide', style: const TextStyle(fontSize: 12)),
                 ),
               ),
               const SizedBox(width: 8),
@@ -298,6 +573,14 @@ class _PresetsTabState extends State<PresetsTab> {
                   },
                 ),
               ),
+              if (isCustom) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.rubyEmergency),
+                  tooltip: 'Delete Recipe',
+                  onPressed: () => _confirmDeleteRecipe(context, recipe),
+                ),
+              ],
             ],
           ),
         ],

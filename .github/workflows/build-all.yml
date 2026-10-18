@@ -67,6 +67,37 @@ jobs:
           name: barista-studio-macos
           path: build/macos/Build/Products/Release/barista-studio-macos.zip
 
+  build-ios:
+    name: Build iOS App (.ipa)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build iOS App (Unsigned)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package Unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r barista-studio-ios-unsigned.ipa Payload
+
+      - name: Upload iOS IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: barista-studio-ios-unsigned
+          path: barista-studio-ios-unsigned.ipa
+
   build-linux:
     name: Build Linux Desktop (.tar.gz)
     runs-on: ubuntu-latest

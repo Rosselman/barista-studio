@@ -44,6 +44,10 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  void _onOpenBuilder() {
+    setState(() => _currentIndex = 1);
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -58,9 +62,11 @@ class _HomeShellState extends State<HomeShell> {
             final isWide = constraints.maxWidth >= 720;
 
             final tabs = [
-              PresetsTab(
+              RecipesTab(
                 bleService: widget.bleService,
+                storageService: widget.storageService,
                 onCustomize: _onCustomizeRecipe,
+                onOpenBuilder: _onOpenBuilder,
               ),
               CustomRecipeTab(
                 key: _customRecipeKey,
@@ -69,6 +75,7 @@ class _HomeShellState extends State<HomeShell> {
               ),
               SlotsTab(
                 bleService: widget.bleService,
+                storageService: widget.storageService,
               ),
             ];
 
@@ -216,20 +223,31 @@ class _HomeShellState extends State<HomeShell> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            isConnected
-                                ? '${(telemetry.deviceName != null && telemetry.deviceName!.isNotEmpty) ? telemetry.deviceName : "Barista"} • ${telemetry.machineState}'
-                                : (isScanning ? 'SEARCHING FOR BARISTA W545...' : 'DISCONNECTED • TAP CONNECT TO PAIR'),
-                            style: TextStyle(
-                              color: isConnected
-                                  ? AppTheme.emeraldSuccess
-                                  : (isScanning ? AppTheme.amberHeat : AppTheme.textMuted),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          child: Builder(
+                            builder: (context) {
+                              final deviceTitle = (telemetry.deviceName != null && telemetry.deviceName!.isNotEmpty)
+                                  ? telemetry.deviceName!
+                                  : 'Barista W545';
+                              final slot = telemetry.selectedSlot;
+                              final slotStatus = (slot != null && slot >= 0 && slot < 13)
+                                  ? ' • Slot ${slot + 1} Active'
+                                  : '';
+                              return Text(
+                                isConnected
+                                    ? '$deviceTitle$slotStatus'
+                                    : (isScanning ? 'SEARCHING FOR BARISTA W545...' : 'DISCONNECTED • TAP CONNECT TO PAIR'),
+                                style: TextStyle(
+                                  color: isConnected
+                                      ? AppTheme.emeraldSuccess
+                                      : (isScanning ? AppTheme.amberHeat : AppTheme.textMuted),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -252,7 +270,7 @@ class _HomeShellState extends State<HomeShell> {
                               NavigationRailDestination(
                                 icon: Icon(Icons.local_cafe_outlined),
                                 selectedIcon: Icon(Icons.local_cafe),
-                                label: Text('Presets'),
+                                label: Text('Recipes'),
                               ),
                               NavigationRailDestination(
                                 icon: Icon(Icons.tune_outlined),
@@ -292,7 +310,7 @@ class _HomeShellState extends State<HomeShell> {
                         NavigationDestination(
                           icon: Icon(Icons.local_cafe_outlined),
                           selectedIcon: Icon(Icons.local_cafe),
-                          label: 'Presets',
+                          label: 'Recipes',
                         ),
                         NavigationDestination(
                           icon: Icon(Icons.tune_outlined),

@@ -21,14 +21,27 @@ class FlashRecipeDialog extends StatefulWidget {
     required BaristaBleService bleService,
     int initialTargetSlot = -1,
   }) {
-    return showDialog(
+    return showGeneralDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => FlashRecipeDialog(
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withOpacity(0.65),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (ctx, anim1, anim2) => FlashRecipeDialog(
         recipe: recipe,
         bleService: bleService,
         initialTargetSlot: initialTargetSlot,
       ),
+      transitionBuilder: (context, anim, secondaryAnim, child) {
+        final curve = Curves.easeOutCubic.transform(anim.value);
+        return Transform.scale(
+          scale: 0.94 + (0.06 * curve),
+          child: Opacity(
+            opacity: anim.value,
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -106,10 +119,13 @@ class _FlashRecipeDialogState extends State<FlashRecipeDialog> {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 440),
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             // Header
             Row(
               children: [
@@ -294,6 +310,7 @@ class _FlashRecipeDialogState extends State<FlashRecipeDialog> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

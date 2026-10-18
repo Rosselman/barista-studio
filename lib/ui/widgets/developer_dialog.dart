@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/machine_telemetry.dart';
@@ -22,14 +23,37 @@ class DeveloperDialog extends StatefulWidget {
     required BaristaBleService bleService,
     required StorageService storageService,
   }) {
-    showModalBottomSheet(
+    showGeneralDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DeveloperDialog(
-        bleService: bleService,
-        storageService: storageService,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withOpacity(0.65),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (ctx, anim1, anim2) => Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 640,
+            maxHeight: min(760, MediaQuery.of(ctx).size.height * 0.88),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: DeveloperDialog(
+              bleService: bleService,
+              storageService: storageService,
+            ),
+          ),
+        ),
       ),
+      transitionBuilder: (context, anim, secondaryAnim, child) {
+        final curve = Curves.easeOutCubic.transform(anim.value);
+        return Transform.scale(
+          scale: 0.94 + (0.06 * curve),
+          child: Opacity(
+            opacity: anim.value,
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -39,129 +63,100 @@ class DeveloperDialog extends StatefulWidget {
 
 class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final List<String> _logs = [];
-  StreamSubscription<String>? _logSub;
-  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _logSub = widget.bleService.logStream.listen((log) {
-      if (mounted) {
-        setState(() {
-          _logs.add(log);
-          if (_logs.length > 500) _logs.removeAt(0);
-        });
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-          }
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _logSub?.cancel();
-    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: widget.bleService,
-      builder: (context, _) {
-        final t = widget.bleService.telemetry;
-
-        return Container(
-          height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: AppTheme.surfaceCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(
-              top: BorderSide(color: AppTheme.borderSubtle, width: 1.5),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.borderSubtle, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Title Bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 12, 10),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.goldPrimary.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.terminal, color: AppTheme.goldPrimary, size: 18),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    'DEVELOPER & DIAGNOSTICS',
+                    style: TextStyle(
+                      color: AppTheme.crema,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
           ),
-          child: Column(
-            children: [
-              // Sheet Drag Handle
-              Container(
-                margin: const EdgeInsets.only(top: 10, bottom: 6),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: AppTheme.borderSubtle,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
 
-              // Title Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.goldPrimary.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.terminal, color: AppTheme.goldPrimary, size: 18),
-                    ),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Text(
-                        'DEVELOPER & DIAGNOSTICS',
-                        style: TextStyle(
-                          color: AppTheme.crema,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.6,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
-                      onPressed: () => Navigator.of(context).pop(),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Tabs
-              TabBar(
-                controller: _tabController,
-                indicatorColor: AppTheme.goldPrimary,
-                labelColor: AppTheme.goldPrimary,
-                unselectedLabelColor: AppTheme.textMuted,
-                labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                tabs: const [
-                  Tab(text: 'BLE Telemetry & State'),
-                  Tab(text: 'Live Protocol Logs'),
-                ],
-              ),
-
-              // Tab Views
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [
-                    // Tab 1: State & Diagnostics
-                    _buildTelemetryTab(t),
-                    // Tab 2: Live Protocol Logs
-                    _buildLogsTab(),
-                  ],
-                ),
-              ),
+          // Tabs
+          TabBar(
+            controller: _tabController,
+            indicatorColor: AppTheme.goldPrimary,
+            labelColor: AppTheme.goldPrimary,
+            unselectedLabelColor: AppTheme.textMuted,
+            labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            tabs: const [
+              Tab(text: 'BLE Telemetry & State'),
+              Tab(text: 'Live Protocol Logs'),
             ],
           ),
-        );
-      },
+
+          // Tab Views
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // Tab 1: State & Diagnostics (Listens to BLE service)
+                ListenableBuilder(
+                  listenable: widget.bleService,
+                  builder: (context, _) => _buildTelemetryTab(widget.bleService.telemetry),
+                ),
+                // Tab 2: Live Protocol Logs (Isolated so logs don't trigger full modal rebuilds)
+                _LiveLogsView(bleService: widget.bleService),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -186,16 +181,25 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
             ),
             child: Column(
               children: [
-                _buildInfoRow('Connection Status', t.isConnected ? 'CONNECTED' : (t.isScanning ? 'SCANNING' : 'DISCONNECTED'),
-                    color: t.isConnected ? AppTheme.emeraldSuccess : (t.isScanning ? AppTheme.amberHeat : AppTheme.rubyEmergency)),
+                _buildInfoRow(
+                  'Connection Status',
+                  t.isConnected ? 'CONNECTED' : (t.isScanning ? 'SCANNING' : 'DISCONNECTED'),
+                  color: t.isConnected
+                      ? AppTheme.emeraldSuccess
+                      : (t.isScanning ? AppTheme.amberHeat : AppTheme.rubyEmergency),
+                ),
                 _buildInfoRow('Device Name', t.deviceName ?? 'Unknown'),
-                _buildInfoRow('MAC Address', t.macAddress ?? (lastMac != null ? '$lastMac (Last Paired)' : 'None (Disconnected)')),
+                _buildInfoRow(
+                  'MAC Address',
+                  t.macAddress ?? (lastMac != null ? '$lastMac (Last Paired)' : 'None (Disconnected)'),
+                ),
                 _buildInfoRow('Serial Number', t.serialNumber ?? 'Not Read'),
-                _buildInfoRow('Machine State', t.machineState),
-                _buildInfoRow('Pairing State', t.pairingState),
-                _buildInfoRow('Active Dial Slot', t.selectedSlot != null ? 'Slot ${t.selectedSlot! + 1}' : 'Unknown'),
-                _buildInfoRow('Machine Activity', t.machineState == 'RECIPE_EXECUTING' ? 'RECIPE RUNNING' : 'STANDBY / IDLE',
-                    color: t.machineState == 'RECIPE_EXECUTING' ? AppTheme.goldPrimary : AppTheme.emeraldSuccess),
+                _buildInfoRow(
+                  'Active Dial Slot',
+                  t.selectedSlot != null && t.selectedSlot! >= 0
+                      ? 'Slot ${t.selectedSlot! + 1}'
+                      : 'Unknown',
+                ),
               ],
             ),
           ),
@@ -219,16 +223,13 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        side: const BorderSide(color: AppTheme.borderSubtle),
-                      ),
-                      icon: const Icon(Icons.refresh, size: 14, color: AppTheme.crema),
-                      label: const Text('Reset CMID to Default', style: TextStyle(color: AppTheme.crema, fontSize: 11)),
+                    TextButton.icon(
+                      icon: const Icon(Icons.refresh, size: 14),
+                      label: const Text('Reset CMID to Factory', style: TextStyle(fontSize: 12)),
+                      style: TextButton.styleFrom(foregroundColor: AppTheme.textMuted),
                       onPressed: () async {
                         await widget.storageService.setCmidKey(BaristaBleConstants.defaultPairedCmid);
-                        setState(() {});
+                        if (mounted) setState(() {});
                       },
                     ),
                   ],
@@ -238,104 +239,37 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
           ),
           const SizedBox(height: 16),
 
-          // Diagnostic Actions
-          _buildSectionHeader('Diagnostic Commands'),
+          // Manual BLE Diagnostics
+          _buildSectionHeader('Manual BLE Control'),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.sync, size: 16),
-                label: const Text('Query All 13 Slots', style: TextStyle(fontSize: 12)),
-                onPressed: () => widget.bleService.fetchAllSlots(),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.bluetooth_searching, size: 16),
+                label: const Text('Scan Devices'),
+                onPressed: () => widget.bleService.startScan(),
               ),
               OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppTheme.goldPrimary),
-                ),
-                icon: const Icon(Icons.bluetooth_searching, size: 16, color: AppTheme.goldPrimary),
-                label: const Text('Trigger BLE Auto-Connect', style: TextStyle(color: AppTheme.goldPrimary, fontSize: 12)),
-                onPressed: () => widget.bleService.autoConnect(),
+                icon: const Icon(Icons.sync, size: 16),
+                label: const Text('Query Active Slot'),
+                onPressed: t.isConnected ? () => widget.bleService.queryActiveSlot() : null,
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.download, size: 16),
+                label: const Text('Scan 13 Slots'),
+                onPressed: t.isConnected ? () => widget.bleService.fetchAllSlots() : null,
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.link_off, size: 16, color: AppTheme.rubyEmergency),
+                label: const Text('Disconnect', style: TextStyle(color: AppTheme.rubyEmergency)),
+                onPressed: t.isConnected ? () => widget.bleService.disconnect() : null,
               ),
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLogsTab() {
-    return Column(
-      children: [
-        // Log Actions Bar
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${_logs.length} Log Entries',
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 11, fontFamily: 'monospace'),
-              ),
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.copy, size: 16, color: AppTheme.goldLight),
-                    tooltip: 'Copy Logs',
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: _logs.join(String.fromCharCode(10))));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Logs copied to clipboard'), duration: Duration(seconds: 1)),
-                      );
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.clear_all, size: 18, color: AppTheme.rubyEmergency),
-                    tooltip: 'Clear Logs',
-                    onPressed: () => setState(() => _logs.clear()),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const Divider(color: AppTheme.borderSubtle, height: 1),
-
-        // Log Console
-        Expanded(
-          child: Container(
-            color: Colors.black,
-            padding: const EdgeInsets.all(10),
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: _logs.length,
-              itemBuilder: (context, index) {
-                final log = _logs[index];
-                Color color = AppTheme.crema;
-                if (log.contains('error') || log.contains('failed') || log.contains('Timeout')) {
-                  color = AppTheme.rubyEmergency;
-                } else if (log.contains('successfully') || log.contains('authenticated') || log.contains('Connected')) {
-                  color = AppTheme.emeraldSuccess;
-                } else if (log.contains('Slot') || log.contains('Flashing')) {
-                  color = AppTheme.goldLight;
-                }
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 1.5),
-                  child: Text(
-                    log,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -357,22 +291,138 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: color ?? AppTheme.crema,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'monospace',
-              ),
-              overflow: TextOverflow.ellipsis,
+          Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
+          Text(
+            value,
+            style: TextStyle(
+              color: color ?? AppTheme.crema,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'monospace',
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LiveLogsView extends StatefulWidget {
+  final BaristaBleService bleService;
+
+  const _LiveLogsView({required this.bleService});
+
+  @override
+  State<_LiveLogsView> createState() => _LiveLogsViewState();
+}
+
+class _LiveLogsViewState extends State<_LiveLogsView> {
+  final List<String> _logs = [];
+  StreamSubscription<String>? _logSub;
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _logSub = widget.bleService.logStream.listen((log) {
+      if (mounted) {
+        setState(() {
+          _logs.add(log);
+          // Pre-cap visible log buffer to last 150 lines for smooth performance
+          if (_logs.length > 150) {
+            _logs.removeRange(0, _logs.length - 150);
+          }
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _logSub?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        // Log Actions Bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${_logs.length} Log Entries (Capped at 150)',
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 11, fontFamily: 'monospace'),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.copy, size: 16, color: AppTheme.goldLight),
+                    tooltip: 'Copy Logs',
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: _logs.join('\n')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Logs copied to clipboard'), duration: Duration(seconds: 1)),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.clear_all, size: 18, color: AppTheme.rubyEmergency),
+                    tooltip: 'Clear Logs',
+                    onPressed: () => setState(() => _logs.clear()),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const Divider(color: AppTheme.borderSubtle, height: 1),
+
+        // Log Console with RepaintBoundary
+        Expanded(
+          child: Container(
+            color: Colors.black,
+            padding: const EdgeInsets.all(10),
+            child: RepaintBoundary(
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: _logs.length,
+                itemBuilder: (context, index) {
+                  final log = _logs[index];
+                  Color color = AppTheme.crema;
+                  if (log.contains('error') || log.contains('failed') || log.contains('Timeout')) {
+                    color = AppTheme.rubyEmergency;
+                  } else if (log.contains('successfully') || log.contains('authenticated') || log.contains('Connected')) {
+                    color = AppTheme.emeraldSuccess;
+                  } else if (log.contains('Slot') || log.contains('Flashing')) {
+                    color = AppTheme.goldLight;
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 1.5),
+                    child: Text(
+                      log,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

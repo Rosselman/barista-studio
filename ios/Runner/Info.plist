@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Barista Studio uses Bluetooth Low Energy to connect and flash recipes to your Nespresso Barista machine.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Barista Studio uses Bluetooth Low Energy to connect and flash recipes to your Nespresso Barista machine.</string>
 </dict>
 </plist>

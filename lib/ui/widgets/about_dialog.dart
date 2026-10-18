@@ -5,9 +5,23 @@ class AboutBaristaDialog extends StatelessWidget {
   const AboutBaristaDialog({super.key});
 
   static void show(BuildContext context) {
-    showDialog(
+    showGeneralDialog(
       context: context,
-      builder: (context) => const AboutBaristaDialog(),
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withOpacity(0.65),
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (ctx, anim1, anim2) => const AboutBaristaDialog(),
+      transitionBuilder: (context, anim, secondaryAnim, child) {
+        final curve = Curves.easeOutCubic.transform(anim.value);
+        return Transform.scale(
+          scale: 0.94 + (0.06 * curve),
+          child: Opacity(
+            opacity: anim.value,
+            child: child,
+          ),
+        );
+      },
     );
   }
 
@@ -58,7 +72,7 @@ class AboutBaristaDialog extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'v1.2.0 • Release',
+                          'v1.2.1 • Release',
                           style: TextStyle(
                             color: AppTheme.goldPrimary,
                             fontSize: 12,

@@ -613,6 +613,25 @@ class BaristaBleService extends ChangeNotifier {
   // 5. Slot Scanning & Recipe Response Parser
   // ===========================================================================
 
+  void queryActiveSlot() {
+    if (_charRecipeSelection == null || !isConnected) return;
+    _opQueue.enqueue(() async {
+      try {
+        final val = await _charRecipeSelection!.read();
+        if (val.isNotEmpty) {
+          final raw = val[0] & 0xFF;
+          final slotIndex = raw > 0 ? (raw - 1) : 0;
+          _updateTelemetry(_telemetry.copyWith(selectedSlot: slotIndex));
+          _log('Active slot query: Slot ${slotIndex + 1}');
+        }
+        return true;
+      } catch (e) {
+        _log('Error querying active slot: $e');
+        return false;
+      }
+    }, description: 'Query Active Slot');
+  }
+
   void fetchAllSlots() {
     _slotFetchQueue.clear();
     for (int i = 0; i < 13; i++) {

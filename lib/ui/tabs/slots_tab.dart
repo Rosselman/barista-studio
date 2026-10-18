@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import '../../data/preset_catalog.dart';
+import '../../models/recipe.dart';
 import '../../services/barista_ble_service.dart';
+import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/flash_recipe_dialog.dart';
 
 class SlotsTab extends StatelessWidget {
   final BaristaBleService bleService;
+  final StorageService? storageService;
 
   const SlotsTab({
     super.key,
     required this.bleService,
+    this.storageService,
   });
 
   void _confirmClearAll(BuildContext context) {
@@ -469,15 +473,30 @@ class SlotsTab extends StatelessWidget {
       ),
       builder: (ctx) {
         String filter = '';
+        final customRecipes = storageService?.getCustomRecipes() ?? <Recipe>[];
+
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final filtered = PresetCatalog.presets.where((r) {
-              if (filter.isEmpty) return true;
-              final q = filter.toLowerCase().trim();
+            final q = filter.toLowerCase().trim();
+
+            final filteredCustom = customRecipes.where((r) {
+              if (q.isEmpty) return true;
               return r.name.toLowerCase().contains(q) ||
                   r.category.toLowerCase().contains(q) ||
                   r.tags.any((t) => t.toLowerCase().contains(q));
             }).toList();
+
+            final filteredPresets = PresetCatalog.presets.where((r) {
+              if (q.isEmpty) return true;
+              return r.name.toLowerCase().contains(q) ||
+                  r.category.toLowerCase().contains(q) ||
+                  r.tags.any((t) => t.toLowerCase().contains(q));
+            }).toList();
+
+            final allItems = [
+              ...filteredCustom.map((r) => (recipe: r, isCustom: true)),
+              ...filteredPresets.map((r) => (recipe: r, isCustom: false)),
+            ];
 
             return Container(
               height: MediaQuery.of(context).size.height * 0.72,
@@ -514,7 +533,9 @@ class SlotsTab extends StatelessWidget {
                   TextField(
                     style: const TextStyle(color: AppTheme.crema, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: 'Search 40+ recipes...',
+                      hintText: customRecipes.isNotEmpty
+                          ? 'Search ${allItems.length} recipes (Presets & Custom)...'
+                          : 'Search 50+ presets...',
                       hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
                       prefixIcon: const Icon(Icons.search, size: 18, color: AppTheme.textMuted),
                       filled: true,
@@ -535,15 +556,49 @@ class SlotsTab extends StatelessWidget {
                   const SizedBox(height: 12),
                   Expanded(
                     child: ListView.separated(
-                      itemCount: filtered.length,
+                      itemCount: allItems.length,
                       separatorBuilder: (_, __) => const Divider(color: AppTheme.borderSubtle, height: 1),
                       itemBuilder: (context, i) {
-                        final recipe = filtered[i];
+                        final item = allItems[i];
+                        final recipe = item.recipe;
+                        final isCustom = item.isCustom;
+
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          title: Text(
-                            recipe.name,
-                            style: const TextStyle(color: AppTheme.crema, fontSize: 14, fontWeight: FontWeight.w600),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  recipe.name,
+                                  style: const TextStyle(
+                                    color: AppTheme.crema,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (isCustom) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.goldPrimary.withOpacity(0.18),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: AppTheme.goldPrimary, width: 0.6),
+                                  ),
+                                  child: const Text(
+                                    'MY RECIPE',
+                                    style: TextStyle(
+                                      color: AppTheme.goldLight,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           subtitle: Text(
                             '${recipe.category} • ${recipe.isCold ? "Cold" : "${recipe.maxTemp}°C"} • ${recipe.totalDurationSeconds}s',
