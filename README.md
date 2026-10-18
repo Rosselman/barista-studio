@@ -1,6 +1,7 @@
 # Barista Studio
 
 A clean, modern, open-source, standalone Flutter application for crafting, sequencing, and flashing custom recipes into the **Nespresso Barista Recipe Maker (Model W545)** via native Bluetooth Low Energy.
+<img width="2560" height="1440" alt="Screenshot 2026-10-18 at 10 45 04 AM" src="https://github.com/user-attachments/assets/a5fcf5a9-7e05-40c0-b2ae-656616db2824" />
 
 ---
 
