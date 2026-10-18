@@ -197,16 +197,22 @@ class RecipeDetailDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
 
-                  // Ingredients & Preparation Guide
+                  // Ingredients
                   if (recipe.ingredients.isNotEmpty) ...[
-                    const Text(
-                      'INGREDIENTS & PREPARATION',
-                      style: TextStyle(
-                        color: AppTheme.goldPrimary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8,
-                      ),
+                    const Row(
+                      children: [
+                        Icon(Icons.inventory_2_outlined, size: 15, color: AppTheme.goldPrimary),
+                        SizedBox(width: 6),
+                        Text(
+                          'INGREDIENTS',
+                          style: TextStyle(
+                            color: AppTheme.goldPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 8),
                     Container(
@@ -235,6 +241,7 @@ class RecipeDetailDialog extends StatelessWidget {
                                           style: const TextStyle(
                                             color: AppTheme.crema,
                                             fontSize: 13,
+                                            height: 1.35,
                                           ),
                                         ),
                                       ),
@@ -247,15 +254,93 @@ class RecipeDetailDialog extends StatelessWidget {
                     const SizedBox(height: 22),
                   ],
 
-                  // Phase Breakdown
-                  const Text(
-                    'MOTOR & HEATER PHASES',
-                    style: TextStyle(
-                      color: AppTheme.goldPrimary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.8,
+                  // Step-by-Step Preparation Guide
+                  if (recipe.instructions.isNotEmpty) ...[
+                    const Row(
+                      children: [
+                        Icon(Icons.format_list_numbered, size: 15, color: AppTheme.goldPrimary),
+                        SizedBox(width: 6),
+                        Text(
+                          'STEP-BY-STEP PREPARATION GUIDE',
+                          style: TextStyle(
+                            color: AppTheme.goldPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceInput,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.borderSubtle),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (int i = 0; i < recipe.instructions.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 22,
+                                  height: 22,
+                                  margin: const EdgeInsets.only(top: 1),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.goldPrimary.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '${i + 1}',
+                                    style: const TextStyle(
+                                      color: AppTheme.goldLight,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    recipe.instructions[i],
+                                    style: const TextStyle(
+                                      color: AppTheme.crema,
+                                      fontSize: 13,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                  ],
+
+                  // Phase Breakdown
+                  const Row(
+                    children: [
+                      Icon(Icons.tune, size: 15, color: AppTheme.goldPrimary),
+                      SizedBox(width: 6),
+                      Text(
+                        'MOTOR & HEATER PHASES',
+                        style: TextStyle(
+                          color: AppTheme.goldPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   for (int i = 0; i < recipe.phases.length; i++)
