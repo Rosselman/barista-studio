@@ -72,7 +72,7 @@ class AboutBaristaDialog extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'v1.2.1 • Release',
+                          'v1.3.0 • Release',
                           style: TextStyle(
                             color: AppTheme.goldPrimary,
                             fontSize: 12,
@@ -164,6 +164,8 @@ class AboutBaristaDialog extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildFeatureItem(Icons.memory, '13 Hardware EEPROM Recipe Slots'),
+                    const SizedBox(height: 6),
+                    _buildFeatureItem(Icons.alt_route, 'Native Multi-Step Execution & Firmware Pause'),
                     const SizedBox(height: 6),
                     _buildFeatureItem(Icons.speed, 'Variable Whisk Motor (300 – 4000 RPM)'),
                     const SizedBox(height: 6),

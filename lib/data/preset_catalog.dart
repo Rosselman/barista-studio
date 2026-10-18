@@ -1,9 +1,11 @@
 import '../models/phase.dart';
 import '../models/recipe.dart';
+import '../models/recipe_step.dart';
 
 class PresetCatalog {
   static const List<String> categories = [
     'All',
+    'Multi-Step',
     'Hot Coffee',
     'Iced & Cold Coffee',
     'Non-Coffee',
@@ -1233,6 +1235,367 @@ class PresetCatalog {
         'Add plant milk, spices, and honey into the jug.',
         'Run Golden Chai Foam cycle.',
         'Spoon the vibrant golden foam over iced black tea, cold brew, or iced chai.',
+      ],
+    ),
+
+    // =========================================================================
+    // --- NATIVE MULTI-STEP RECIPES (FIRMWARE PAUSE & DUAL-STAGE EXECUTION) ---
+    // =========================================================================
+    Recipe(
+      id: 'adae1c28-e9f0-4a0c-a52d-e842de813862',
+      name: 'Latte Double',
+      description: 'Signature dual-stage latte. Step 1 cold-whisks espresso for crema, pauses, then Step 2 froths hot microfoam.',
+      category: 'Hot Coffee',
+      tags: const ['Multi-Step', 'Hot Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Extract 1 espresso (40 ml) & 1 ice cube into jug. Press start to whip crema.',
+          phases: [
+            Phase.clamped(speed: 3000, accel: 800, temp: 0, duration: 15),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 120 ml cold whole milk, then press machine center dial to resume.',
+          phases: [
+            Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 35),
+          ],
+        ),
+      ],
+      ingredients: [
+        '1 Nespresso Espresso capsule (40 ml)',
+        '1 Standard ice cube',
+        '120 ml Fresh cold whole milk',
+      ],
+      instructions: [
+        'Insert whisk. Brew 1 espresso shot directly into the Barista jug and add 1 ice cube.',
+        'Close lid, select "Latte Double", and press the physical start button (Step 1 executes).',
+        'When Step 1 completes, the machine automatically cuts motor/heat and enters PAUSE mode.',
+        'Remove lid, add 120 ml cold milk into the jug, close lid, and press the center dial button.',
+        'Step 2 finishes with velvety hot microfoam. Pour into a tall latte glass.',
+      ],
+    ),
+    Recipe(
+      id: 'aca70b89-a6f5-49fd-8aca-a683315e4d08',
+      name: 'Nitro Swt Cream',
+      description: 'Two-stage cold craft. Step 1 aerates coffee into a micro-bubbled nitro emulsion; Step 2 whips sweet cream.',
+      category: 'Iced & Cold Coffee',
+      tags: const ['Multi-Step', 'Iced & Cold Coffee', 'Cold Foam & Textures', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 60 ml cold brew concentrate & 10 ml vanilla syrup. Press start to nitro-whip.',
+          phases: [
+            Phase.clamped(speed: 3600, accel: 900, temp: 0, duration: 20),
+            Phase.clamped(speed: 1800, accel: 600, temp: 0, duration: 10),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Pour in 80 ml heavy cream & 20 ml milk. Press dial to froth float.',
+          phases: [
+            Phase.clamped(speed: 2800, accel: 750, temp: 0, duration: 22),
+          ],
+        ),
+      ],
+      ingredients: [
+        '60 ml Cold brew concentrate',
+        '10 ml Madagascar vanilla syrup',
+        '80 ml Heavy whipping cream (chilled)',
+        '20 ml Whole milk',
+      ],
+      instructions: [
+        'Add cold brew and vanilla syrup into the jug. Run Step 1 for ultra-high speed nitro aeration.',
+        'At the pause prompt, open lid and add 80 ml cold heavy cream and 20 ml milk.',
+        'Press center dial button to trigger Step 2.',
+        'Pour the nitro coffee into a glass filled with ice and spoon the thick sweet cream crown on top.',
+      ],
+    ),
+    Recipe(
+      id: '3cb172c5-3ed6-43bd-b6bc-b54c76a87390',
+      name: 'Viennese Choco',
+      description: 'Artisan hot chocolate. Step 1 gently melts pure chocolate flakes into milk; Step 2 whips Chantilly foam.',
+      category: 'Non-Coffee',
+      tags: const ['Multi-Step', 'Non-Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 25g dark chocolate flakes & 100 ml milk. Press start to melt & temper.',
+          phases: [
+            Phase.clamped(speed: 1200, accel: 500, temp: 65, duration: 35),
+            Phase.clamped(speed: 2200, accel: 700, temp: 68, duration: 15),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 50 ml heavy cream & pinch of cinnamon. Press dial to finish.',
+          phases: [
+            Phase.clamped(speed: 3200, accel: 850, temp: 60, duration: 25),
+          ],
+        ),
+      ],
+      ingredients: [
+        '25g Valrhona 70% dark chocolate flakes or chips',
+        '100 ml Fresh whole milk',
+        '50 ml Heavy cream',
+        'Pinch of ground Ceylon cinnamon',
+      ],
+      instructions: [
+        'Insert whisk. Add chocolate flakes and 100 ml milk to the jug.',
+        'Start recipe: Step 1 heats to 68°C while gently whisking to fully melt chocolate.',
+        'At the pause icon, open jug and add 50 ml heavy cream and cinnamon.',
+        'Press the machine center button to resume Step 2 for high-speed aeration.',
+        'Serve in a porcelain mug with shaved chocolate curls.',
+      ],
+    ),
+    Recipe(
+      id: 'e3161968-5809-4e91-aa41-786248beb1e3',
+      name: 'Affogato Foam',
+      description: 'Deconstructed liquid affogato. Step 1 flash-chills espresso; Step 2 whips an ultra-dense gelato-like foam.',
+      category: 'Iced & Cold Coffee',
+      tags: const ['Multi-Step', 'Iced & Cold Coffee', 'Cold Foam & Textures', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 1 espresso shot & 2 ice cubes. Press start to flash-chill & emulsify.',
+          phases: [
+            Phase.clamped(speed: 2600, accel: 700, temp: 0, duration: 18),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 70 ml chilled vanilla cream. Press dial to whip gelato foam.',
+          phases: [
+            Phase.clamped(speed: 3800, accel: 1000, temp: 0, duration: 28),
+          ],
+        ),
+      ],
+      ingredients: [
+        '1 Nespresso Ristretto or Espresso shot (40 ml)',
+        '2 Standard ice cubes',
+        '50 ml Heavy whipping cream',
+        '20 ml Whole milk with 1/2 tsp vanilla bean paste',
+      ],
+      instructions: [
+        'Extract espresso into the jug with 2 ice cubes. Start Step 1 to rapidly chill and aerate.',
+        'When the machine beeps and enters PAUSE, remove lid and add the vanilla cream mixture.',
+        'Press the center dial to launch Step 2 (3800 RPM maximum cold foam whip).',
+        'Pour dense foam over an espresso glass or dessert bowl.',
+      ],
+    ),
+    Recipe(
+      id: 'c4976aa7-f961-4774-9d97-dadc351b3cff',
+      name: 'Matcha Cloud',
+      description: 'Japanese ceremonial preparation. Step 1 whisks matcha clump-free at 55°C; Step 2 textures silky oat milk.',
+      category: 'Non-Coffee',
+      tags: const ['Multi-Step', 'Non-Coffee', 'Non-Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 2g ceremonial matcha & 40 ml warm water. Press start to dissolve clump-free.',
+          phases: [
+            Phase.clamped(speed: 2800, accel: 800, temp: 55, duration: 22),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Pour in 120 ml barista oat milk & 5 ml agave. Press dial to froth.',
+          phases: [
+            Phase.clamped(speed: 2200, accel: 700, temp: 58, duration: 32),
+          ],
+        ),
+      ],
+      ingredients: [
+        '2g Ceremonial-grade Uji matcha powder (sifted)',
+        '40 ml Filtered water',
+        '120 ml Barista oat milk',
+        '5 ml Agave nectar or maple syrup',
+      ],
+      instructions: [
+        'Add sifted matcha powder and water to the jug. Run Step 1 (55°C whisking dissolves completely).',
+        'When the machine pauses with prompt, pour in 120 ml cold barista oat milk and agave.',
+        'Press the center dial to execute Step 2 at 58°C (optimal plant-milk microfoam temperature).',
+        'Pour into a clear glass to reveal the luminous jade green foam texture.',
+      ],
+    ),
+    Recipe(
+      id: '5b01ac33-7554-4844-9627-8e271fa6d664',
+      name: 'Caramel Macch',
+      description: 'Layered café macchiato. Step 1 textures dense vanilla milk foam; Step 2 folds caramel drizzle gently.',
+      category: 'Hot Coffee',
+      tags: const ['Multi-Step', 'Hot Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 120 ml whole milk & 10 ml vanilla syrup. Press start for foam base.',
+          phases: [
+            Phase.clamped(speed: 3000, accel: 800, temp: 50, duration: 25),
+            Phase.clamped(speed: 1200, accel: 500, temp: 65, duration: 15),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Drizzle 15 ml caramel sauce around jug. Press dial to fold.',
+          phases: [
+            Phase.clamped(speed: 900, accel: 400, temp: 65, duration: 15),
+          ],
+        ),
+      ],
+      ingredients: [
+        '120 ml Cold whole milk',
+        '10 ml Vanilla syrup',
+        '15 ml Salted caramel sauce',
+        '1 Nespresso Espresso shot (40 ml)',
+      ],
+      instructions: [
+        'Add milk and vanilla syrup to the Barista jug and run Step 1 for textured microfoam.',
+        'At the pause prompt, open lid and drizzle thick caramel sauce directly into the milk.',
+        'Press the dial button to trigger Step 2 (gentle low-RPM fold that distributes caramel without deflating foam).',
+        'Pour into a glass, brew espresso shot through the center, and top with crosshatch caramel.',
+      ],
+    ),
+    Recipe(
+      id: '7f4df999-f519-4062-bee0-921551e31ed8',
+      name: 'Cortado Extr',
+      description: 'Thermal contrast Spanish cortado. Step 1 creates hot emulsified milk; Step 2 tempers with ice cream/cold cream.',
+      category: 'Hot Coffee',
+      tags: const ['Multi-Step', 'Hot Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 60 ml milk & 1 brown sugar cube. Press start for hot caramelization.',
+          phases: [
+            Phase.clamped(speed: 3400, accel: 900, temp: 68, duration: 20),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 20 ml ice-cold single cream. Press dial to temper.',
+          phases: [
+            Phase.clamped(speed: 1000, accel: 400, temp: 0, duration: 15),
+          ],
+        ),
+      ],
+      ingredients: [
+        '60 ml Cold whole milk',
+        '1 Brown demerara sugar cube',
+        '20 ml Ice-cold single cream',
+        '1 Nespresso Ristretto capsule (25 ml)',
+      ],
+      instructions: [
+        'Place milk and brown sugar in the jug. Step 1 dissolves sugar and produces piping hot foam at 68°C.',
+        'Upon pause, immediately pour 20 ml ice-cold cream into the jug.',
+        'Press center dial: Step 2 tempers the emulsion at 1000 RPM with heater off.',
+        'Pour equal parts espresso and silky tempered foam into a 130 ml Gibraltar glass.',
+      ],
+    ),
+    Recipe(
+      id: 'cacebbeb-6c6b-4cd7-ac12-e92110ce56b7',
+      name: 'Golden Turmeric',
+      description: 'Ayurvedic wellness ritual. Step 1 blooms active spices in water; Step 2 froths rich almond milk foam.',
+      category: 'Non-Coffee',
+      tags: const ['Multi-Step', 'Non-Coffee', 'Non-Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 1 tsp turmeric spice blend & 50 ml water. Press start to bloom aromatics.',
+          phases: [
+            Phase.clamped(speed: 1600, accel: 600, temp: 65, duration: 30),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 120 ml almond milk & honey. Press dial to whip golden foam.',
+          phases: [
+            Phase.clamped(speed: 3100, accel: 800, temp: 56, duration: 25),
+          ],
+        ),
+      ],
+      ingredients: [
+        '1 tsp Organic ground turmeric & ginger blend',
+        'Pinch of cracked black pepper (boosts curcumin absorption)',
+        '50 ml Water',
+        '120 ml Unsweetened almond milk',
+        '1 tsp Wildflower honey',
+      ],
+      instructions: [
+        'Add spice blend, black pepper, and water into the jug. Step 1 heats to 65°C to bloom active oils.',
+        'At the pause prompt, add 120 ml cold almond milk and honey.',
+        'Press machine dial: Step 2 whisks at 3100 RPM to craft an aromatic golden microfoam crown.',
+        'Pour into a mug and dust with fresh nutmeg.',
+      ],
+    ),
+    Recipe(
+      id: '5ef2eaef-0118-4673-9c45-ef22fce8660d',
+      name: 'Tiramisu Coffee',
+      description: 'Decadent dessert coffee. Step 1 blends cold espresso and cocoa; Step 2 whips cold mascarpone foam.',
+      category: 'Iced & Cold Coffee',
+      tags: const ['Multi-Step', 'Iced & Cold Coffee', 'Cold Foam & Textures', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 40 ml espresso, 1 tsp cocoa & 1 ice cube. Press start to blend base.',
+          phases: [
+            Phase.clamped(speed: 2400, accel: 700, temp: 0, duration: 18),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 60 ml cream & 1 tbsp mascarpone. Press dial for thick foam.',
+          phases: [
+            Phase.clamped(speed: 3600, accel: 950, temp: 0, duration: 25),
+          ],
+        ),
+      ],
+      ingredients: [
+        '1 Nespresso Espresso shot (40 ml)',
+        '1 tsp Dutch-processed cocoa powder',
+        '1 Ice cube',
+        '60 ml Heavy whipping cream (chilled)',
+        '1 heaping tbsp Italian Mascarpone cheese',
+        '1 tsp Powdered sugar & drops of vanilla',
+      ],
+      instructions: [
+        'Add espresso, cocoa powder, and ice cube to the jug. Run Step 1 for cold coffee liquefaction.',
+        'When the machine enters pause mode, add heavy cream, mascarpone, powdered sugar, and vanilla.',
+        'Press center dial: Step 2 whips the mascarpone cream into a velvety spoonable cloud.',
+        'Layer over savoiardi ladyfinger biscuit or cold milk.',
+      ],
+    ),
+    Recipe(
+      id: '70581e69-261a-42a1-bfe7-468a7e4dd729',
+      name: 'London Fog',
+      description: 'Fragrant tea latte. Step 1 extracts bergamot & lavender; Step 2 aerates hot vanilla microfoam.',
+      category: 'Non-Coffee',
+      tags: const ['Multi-Step', 'Non-Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 40 ml strong brewed Earl Grey & 1 tsp lavender syrup. Press start to heat.',
+          phases: [
+            Phase.clamped(speed: 1400, accel: 500, temp: 70, duration: 30),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 100 ml cold whole milk & vanilla extract. Press dial to finish.',
+          phases: [
+            Phase.clamped(speed: 3200, accel: 800, temp: 64, duration: 22),
+          ],
+        ),
+      ],
+      ingredients: [
+        '40 ml Concentrated hot brewed Earl Grey tea',
+        '5 ml Culinary lavender syrup',
+        '100 ml Fresh whole milk',
+        '2 drops Pure vanilla extract',
+      ],
+      instructions: [
+        'Pour hot concentrated Earl Grey and lavender syrup into jug. Run Step 1 to infuse at 70°C.',
+        'At the pause prompt, open lid and add 100 ml cold whole milk and vanilla extract.',
+        'Press the dial button: Step 2 whips a tight, fragrant microfoam crown at 64°C.',
+        'Garnish with dried edible lavender buds.',
       ],
     ),
   ];

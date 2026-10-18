@@ -1,67 +1,84 @@
 import 'package:uuid/uuid.dart';
 import 'phase.dart';
+import 'recipe_step.dart';
 
 class Recipe {
   final String id;
   final String name; // Displayed on front LED matrix (Max 16 ASCII)
   final String description;
   final String category; // Primary category for display
-  final List<String> tags; // Classification tags for multi-filter matching ('Non-Coffee', 'Dairy', 'Non-Dairy', 'Cold Foam & Textures', etc.)
-  final List<Phase> phases; // Max 3 phases
+  final List<String> tags; // Classification tags for multi-filter matching
+  final List<RecipeStep> steps; // Multi-step support (Step 1, Step 2, etc.)
   final List<String> ingredients;
   final List<String> instructions;
   final bool isCustom;
 
-  const Recipe({
+  Recipe({
     required this.id,
     required this.name,
     required this.description,
     required this.category,
     this.tags = const [],
-    required this.phases,
+    List<RecipeStep>? steps,
+    List<Phase>? phases,
     this.ingredients = const [],
     this.instructions = const [],
     this.isCustom = false,
-  });
+  }) : steps = (steps != null && steps.isNotEmpty)
+            ? List.unmodifiable(steps)
+            : List.unmodifiable([
+                RecipeStep(
+                  name: 'STEP 1',
+                  phases: phases ?? [Phase.clamped()],
+                ),
+              ]);
+
+  /// Backward-compatible list of all phases across all steps
+  List<Phase> get phases => steps.expand((s) => s.phases).toList();
+
+  /// Whether this recipe utilizes the Barista hardware's multi-step paused execution
+  bool get isMultiStep => steps.length > 1;
+
+  /// Total number of steps in this recipe
+  int get stepCount => steps.length;
 
   /// Sanitized name for hardware LED screen (max 16 ASCII characters)
   String get hardwareName {
     final clean = name.trim();
     if (clean.isEmpty) return 'Recipe';
-    // Remove non-ASCII characters for clean matrix display
     final asciiOnly = clean.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
     if (asciiOnly.isEmpty) return 'Recipe';
     return asciiOnly.length > 16 ? asciiOnly.substring(0, 16) : asciiOnly;
   }
 
-  /// Total duration across all active phases
+  /// Total duration across all active phases across all steps
   int get totalDurationSeconds {
-    return phases
-        .where((p) => p.isActive)
-        .fold(0, (acc, p) => acc + p.duration);
+    return steps.fold(0, (acc, s) => acc + s.totalDurationSeconds);
   }
 
-  /// Highest speed across active phases
+  /// Highest speed across active phases in all steps
   int get peakRpm {
-    final active = phases.where((p) => p.isActive);
+    final active = activePhases;
     if (active.isEmpty) return 3000;
     return active.map((p) => p.speed).reduce((a, b) => a > b ? a : b);
   }
 
-  /// Target temperature of active phases (highest)
+  /// Target temperature of active phases across all steps (highest)
   int get maxTemp {
-    final active = phases.where((p) => p.isActive);
+    final active = activePhases;
     if (active.isEmpty) return 0;
     return active.map((p) => p.temp).reduce((a, b) => a > b ? a : b);
   }
 
+  /// True if all active phases across all steps are cold (0°C)
   bool get isCold {
-    final active = phases.where((p) => p.isActive);
+    final active = activePhases;
     if (active.isEmpty) return true;
     return active.every((p) => p.temp == 0);
   }
 
-  List<Phase> get activePhases => phases.where((p) => p.isActive).toList();
+  /// List of all active phases across all steps
+  List<Phase> get activePhases => steps.expand((s) => s.activePhases).toList();
 
   Recipe copyWith({
     String? id,
@@ -69,6 +86,7 @@ class Recipe {
     String? description,
     String? category,
     List<String>? tags,
+    List<RecipeStep>? steps,
     List<Phase>? phases,
     List<String>? ingredients,
     List<String>? instructions,
@@ -80,7 +98,7 @@ class Recipe {
       description: description ?? this.description,
       category: category ?? this.category,
       tags: tags ?? this.tags,
-      phases: phases ?? this.phases,
+      steps: steps ?? (phases != null ? [RecipeStep(name: 'STEP 1', phases: phases)] : this.steps),
       ingredients: ingredients ?? this.ingredients,
       instructions: instructions ?? this.instructions,
       isCustom: isCustom ?? this.isCustom,
@@ -93,13 +111,27 @@ class Recipe {
         'description': description,
         'category': category,
         'tags': tags,
-        'phases': phases.map((p) => p.toJson()).toList(),
+        'steps': steps.map((s) => s.toJson()).toList(),
+        'phases': phases.map((p) => p.toJson()).toList(), // legacy compatibility
         'ingredients': ingredients,
         'instructions': instructions,
         'isCustom': isCustom,
       };
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
+    List<RecipeStep>? parsedSteps;
+    if (json['steps'] is List && (json['steps'] as List).isNotEmpty) {
+      parsedSteps = (json['steps'] as List)
+          .map((e) => RecipeStep.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    List<Phase>? parsedPhases;
+    if (json['phases'] is List) {
+      parsedPhases = (json['phases'] as List)
+          .map((e) => Phase.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+
     return Recipe(
       id: json['id'] as String? ?? const Uuid().v4(),
       name: json['name'] as String? ?? 'Custom Froth',
@@ -109,10 +141,8 @@ class Recipe {
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      phases: (json['phases'] as List<dynamic>?)
-              ?.map((e) => Phase.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          [Phase.clamped()],
+      steps: parsedSteps,
+      phases: parsedPhases,
       ingredients: (json['ingredients'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??

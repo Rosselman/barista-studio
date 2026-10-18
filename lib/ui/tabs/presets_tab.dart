@@ -39,6 +39,23 @@ class _RecipesTabState extends State<RecipesTab> {
   void initState() {
     super.initState();
     _loadCustomRecipes();
+    widget.storageService.addListener(_onStorageChanged);
+  }
+
+  void _onStorageChanged() {
+    if (mounted) {
+      _loadCustomRecipes();
+    }
+  }
+
+  @override
+  void didUpdateWidget(RecipesTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.storageService != widget.storageService) {
+      oldWidget.storageService.removeListener(_onStorageChanged);
+      widget.storageService.addListener(_onStorageChanged);
+      _loadCustomRecipes();
+    }
   }
 
   void _loadCustomRecipes() {
@@ -76,8 +93,122 @@ class _RecipesTabState extends State<RecipesTab> {
 
   @override
   void dispose() {
+    widget.storageService.removeListener(_onStorageChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _showEditRecipeDetailsDialog(BuildContext context, Recipe recipe) {
+    final nameCtrl = TextEditingController(text: recipe.name);
+    final descCtrl = TextEditingController(text: recipe.description);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.edit_note, color: AppTheme.goldPrimary, size: 22),
+            SizedBox(width: 8),
+            Text(
+              'Customize Recipe Details',
+              style: TextStyle(color: AppTheme.crema, fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Recipe Name (Max 16 ASCII for Machine Display)',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: TextField(
+                  controller: nameCtrl,
+                  maxLength: 16,
+                  style: const TextStyle(color: AppTheme.crema, fontSize: 14, fontWeight: FontWeight.w600),
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Description & Preparation Notes',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: TextField(
+                  controller: descCtrl,
+                  maxLines: 3,
+                  maxLength: 240,
+                  style: const TextStyle(color: AppTheme.crema, fontSize: 13),
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    border: InputBorder.none,
+                    isDense: true,
+                    hintText: 'e.g. My bespoke cold foam recipe with a hint of cinnamon...',
+                    hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = nameCtrl.text.trim();
+              final newDesc = descCtrl.text.trim();
+              Navigator.of(ctx).pop();
+              await widget.storageService.updateRecipeDetails(
+                recipe.id,
+                name: newName.isNotEmpty ? newName : recipe.name,
+                description: newDesc,
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Recipe details updated!'),
+                    backgroundColor: AppTheme.surfaceElevated,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            child: const Text('Save Details'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _confirmDeleteRecipe(BuildContext context, Recipe recipe) {
@@ -508,6 +639,10 @@ class _RecipesTabState extends State<RecipesTab> {
               _buildPill(Icons.rotate_right, '${recipe.peakRpm} RPM'),
               const SizedBox(width: 6),
               _buildPill(Icons.layers_outlined, '${recipe.activePhases.length}p'),
+              if (recipe.isMultiStep) ...[
+                const SizedBox(width: 6),
+                _buildPill(Icons.alt_route, '${recipe.stepCount} Steps', color: AppTheme.goldLight),
+              ],
               if (isCustom) ...[
                 const SizedBox(width: 6),
                 _buildPill(Icons.star, 'Custom'),
@@ -576,8 +711,18 @@ class _RecipesTabState extends State<RecipesTab> {
               if (isCustom) ...[
                 const SizedBox(width: 4),
                 IconButton(
+                  icon: const Icon(Icons.edit_note, size: 20, color: AppTheme.goldLight),
+                  tooltip: 'Customize Details',
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _showEditRecipeDetailsDialog(context, recipe),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
                   icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.rubyEmergency),
                   tooltip: 'Delete Recipe',
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(),
                   onPressed: () => _confirmDeleteRecipe(context, recipe),
                 ),
               ],
@@ -588,23 +733,26 @@ class _RecipesTabState extends State<RecipesTab> {
     );
   }
 
-  Widget _buildPill(IconData icon, String text) {
+  Widget _buildPill(IconData icon, String text, {Color? color}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceElevated,
+        color: color != null ? color.withOpacity(0.12) : AppTheme.surfaceElevated,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppTheme.borderSubtle, width: 0.6),
+        border: Border.all(
+          color: color != null ? color.withOpacity(0.4) : AppTheme.borderSubtle,
+          width: 0.6,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 10, color: AppTheme.goldPrimary),
+          Icon(icon, size: 10, color: color ?? AppTheme.goldPrimary),
           const SizedBox(width: 3),
           Text(
             text,
-            style: const TextStyle(
-              color: AppTheme.textMuted,
+            style: TextStyle(
+              color: color ?? AppTheme.textMuted,
               fontSize: 10,
               fontWeight: FontWeight.w600,
             ),

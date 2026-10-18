@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/phase.dart';
 import '../../models/recipe.dart';
+import '../../models/recipe_step.dart';
 import '../../protocol/crc16.dart';
 import '../../protocol/recipe_packet_builder.dart';
 import '../../services/barista_ble_service.dart';
@@ -32,9 +33,19 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
   // Manual Mode State
   late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
   late String _recipeId;
-  int _activePhaseIndex = 0;
-  late List<Phase> _phases;
+
+  // Multi-Step State
+  bool _isMultiStep = false;
+  int _activeStepIndex = 0; // 0: Step 1, 1: Step 2
+  int _activePhaseIndex = 0; // 0..2 within the active step
+  late TextEditingController _step1NameController;
+  late TextEditingController _step2NameController;
+  late TextEditingController _step1PromptController;
+  late TextEditingController _step2PromptController;
+  late List<Phase> _step1Phases;
+  late List<Phase> _step2Phases;
 
   // Guided Mode State
   String _guidedTemp = 'cold'; // 'cold', 'warm', 'hot'
@@ -54,21 +65,58 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   void _loadRecipe(Recipe? recipe) {
     if (recipe != null) {
       _mode = RecipeCraftMode.manual;
-      _nameController = TextEditingController(text: recipe.hardwareName);
       _recipeId = recipe.id;
-      _phases = List.generate(3, (i) {
-        if (i < recipe.phases.length) {
-          return recipe.phases[i];
+      _nameController = TextEditingController(text: recipe.hardwareName);
+      _descriptionController = TextEditingController(text: recipe.description);
+      _isMultiStep = recipe.isMultiStep;
+      _activeStepIndex = 0;
+      _activePhaseIndex = 0;
+
+      final s1 = recipe.steps.isNotEmpty ? recipe.steps[0] : null;
+      _step1NameController = TextEditingController(text: s1?.name ?? 'STEP 1');
+      _step1PromptController = TextEditingController(text: s1?.instruction ?? '');
+      _step1Phases = List.generate(3, (i) {
+        if (s1 != null && i < s1.phases.length) {
+          return s1.phases[i];
         }
-        return Phase.clamped(duration: 0); // inactive
+        return Phase.clamped(duration: 0);
+      });
+
+      final s2 = recipe.steps.length > 1 ? recipe.steps[1] : null;
+      _step2NameController = TextEditingController(text: s2?.name ?? 'STEP 2');
+      _step2PromptController = TextEditingController(text: s2?.instruction ?? '');
+      _step2Phases = List.generate(3, (i) {
+        if (s2 != null && i < s2.phases.length) {
+          return s2.phases[i];
+        }
+        return i == 0
+            ? Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 35)
+            : Phase.clamped(duration: 0);
       });
     } else {
-      _nameController = TextEditingController(text: 'VELVET FOAM');
       _recipeId = const Uuid().v4();
-      _phases = [
+      _nameController = TextEditingController(text: 'VELVET FOAM');
+      _descriptionController = TextEditingController(
+          text: 'Artisanal microfoam profile created in Barista Studio.');
+      _isMultiStep = false;
+      _activeStepIndex = 0;
+      _activePhaseIndex = 0;
+
+      _step1NameController = TextEditingController(text: 'STEP 1');
+      _step1PromptController = TextEditingController(text: 'Add coffee & ingredients');
+      _step1Phases = [
         Phase.clamped(speed: 3200, accel: 800, temp: 45, duration: 25),
         Phase.clamped(speed: 1200, accel: 600, temp: 65, duration: 15),
         Phase.clamped(speed: 800, accel: 400, temp: 65, duration: 0),
+      ];
+
+      _step2NameController = TextEditingController(text: 'STEP 2');
+      _step2PromptController =
+          TextEditingController(text: 'Add cold milk & press dial to resume');
+      _step2Phases = [
+        Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 35),
+        Phase.clamped(duration: 0),
+        Phase.clamped(duration: 0),
       ];
     }
   }
@@ -76,21 +124,45 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   void setRecipe(Recipe recipe) {
     setState(() {
       _mode = RecipeCraftMode.manual;
-      _nameController.text = recipe.hardwareName;
       _recipeId = recipe.id;
-      _phases = List.generate(3, (i) {
-        if (i < recipe.phases.length) {
-          return recipe.phases[i];
+      _nameController.text = recipe.hardwareName;
+      _descriptionController.text = recipe.description;
+      _isMultiStep = recipe.isMultiStep;
+      _activeStepIndex = 0;
+      _activePhaseIndex = 0;
+
+      final s1 = recipe.steps.isNotEmpty ? recipe.steps[0] : null;
+      _step1NameController.text = s1?.name ?? 'STEP 1';
+      _step1PromptController.text = s1?.instruction ?? '';
+      _step1Phases = List.generate(3, (i) {
+        if (s1 != null && i < s1.phases.length) {
+          return s1.phases[i];
         }
         return Phase.clamped(duration: 0);
       });
-      _activePhaseIndex = 0;
+
+      final s2 = recipe.steps.length > 1 ? recipe.steps[1] : null;
+      _step2NameController.text = s2?.name ?? 'STEP 2';
+      _step2PromptController.text = s2?.instruction ?? '';
+      _step2Phases = List.generate(3, (i) {
+        if (s2 != null && i < s2.phases.length) {
+          return s2.phases[i];
+        }
+        return i == 0
+            ? Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 35)
+            : Phase.clamped(duration: 0);
+      });
     });
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
+    _step1NameController.dispose();
+    _step2NameController.dispose();
+    _step1PromptController.dispose();
+    _step2PromptController.dispose();
     _guidedNameController.dispose();
     super.dispose();
   }
@@ -100,7 +172,6 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   // ===========================================================================
 
   String _deriveGuidedName() {
-    // Generate an ASCII machine name clamped to 16 characters
     final prefix = _guidedTemp == 'cold' ? 'COLD' : (_guidedTemp == 'hot' ? 'HOT' : 'WARM');
     String baseWord;
     switch (_guidedBase) {
@@ -150,7 +221,6 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   }
 
   Recipe _synthesizeGuidedRecipe() {
-    // 1. Target Temperature
     int temp = 0;
     if (_guidedTemp == 'warm') {
       switch (_guidedLiquid) {
@@ -174,139 +244,124 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     } else if (_guidedTemp == 'hot') {
       switch (_guidedLiquid) {
         case 'oat':
-          temp = 60; // oat burns if overheated
+          temp = 60;
           break;
         case 'almond':
           temp = 56;
           break;
         case 'coconut':
-          temp = 62;
+          temp = 58;
           break;
         case 'cream':
-          temp = 68;
+          temp = 62;
           break;
         case 'dairy':
         default:
-          temp = 70;
+          temp = 68;
           break;
       }
     }
 
-    // 2. Synthesize Phases
-    List<Phase> phases = [];
-    final hasPowder = _guidedInclusion == 'powder';
-    final hasSyrup = _guidedInclusion == 'syrup';
+    int p1Speed, p1Duration, p1Accel;
+    int p2Speed, p2Duration, p2Accel;
+    int p3Speed, p3Duration, p3Accel;
 
     switch (_guidedTexture) {
-      case 'dense': // Cloud foam
-        final int whipSpeed = _guidedLiquid == 'cream'
-            ? 3200
-            : (_guidedLiquid == 'oat' || _guidedLiquid == 'almond' ? 3800 : 4000);
-        final int whipDuration = hasPowder ? 32 : 26;
-        phases.add(Phase.clamped(
-          speed: whipSpeed,
-          accel: 1400,
-          temp: temp > 0 ? (temp - 15).clamp(25, 70) : 0,
-          duration: whipDuration,
-        ));
-        phases.add(Phase.clamped(
-          speed: 1200,
-          accel: 400,
-          temp: temp,
-          duration: 14,
-        ));
+      case 'dense':
+        p1Speed = 3400;
+        p1Duration = 22;
+        p1Accel = 900;
+        p2Speed = 2200;
+        p2Duration = 14;
+        p2Accel = 600;
+        p3Speed = 1000;
+        p3Duration = 8;
+        p3Accel = 400;
         break;
-
-      case 'latteArt': // Silky microfoam
-        final int aerateSpeed = _guidedLiquid == 'cream' ? 2400 : 3200;
-        phases.add(Phase.clamped(
-          speed: aerateSpeed,
-          accel: 800,
-          temp: temp > 0 ? (temp - 12).clamp(25, 70) : 0,
-          duration: hasPowder ? 24 : 18,
-        ));
-        phases.add(Phase.clamped(
-          speed: 1000,
-          accel: 400,
-          temp: temp,
-          duration: 20,
-        ));
+      case 'latteArt':
+        p1Speed = 3000;
+        p1Duration = 18;
+        p1Accel = 750;
+        p2Speed = 1200;
+        p2Duration = 20;
+        p2Accel = 400;
+        p3Speed = 700;
+        p3Duration = 10;
+        p3Accel = 300;
         break;
-
-      case 'chantilly': // Soft velvet cream
-        final int whipSpeed = _guidedLiquid == 'cream' ? 2600 : 3400;
-        phases.add(Phase.clamped(
-          speed: whipSpeed,
-          accel: 900,
-          temp: temp > 0 ? (temp - 10).clamp(20, 70) : 0,
-          duration: 22,
-        ));
-        phases.add(Phase.clamped(
-          speed: 900,
-          accel: 300,
-          temp: temp,
-          duration: 12,
-        ));
+      case 'chantilly':
+        p1Speed = 3800;
+        p1Duration = 25;
+        p1Accel = 1000;
+        p2Speed = 1600;
+        p2Duration = 15;
+        p2Accel = 500;
+        p3Speed = 0;
+        p3Duration = 0;
+        p3Accel = 200;
         break;
-
-      case 'stir': // Gentle dissolve & melt
+      case 'stir':
       default:
-        phases.add(Phase.clamped(
-          speed: hasPowder ? 1800 : 1400,
-          accel: 500,
-          temp: temp > 0 ? (temp - 15).clamp(20, 70) : 0,
-          duration: hasPowder ? 25 : 18,
-        ));
-        phases.add(Phase.clamped(
-          speed: 1000,
-          accel: 300,
-          temp: temp,
-          duration: 32,
-        ));
-        if (temp >= 65) {
-          phases.add(Phase.clamped(
-            speed: 600,
-            accel: 200,
-            temp: temp,
-            duration: 15,
-          ));
-        }
+        p1Speed = 1400;
+        p1Duration = 30;
+        p1Accel = 500;
+        p2Speed = 800;
+        p2Duration = 15;
+        p2Accel = 300;
+        p3Speed = 0;
+        p3Duration = 0;
+        p3Accel = 200;
         break;
     }
 
-    final name = _guidedNameController.text.trim().isEmpty
-        ? _deriveGuidedName()
-        : _guidedNameController.text.trim();
+    if (_guidedInclusion == 'powder') {
+      p1Speed = (p1Speed * 0.85).round().clamp(300, 4000);
+      p1Duration += 5;
+    } else if (_guidedInclusion == 'syrup') {
+      p1Duration += 3;
+    }
+
+    final phases = <Phase>[
+      Phase.clamped(speed: p1Speed, accel: p1Accel, temp: temp > 0 ? (temp - 10).clamp(0, 70) : 0, duration: p1Duration),
+      Phase.clamped(speed: p2Speed, accel: p2Accel, temp: temp, duration: p2Duration),
+    ];
+    if (p3Duration > 0) {
+      phases.add(Phase.clamped(speed: p3Speed, accel: p3Accel, temp: temp, duration: p3Duration));
+    }
+
+    final name = _guidedNameController.text.trim().isEmpty ? _deriveGuidedName() : _guidedNameController.text.trim();
+    final clampedName = name.length > 16 ? name.substring(0, 16) : name;
 
     return Recipe(
       id: _recipeId,
-      name: name,
-      description: 'Guided formula: ${_guidedTemp.toUpperCase()} ${_guidedLiquid.toUpperCase()} with ${_guidedTexture.toUpperCase()} texture.',
-      category: _guidedBase == 'coffee' ? 'Coffee' : 'Non-Coffee',
-      phases: phases,
+      name: clampedName,
+      description: 'Formulated $_guidedTemp $_guidedBase with $_guidedLiquid and $_guidedTexture texture.',
+      category: _guidedTemp == 'cold' ? 'Iced & Cold Coffee' : 'Hot Coffee',
+      tags: [
+        _guidedTemp == 'cold' ? 'Iced & Cold Coffee' : 'Hot Coffee',
+        _guidedLiquid == 'dairy' ? 'Dairy' : 'Non-Dairy',
+        if (_guidedTexture == 'dense') 'Cold Foam & Textures',
+      ],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          phases: phases,
+        ),
+      ],
       isCustom: true,
-      ingredients: [
-        '100 ml Cold ${_guidedLiquid == 'dairy' ? 'whole milk' : (_guidedLiquid == 'oat' ? 'oat milk' : (_guidedLiquid == 'almond' ? 'almond milk' : (_guidedLiquid == 'coconut' ? 'coconut milk' : 'heavy cream')))}',
-        if (_guidedBase == 'coffee') '1 Nespresso espresso shot (40 ml)',
-        if (_guidedBase == 'chocolate') '15g Fine cocoa powder or chocolate squares',
-        if (_guidedBase == 'tea') '2g Ceremonial matcha or concentrated tea',
-        if (hasSyrup) '10 ml Flavored syrup or honey',
-      ],
-      instructions: [
-        'Insert Barista whisk into jug.',
-        'Add ingredients into the jug.',
-        'Flash formula to machine slot and start cycle.',
-      ],
     );
   }
 
   void _applyGuidedToManual() {
-    final generated = _synthesizeGuidedRecipe();
+    final recipe = _synthesizeGuidedRecipe();
     setState(() {
-      _nameController.text = generated.hardwareName;
-      _phases = List.generate(3, (i) {
-        if (i < generated.phases.length) {
-          return generated.phases[i];
+      _nameController.text = recipe.hardwareName;
+      _descriptionController.text = recipe.description;
+      _isMultiStep = false;
+      _activeStepIndex = 0;
+      _step1Phases = List.generate(3, (i) {
+        if (i < recipe.phases.length) {
+          return recipe.phases[i];
         }
         return Phase.clamped(duration: 0);
       });
@@ -330,21 +385,69 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     if (_mode == RecipeCraftMode.guided) {
       return _synthesizeGuidedRecipe();
     }
+    final name = _nameController.text.trim().isEmpty ? 'Custom Froth' : _nameController.text.trim();
+    final desc = _descriptionController.text.trim().isEmpty
+        ? (_isMultiStep
+            ? 'Custom multi-step Barista recipe with hardware pause.'
+            : 'Custom single-step Barista recipe created in Studio.')
+        : _descriptionController.text.trim();
+
+    if (_isMultiStep) {
+      final s1Active = _step1Phases.where((p) => p.duration > 0).toList();
+      final s2Active = _step2Phases.where((p) => p.duration > 0).toList();
+
+      return Recipe(
+        id: _recipeId,
+        name: name,
+        description: desc,
+        category: 'Specialty',
+        tags: const ['Multi-Step', 'Specialty'],
+        steps: [
+          RecipeStep(
+            name: _step1NameController.text.trim().isEmpty ? 'STEP 1' : _step1NameController.text.trim(),
+            phases: s1Active.isEmpty
+                ? [Phase.clamped(speed: 3000, accel: 800, temp: 0, duration: 15)]
+                : s1Active,
+            instruction: _step1PromptController.text.trim().isEmpty ? null : _step1PromptController.text.trim(),
+          ),
+          RecipeStep(
+            name: _step2NameController.text.trim().isEmpty ? 'STEP 2' : _step2NameController.text.trim(),
+            phases: s2Active.isEmpty
+                ? [Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 35)]
+                : s2Active,
+            instruction: _step2PromptController.text.trim().isEmpty ? null : _step2PromptController.text.trim(),
+          ),
+        ],
+        isCustom: true,
+      );
+    }
+
+    final s1Active = _step1Phases.where((p) => p.duration > 0).toList();
     return Recipe(
       id: _recipeId,
-      name: _nameController.text.trim().isEmpty
-          ? 'Custom Froth'
-          : _nameController.text.trim(),
-      description: 'Custom multi-phase Barista recipe created in Studio.',
+      name: name,
+      description: desc,
       category: 'Specialty',
-      phases: _phases.where((p) => p.duration > 0).toList(),
+      steps: [
+        RecipeStep(
+          name: _step1NameController.text.trim().isEmpty ? 'STEP 1' : _step1NameController.text.trim(),
+          phases: s1Active.isEmpty
+              ? [Phase.clamped(speed: 3000, accel: 800, temp: 65, duration: 30)]
+              : s1Active,
+          instruction: _step1PromptController.text.trim().isEmpty ? null : _step1PromptController.text.trim(),
+        ),
+      ],
       isCustom: true,
     );
   }
 
   void _updateActivePhase(Phase newPhase) {
     setState(() {
-      _phases[_activePhaseIndex] = newPhase;
+      if (_isMultiStep && _activeStepIndex == 1) {
+        _step2Phases[_activePhaseIndex] = newPhase;
+      } else {
+        _step1Phases[_activePhaseIndex] = newPhase;
+      }
     });
   }
 
@@ -371,6 +474,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
       targetPos: 1,
       name: currentRecipe.hardwareName,
       uuidStr: currentRecipe.id,
+      steps: currentRecipe.steps,
       phases: currentRecipe.phases,
     );
     final crc = Crc16.compute(packet, 2, packet.length);
@@ -406,7 +510,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                       mode: RecipeCraftMode.manual,
                       title: 'Manual Sequencer',
                       icon: Icons.tune,
-                      subtitle: '3-Phase Granular Studio',
+                      subtitle: 'Multi-Step Granular Studio',
                     ),
                   ),
                 ],
@@ -422,7 +526,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
             const SizedBox(height: 18),
 
-            // Live Binary Inspector (Shared by both modes with Wrap to prevent overflow)
+            // Live Binary Inspector
             ExpansionTile(
               backgroundColor: AppTheme.surfaceCard,
               collapsedBackgroundColor: AppTheme.surfaceCard,
@@ -454,6 +558,14 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                       'CRC-16 CCITT: 0x${crc.toRadixString(16).toUpperCase()}',
                       style: const TextStyle(
                         color: AppTheme.crema,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    Text(
+                      'Steps: ${currentRecipe.stepCount} (${currentRecipe.isMultiStep ? "Multi-Step ⏸️" : "Single-Step"})',
+                      style: const TextStyle(
+                        color: AppTheme.goldLight,
                         fontSize: 12,
                         fontFamily: 'monospace',
                       ),
@@ -522,17 +634,17 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   }
 
   // ===========================================================================
-  // Guided Mode Widgets
+  // Guided Mode View
   // ===========================================================================
 
   Widget _buildGuidedView(Recipe recipe) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Question 1: Temperature & Profile
+        // Question 1: Temperature Profile
         _buildGuidedCard(
-          question: '1. Temperature & Thermal Profile',
-          subtitle: 'Choose between cold foam, velvety warmth, or extra hot melt',
+          question: '1. Temperature Profile',
+          subtitle: 'Determines whether induction heating triggers during the cycle',
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -549,7 +661,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildGuidedChoice(
-                label: '☕ Warm & Silky (~60°C)',
+                label: '🌤️ Warm & Silky (54-64°C)',
                 selected: _guidedTemp == 'warm',
                 color: AppTheme.goldPrimary,
                 onTap: () {
@@ -560,7 +672,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildGuidedChoice(
-                label: '🔥 Extra Hot (70°C)',
+                label: '🔥 Piping Hot (60-68°C)',
                 selected: _guidedTemp == 'hot',
                 color: AppTheme.amberHeat,
                 onTap: () {
@@ -577,14 +689,14 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
         // Question 2: Base Beverage
         _buildGuidedCard(
-          question: '2. Beverage Style',
-          subtitle: 'What kind of drink are you crafting?',
+          question: '2. Flavor & Base Essence',
+          subtitle: 'Adjusts whisk acceleration and shear-thinning rate',
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               _buildGuidedChoice(
-                label: '☕ Coffee / Espresso',
+                label: '☕ Espresso / Coffee',
                 selected: _guidedBase == 'coffee',
                 onTap: () {
                   setState(() {
@@ -594,7 +706,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildGuidedChoice(
-                label: '🍫 Cocoa / Chocolate',
+                label: '🍫 Rich Chocolate / Cocoa',
                 selected: _guidedBase == 'chocolate',
                 onTap: () {
                   setState(() {
@@ -604,7 +716,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildGuidedChoice(
-                label: '🍵 Matcha / Tea / Chai',
+                label: '🍵 Matcha / Botanical Tea',
                 selected: _guidedBase == 'tea',
                 onTap: () {
                   setState(() {
@@ -614,7 +726,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildGuidedChoice(
-                label: '🥛 Pure Foam / Steamer',
+                label: '🥛 Pure Foam (No Additives)',
                 selected: _guidedBase == 'neutral',
                 onTap: () {
                   setState(() {
@@ -628,16 +740,16 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         ),
         const SizedBox(height: 12),
 
-        // Question 3: Liquid & Dairy Type
+        // Question 3: Liquid Medium / Milk
         _buildGuidedCard(
-          question: '3. Milk & Liquid Base',
-          subtitle: 'Thermal ramps and whisk RPM are tuned specifically for your liquid',
+          question: '3. Milk & Plant Liquid Medium',
+          subtitle: 'Selects denaturation temperature and protein aeration curve',
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               _buildGuidedChoice(
-                label: '🥛 Whole / Dairy Milk',
+                label: '🐄 Whole / Semi Dairy Milk',
                 selected: _guidedLiquid == 'dairy',
                 onTap: () {
                   setState(() {
@@ -647,7 +759,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildGuidedChoice(
-                label: '🌾 Oat Milk (Barista)',
+                label: '🌾 Barista Oat Milk',
                 selected: _guidedLiquid == 'oat',
                 onTap: () {
                   setState(() {
@@ -657,7 +769,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildGuidedChoice(
-                label: '🌰 Almond / Soy',
+                label: '🌰 Almond Milk',
                 selected: _guidedLiquid == 'almond',
                 onTap: () {
                   setState(() {
@@ -677,7 +789,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildGuidedChoice(
-                label: '🍦 Heavy Cream',
+                label: '🍦 Heavy Cream / Half & Half',
                 selected: _guidedLiquid == 'cream',
                 onTap: () {
                   setState(() {
@@ -693,8 +805,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
         // Question 4: Foam Texture
         _buildGuidedCard(
-          question: '4. Foam Texture & Consistency',
-          subtitle: 'Select your preferred micro-bubble density and mouthfeel',
+          question: '4. Desired Foam Texture & Density',
+          subtitle: 'Calculates RPM milestones from silky pourable to stiff peaks',
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -821,7 +933,6 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
               ),
               const Divider(color: AppTheme.borderSubtle, height: 20),
 
-              // Machine Display Name Field
               Row(
                 children: [
                   const Text('Hardware Name: ', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
@@ -972,12 +1083,13 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   // ===========================================================================
 
   Widget _buildManualView() {
-    final activePhase = _phases[_activePhaseIndex];
+    final currentPhases = (_isMultiStep && _activeStepIndex == 1) ? _step2Phases : _step1Phases;
+    final activePhase = currentPhases[_activePhaseIndex];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Recipe Name Input & Hardware UUID
+        // Recipe Name & Description Card
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1032,17 +1144,209 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                     hintText: 'e.g. ULTRA FOAM',
                     hintStyle: TextStyle(color: AppTheme.textMuted),
                   ),
-                  onChanged: (val) {
-                    setState(() {});
-                  },
+                  onChanged: (val) => setState(() {}),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Description & Notes Field
+              const Text(
+                'Recipe Description & Notes',
+                style: TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: TextField(
+                  controller: _descriptionController,
+                  maxLines: 2,
+                  maxLength: 240,
+                  style: const TextStyle(
+                    color: AppTheme.crema,
+                    fontSize: 13,
+                  ),
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    border: InputBorder.none,
+                    hintText: 'Describe taste, milk ratio, or prep instructions...',
+                    hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                  ),
+                  onChanged: (val) => setState(() {}),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
-        // Multi-Phase Selector (Phase 1, 2, 3)
+        // Multi-Step Hardware Pause Toggle Card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: _isMultiStep ? AppTheme.goldPrimary.withOpacity(0.10) : AppTheme.surfaceCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isMultiStep ? AppTheme.goldPrimary.withOpacity(0.6) : AppTheme.borderSubtle,
+              width: 1.2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _isMultiStep ? AppTheme.goldPrimary.withOpacity(0.25) : AppTheme.surfaceElevated,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.alt_route,
+                      color: _isMultiStep ? AppTheme.goldLight : AppTheme.textMuted,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Multi-Step Recipe (Hardware Paused Execution)',
+                          style: TextStyle(
+                            color: AppTheme.crema,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _isMultiStep
+                              ? 'Step 1 runs -> Machine pauses motor/heat (RECIPE_PAUSED) -> Add milk -> Press dial -> Step 2 runs!'
+                              : 'Single continuous step. Toggle on to create multi-stage recipes with mid-cycle pause.',
+                          style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11.5,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Switch(
+                    value: _isMultiStep,
+                    activeColor: AppTheme.goldPrimary,
+                    onChanged: (val) {
+                      setState(() {
+                        _isMultiStep = val;
+                        if (!val) _activeStepIndex = 0;
+                      });
+                    },
+                  ),
+                ],
+              ),
+
+              // When Multi-Step is enabled, show Step Selector & Step Details
+              if (_isMultiStep) ...[
+                const Divider(color: AppTheme.borderSubtle, height: 24),
+                Row(
+                  children: [
+                    _buildStepSelectorTab(0, 'Step 1', 'Prep / Base'),
+                    const SizedBox(width: 10),
+                    _buildStepSelectorTab(1, 'Step 2', 'Froth & Finish'),
+                  ],
+                ),
+                const SizedBox(height: 14),
+
+                // Active Step Configuration Fields
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Step ${_activeStepIndex + 1} Name',
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceInput,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderSubtle),
+                            ),
+                            child: TextField(
+                              controller: _activeStepIndex == 0 ? _step1NameController : _step2NameController,
+                              maxLength: 16,
+                              style: const TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w700),
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                counterText: '',
+                                border: InputBorder.none,
+                              ),
+                              onChanged: (val) => setState(() {}),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Step ${_activeStepIndex + 1} User Prompt / Action',
+                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceInput,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderSubtle),
+                            ),
+                            child: TextField(
+                              controller: _activeStepIndex == 0 ? _step1PromptController : _step2PromptController,
+                              style: const TextStyle(color: AppTheme.crema, fontSize: 12),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                border: InputBorder.none,
+                                hintText: _activeStepIndex == 0 ? 'e.g. Add coffee & ice' : 'e.g. Add milk & press dial',
+                                hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                              ),
+                              onChanged: (val) => setState(() {}),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+
+        // Phase Selector for active step (Phase 1, 2, 3)
         Row(
           children: [
             _buildPhaseTab(0, 'Phase 1', 'Whip'),
@@ -1070,7 +1374,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Phase ${_activePhaseIndex + 1} Parameters',
+                    _isMultiStep
+                        ? 'Step ${_activeStepIndex + 1} • Phase ${_activePhaseIndex + 1} Parameters'
+                        : 'Phase ${_activePhaseIndex + 1} Parameters',
                     style: const TextStyle(
                       color: AppTheme.crema,
                       fontSize: 15,
@@ -1148,14 +1454,14 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
               _buildChipRow([
                 _PresetChip('Gentle (200)', () => _updateActivePhase(activePhase.copyWith(accel: 200))),
                 _PresetChip('Standard (800)', () => _updateActivePhase(activePhase.copyWith(accel: 800))),
-                _PresetChip('Rapid (1600)', () => _updateActivePhase(activePhase.copyWith(accel: 1600))),
+                _PresetChip('Aggressive (1500)', () => _updateActivePhase(activePhase.copyWith(accel: 1500))),
               ]),
               const SizedBox(height: 18),
 
-              // 3. Induction Temperature Slider
+              // 3. Temperature Slider
               _buildSliderHeader(
-                'Induction Heating Target',
-                activePhase.temp == 0 ? '0°C (Cold Foam)' : '${activePhase.temp}°C',
+                'Induction Heater Temperature',
+                activePhase.temp == 0 ? 'Cold (Heater Off)' : '${activePhase.temp}°C',
                 activePhase.temp == 0 ? AppTheme.cyanCold : AppTheme.amberHeat,
               ),
               Slider(
@@ -1169,38 +1475,245 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildChipRow([
-                _PresetChip('0°C (Cold Foam - OFF)', () => _updateActivePhase(activePhase.copyWith(temp: 0)), color: AppTheme.cyanCold),
-                _PresetChip('45°C (Warm Silk)', () => _updateActivePhase(activePhase.copyWith(temp: 45))),
-                _PresetChip('65°C (Ideal Barista)', () => _updateActivePhase(activePhase.copyWith(temp: 65))),
-                _PresetChip('70°C (Hot Chocolate)', () => _updateActivePhase(activePhase.copyWith(temp: 70)), color: AppTheme.amberHeat),
+                _PresetChip('Cold Froth (0°C)', () => _updateActivePhase(activePhase.copyWith(temp: 0)), color: AppTheme.cyanCold),
+                _PresetChip('Warm (55°C)', () => _updateActivePhase(activePhase.copyWith(temp: 55))),
+                _PresetChip('Hot (65°C)', () => _updateActivePhase(activePhase.copyWith(temp: 65)), color: AppTheme.amberHeat),
+                _PresetChip('Max (70°C)', () => _updateActivePhase(activePhase.copyWith(temp: 70)), color: AppTheme.rubyEmergency),
               ]),
               const SizedBox(height: 18),
 
-              // 4. Phase Duration Slider
+              // 4. Duration Slider
               _buildSliderHeader(
                 'Phase Duration',
-                activePhase.duration == 0 ? '0s (Skip)' : '${activePhase.duration}s',
+                activePhase.duration == 0 ? '0s (Phase Inactive)' : '${activePhase.duration} seconds',
                 activePhase.duration == 0 ? AppTheme.textMuted : AppTheme.goldLight,
               ),
               Slider(
                 value: activePhase.duration.toDouble(),
                 min: 0,
-                max: 240,
-                divisions: 48,
+                max: 120,
+                divisions: 120,
                 onChanged: (val) {
                   _updateActivePhase(activePhase.copyWith(duration: val.round()));
                 },
               ),
               _buildChipRow([
-                _PresetChip('0s (Skip)', () => _updateActivePhase(activePhase.copyWith(duration: 0))),
-                _PresetChip('15s', () => _updateActivePhase(activePhase.copyWith(duration: 15))),
-                _PresetChip('30s', () => _updateActivePhase(activePhase.copyWith(duration: 30))),
-                _PresetChip('45s', () => _updateActivePhase(activePhase.copyWith(duration: 45))),
-                _PresetChip('60s', () => _updateActivePhase(activePhase.copyWith(duration: 60))),
+                _PresetChip('Skip (0s)', () => _updateActivePhase(activePhase.copyWith(duration: 0)), color: AppTheme.textMuted),
+                _PresetChip('Flash (10s)', () => _updateActivePhase(activePhase.copyWith(duration: 10))),
+                _PresetChip('Standard (25s)', () => _updateActivePhase(activePhase.copyWith(duration: 25))),
+                _PresetChip('Long (45s)', () => _updateActivePhase(activePhase.copyWith(duration: 45))),
               ]),
             ],
           ),
         ),
+        const SizedBox(height: 16),
+
+        // Step Execution Overview Card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.borderSubtle),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Sequence Architecture Overview',
+                    style: TextStyle(
+                      color: AppTheme.crema,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    _isMultiStep ? '2 Stages • Dual Whisk' : '1 Stage • Single Cycle',
+                    style: const TextStyle(
+                      color: AppTheme.goldLight,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(color: AppTheme.borderSubtle, height: 18),
+
+              // Step 1 Phases
+              _buildStepSummaryRow(
+                stepName: _step1NameController.text.isEmpty ? 'STEP 1' : _step1NameController.text,
+                phases: _step1Phases,
+                instruction: _step1PromptController.text,
+              ),
+
+              if (_isMultiStep) ...[
+                // Pause Marker
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.goldPrimary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.35)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.pause_circle_outline, color: AppTheme.goldLight, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '⏸️ Machine Firmware Pauses: Add milk/ingredients & press center button to resume',
+                          style: TextStyle(color: AppTheme.goldLight, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Step 2 Phases
+                _buildStepSummaryRow(
+                  stepName: _step2NameController.text.isEmpty ? 'STEP 2' : _step2NameController.text,
+                  phases: _step2Phases,
+                  instruction: _step2PromptController.text,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepSelectorTab(int index, String title, String subtitle) {
+    final isSelected = _activeStepIndex == index;
+    final phases = index == 0 ? _step1Phases : _step2Phases;
+    final activeCount = phases.where((p) => p.duration > 0).length;
+    final totalDur = phases.where((p) => p.duration > 0).fold(0, (acc, p) => acc + p.duration);
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() {
+          _activeStepIndex = index;
+          _activePhaseIndex = 0;
+        }),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.goldPrimary.withOpacity(0.18) : AppTheme.surfaceCard,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppTheme.goldPrimary : AppTheme.borderSubtle,
+              width: isSelected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isSelected ? AppTheme.goldLight : AppTheme.crema,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceElevated,
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text(
+                      '${totalDur}s',
+                      style: const TextStyle(
+                        color: AppTheme.goldLight,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '$activeCount active phase${activeCount == 1 ? "" : "s"} • $subtitle',
+                style: const TextStyle(
+                  color: AppTheme.textMuted,
+                  fontSize: 10.5,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepSummaryRow({
+    required String stepName,
+    required List<Phase> phases,
+    required String instruction,
+  }) {
+    final active = phases.where((p) => p.duration > 0).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              stepName,
+              style: const TextStyle(
+                color: AppTheme.crema,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            if (instruction.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '($instruction)',
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 11, fontStyle: FontStyle.italic),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 4),
+        if (active.isEmpty)
+          const Text('No active phases', style: TextStyle(color: AppTheme.textMuted, fontSize: 11))
+        else
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: active.asMap().entries.map((e) {
+              final idx = e.key + 1;
+              final p = e.value;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: Text(
+                  'P$idx: ${p.duration}s @ ${p.speed} RPM (${p.temp == 0 ? "Cold" : "${p.temp}°C"})',
+                  style: const TextStyle(color: AppTheme.crema, fontSize: 10.5, fontFamily: 'monospace'),
+                ),
+              );
+            }).toList(),
+          ),
       ],
     );
   }
@@ -1264,7 +1777,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
   Widget _buildPhaseTab(int index, String title, String subtitle) {
     final isActive = _activePhaseIndex == index;
-    final isConfigured = _phases[index].duration > 0;
+    final currentPhases = (_isMultiStep && _activeStepIndex == 1) ? _step2Phases : _step1Phases;
+    final isConfigured = currentPhases[index].duration > 0;
 
     return Expanded(
       child: GestureDetector(
@@ -1296,7 +1810,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
               ),
               const SizedBox(height: 2),
               Text(
-                isConfigured ? '${_phases[index].duration}s ($subtitle)' : 'Off ($subtitle)',
+                isConfigured ? '${currentPhases[index].duration}s ($subtitle)' : 'Off ($subtitle)',
                 style: TextStyle(
                   color: isConfigured ? AppTheme.crema : AppTheme.textMuted,
                   fontSize: 10,

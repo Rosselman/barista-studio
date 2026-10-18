@@ -1,10 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barista_studio/data/preset_catalog.dart';
+import 'package:barista_studio/models/phase.dart';
+import 'package:barista_studio/models/recipe.dart';
+import 'package:barista_studio/models/recipe_step.dart';
+import 'package:barista_studio/protocol/crc16.dart';
 import 'package:barista_studio/protocol/recipe_packet_builder.dart';
+import 'package:barista_studio/services/storage_service.dart';
 
 void main() {
   test('PresetCatalog has recipes loaded with required categories', () {
-    expect(PresetCatalog.presets.length, greaterThanOrEqualTo(40));
+    expect(PresetCatalog.presets.length, greaterThanOrEqualTo(50));
+    expect(PresetCatalog.categories.contains('Multi-Step'), true);
     expect(PresetCatalog.categories.contains('Non-Coffee'), true);
     expect(PresetCatalog.categories.contains('Dairy'), true);
     expect(PresetCatalog.categories.contains('Non-Dairy'), true);
@@ -18,17 +25,35 @@ void main() {
       ids.add(r.id.toLowerCase());
       expect(r.hardwareName.length, lessThanOrEqualTo(16), reason: 'Hardware name too long: ${r.name}');
       expect(r.hardwareName.isNotEmpty, true);
-      expect(r.phases.isNotEmpty, true);
-      expect(r.phases.length, lessThanOrEqualTo(3));
-      for (final p in r.phases) {
-        expect(p.speed >= 300 && p.speed <= 4000, true);
-        expect(p.temp >= 0 && p.temp <= 70, true);
-        expect(p.duration >= 0 && p.duration <= 90, true);
+      expect(r.steps.isNotEmpty, true);
+      for (final s in r.steps) {
+        expect(s.phases.length, lessThanOrEqualTo(3), reason: 'Step ${s.name} in ${r.name} has >3 phases');
+        for (final p in s.phases) {
+          expect(p.speed >= 300 && p.speed <= 4000, true);
+          expect(p.temp >= 0 && p.temp <= 70, true);
+          expect(p.duration >= 0 && p.duration <= 240, true);
+        }
       }
     }
   });
 
+  test('Multi-Step recipes in PresetCatalog are properly configured', () {
+    final multiStep = PresetCatalog.presets.where((r) => r.isMultiStep).toList();
+    expect(multiStep.length, greaterThanOrEqualTo(10));
+    for (final r in multiStep) {
+      expect(r.stepCount, greaterThanOrEqualTo(2));
+      expect(r.steps[0].phases.isNotEmpty, true);
+      expect(r.steps[1].phases.isNotEmpty, true);
+      expect(r.tags.contains('Multi-Step'), true);
+    }
+  });
+
   test('Recipe filtering by categories and tags works correctly', () {
+    final multiStep = PresetCatalog.presets
+        .where((r) => r.category == 'Multi-Step' || r.tags.contains('Multi-Step'))
+        .toList();
+    expect(multiStep.length, greaterThanOrEqualTo(10));
+
     final nonCoffee = PresetCatalog.presets
         .where((r) => r.category == 'Non-Coffee' || r.tags.contains('Non-Coffee'))
         .toList();
@@ -50,15 +75,78 @@ void main() {
     expect(coldFoam.length, greaterThanOrEqualTo(10));
   });
 
-  test('RecipePacketBuilder creates valid binary packet', () {
-    final recipe = PresetCatalog.presets.first;
-    final packet = RecipePacketBuilder.buildPacket(
-      isAppend: true,
-      targetPos: 1,
-      name: recipe.hardwareName,
-      uuidStr: recipe.id,
-      phases: recipe.phases,
+  test('RecipePacketBuilder creates valid multi-step binary packet', () {
+    // 2-step recipe test: Latte Double
+    // Step 1: cold froth 15s @ 3000 RPM (0°C)
+    // Step 2: hot froth 35s @ 2400 RPM (65°C)
+    final s1 = RecipeStep(
+      name: 'STEP 1',
+      phases: [Phase.clamped(speed: 3000, accel: 800, temp: 0, duration: 15)],
     );
-    expect(packet.isNotEmpty, true);
+    final s2 = RecipeStep(
+      name: 'STEP 2',
+      phases: [Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 35)],
+    );
+
+    final packet = RecipePacketBuilder.buildPacket(
+      isAppend: false,
+      targetPos: 1,
+      name: 'Latte Double',
+      uuidStr: '00000000-0000-0000-0000-000000000000',
+      steps: [s1, s2],
+    );
+
+    // TargetPos byte = 1
+    expect(packet[0], 0x01);
+    // Payload length = 58 bytes (0x003A)
+    expect(packet[3], 0x00);
+    expect(packet[4], 0x3A);
+    // Step count = 2 at byte 34
+    expect(packet[34], 0x02);
+
+    // Computed CRC must match packet CRC bytes
+    final computedCrc = Crc16.compute(packet, 3, packet.length);
+    final packetCrc = (packet[1] << 8) | packet[2];
+    expect(packetCrc, computedCrc);
+  });
+
+  test('StorageService reactive notifications work on save and delete', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final storage = StorageService(prefs);
+
+    int notifications = 0;
+    storage.addListener(() {
+      notifications++;
+    });
+
+    final recipe = Recipe(
+      id: 'test-recipe-1234',
+      name: 'TEST RECIPE',
+      description: 'Initial description',
+      category: 'Specialty',
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          phases: [Phase.clamped(speed: 3000, accel: 800, temp: 60, duration: 20)],
+        ),
+      ],
+      isCustom: true,
+    );
+
+    await storage.saveCustomRecipe(recipe);
+    expect(notifications, 1);
+    expect(storage.getCustomRecipes().length, 1);
+
+    await storage.updateRecipeDetails(
+      'test-recipe-1234',
+      description: 'Updated description',
+    );
+    expect(notifications, 2);
+    expect(storage.getCustomRecipes().first.description, 'Updated description');
+
+    await storage.deleteCustomRecipe('test-recipe-1234');
+    expect(notifications, 3);
+    expect(storage.getCustomRecipes().isEmpty, true);
   });
 }

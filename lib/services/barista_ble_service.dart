@@ -910,6 +910,7 @@ class BaristaBleService extends ChangeNotifier {
         targetPos: clampedPos,
         name: recipe.hardwareName,
         uuidStr: recipe.id,
+        steps: recipe.steps,
         phases: recipe.phases,
       );
 

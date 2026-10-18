@@ -209,50 +209,64 @@ class _HomeShellState extends State<HomeShell> {
                         bottom: BorderSide(color: AppTheme.borderSubtle, width: 1),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: isConnected
-                                ? AppTheme.emeraldSuccess
-                                : (isScanning ? AppTheme.amberHeat : AppTheme.textMuted),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Builder(
-                            builder: (context) {
-                              final deviceTitle = (telemetry.deviceName != null && telemetry.deviceName!.isNotEmpty)
-                                  ? telemetry.deviceName!
-                                  : 'Barista W545';
-                              final slot = telemetry.selectedSlot;
-                              final slotStatus = (slot != null && slot >= 0 && slot < 13)
-                                  ? ' • Slot ${slot + 1} Active'
-                                  : '';
-                              return Text(
-                                isConnected
-                                    ? '$deviceTitle$slotStatus'
-                                    : (isScanning ? 'SEARCHING FOR BARISTA W545...' : 'DISCONNECTED • TAP CONNECT TO PAIR'),
-                                style: TextStyle(
-                                  color: isConnected
-                                      ? AppTheme.emeraldSuccess
-                                      : (isScanning ? AppTheme.amberHeat : AppTheme.textMuted),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.3,
+                    child: Builder(
+                          builder: (context) {
+                            final isPaused = telemetry.machineState == 'RECIPE_PAUSED';
+                            final isExecuting = telemetry.machineState == 'RECIPE_EXECUTING';
+
+                            Color indicatorColor;
+                            if (!isConnected) {
+                              indicatorColor = isScanning ? AppTheme.amberHeat : AppTheme.textMuted;
+                            } else if (isPaused) {
+                              indicatorColor = AppTheme.goldLight;
+                            } else if (isExecuting) {
+                              indicatorColor = AppTheme.cyanCold;
+                            } else {
+                              indicatorColor = AppTheme.emeraldSuccess;
+                            }
+
+                            final deviceTitle = (telemetry.deviceName != null && telemetry.deviceName!.isNotEmpty)
+                                ? telemetry.deviceName!
+                                : 'Barista W545';
+                            final slot = telemetry.selectedSlot;
+                            final slotStatus = (slot != null && slot >= 0 && slot < 13)
+                                ? ' • Slot ${slot + 1}'
+                                : '';
+                            final stateSuffix = isPaused
+                                ? ' • ⏸️ PAUSED: ADD MILK & PRESS MACHINE DIAL'
+                                : (isExecuting ? ' • 🔄 EXECUTING...' : '');
+
+                            return Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: indicatorColor,
+                                    shape: BoxShape.circle,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              );
-                            },
-                          ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    isConnected
+                                        ? '$deviceTitle$slotStatus$stateSuffix'
+                                        : (isScanning ? 'SEARCHING FOR BARISTA W545...' : 'DISCONNECTED • TAP CONNECT TO PAIR'),
+                                    style: TextStyle(
+                                      color: indicatorColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 0.3,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
-                      ],
                     ),
-                  ),
 
                   // Main View Area
                   Expanded(

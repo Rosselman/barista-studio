@@ -161,6 +161,32 @@ class RecipeDetailDialog extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (recipe.isMultiStep) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.goldPrimary.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.goldPrimary),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.alt_route, size: 13, color: AppTheme.goldLight),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Multi-Step (${recipe.stepCount} Steps)',
+                                style: const TextStyle(
+                                  color: AppTheme.goldLight,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -327,13 +353,15 @@ class RecipeDetailDialog extends StatelessWidget {
                   ],
 
                   // Phase Breakdown
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.tune, size: 15, color: AppTheme.goldPrimary),
-                      SizedBox(width: 6),
+                      const Icon(Icons.tune, size: 15, color: AppTheme.goldPrimary),
+                      const SizedBox(width: 6),
                       Text(
-                        'MOTOR & HEATER PHASES',
-                        style: TextStyle(
+                        recipe.isMultiStep
+                            ? 'MULTI-STEP EXECUTION PROFILE'
+                            : 'MOTOR & HEATER PHASES',
+                        style: const TextStyle(
                           color: AppTheme.goldPrimary,
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
@@ -343,63 +371,211 @@ class RecipeDetailDialog extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  for (int i = 0; i < recipe.phases.length; i++)
-                    if (recipe.phases[i].isActive)
+
+                  if (recipe.isMultiStep) ...[
+                    for (int sIdx = 0; sIdx < recipe.steps.length; sIdx++) ...[
+                      if (sIdx > 0) ...[
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.goldPrimary.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.pause_circle_outline, color: AppTheme.goldLight, size: 22),
+                              SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'FIRMWARE PAUSE (RECIPE_PAUSED)',
+                                      style: TextStyle(
+                                        color: AppTheme.goldLight,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      'Motor cuts & heater off. Add milk/ingredients to the jug, then press the center button on the machine dial to start Step 2.',
+                                      style: TextStyle(
+                                        color: AppTheme.crema,
+                                        fontSize: 12,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppTheme.surfaceInput,
-                          borderRadius: BorderRadius.circular(10),
+                          color: AppTheme.surfaceCard,
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AppTheme.borderSubtle),
                         ),
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              width: 26,
-                              height: 26,
-                              decoration: BoxDecoration(
-                                color: AppTheme.surfaceCard,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${i + 1}',
-                                  style: const TextStyle(
-                                    color: AppTheme.goldLight,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
+                            Text(
+                              'Step ${sIdx + 1}: ${recipe.steps[sIdx].name}',
+                              style: const TextStyle(
+                                color: AppTheme.goldLight,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Phase ${i + 1}: ${recipe.phases[i].duration}s @ ${recipe.phases[i].speed} RPM',
-                                    style: const TextStyle(
-                                      color: AppTheme.crema,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Heat: ${recipe.phases[i].isCold ? "None (Cold)" : "${recipe.phases[i].temp}°C"}',
-                                    style: const TextStyle(
-                                      color: AppTheme.textMuted,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                ],
+                            Text(
+                              '${recipe.steps[sIdx].totalDurationSeconds}s • ${recipe.steps[sIdx].peakRpm} RPM • ${recipe.steps[sIdx].isCold ? "Cold" : "${recipe.steps[sIdx].maxTemp}°C"}',
+                              style: const TextStyle(
+                                color: AppTheme.textMuted,
+                                fontSize: 11,
+                                fontFamily: 'monospace',
                               ),
                             ),
                           ],
                         ),
                       ),
+                      if (recipe.steps[sIdx].instruction != null &&
+                          recipe.steps[sIdx].instruction!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 4, bottom: 6),
+                          child: Text(
+                            'Action: ${recipe.steps[sIdx].instruction!}',
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 12,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      for (int pIdx = 0; pIdx < recipe.steps[sIdx].phases.length; pIdx++)
+                        if (recipe.steps[sIdx].phases[pIdx].isActive)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceInput,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.borderSubtle),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 24,
+                                  height: 24,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.surfaceCard,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      '${pIdx + 1}',
+                                      style: const TextStyle(
+                                        color: AppTheme.goldLight,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Phase ${pIdx + 1}: ${recipe.steps[sIdx].phases[pIdx].duration}s @ ${recipe.steps[sIdx].phases[pIdx].speed} RPM (accel ${recipe.steps[sIdx].phases[pIdx].accel})',
+                                        style: const TextStyle(
+                                          color: AppTheme.crema,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Heat: ${recipe.steps[sIdx].phases[pIdx].isCold ? "None (Cold)" : "${recipe.steps[sIdx].phases[pIdx].temp}°C"}',
+                                        style: const TextStyle(
+                                          color: AppTheme.textMuted,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                    ],
+                  ] else ...[
+                    for (int i = 0; i < recipe.phases.length; i++)
+                      if (recipe.phases[i].isActive)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.surfaceInput,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppTheme.borderSubtle),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surfaceCard,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    '${i + 1}',
+                                    style: const TextStyle(
+                                      color: AppTheme.goldLight,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Phase ${i + 1}: ${recipe.phases[i].duration}s @ ${recipe.phases[i].speed} RPM',
+                                      style: const TextStyle(
+                                        color: AppTheme.crema,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Heat: ${recipe.phases[i].isCold ? "None (Cold)" : "${recipe.phases[i].temp}°C"}',
+                                      style: const TextStyle(
+                                        color: AppTheme.textMuted,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                  ],
                   const SizedBox(height: 12),
                 ],
               ),

@@ -200,6 +200,16 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
                       ? 'Slot ${t.selectedSlot! + 1}'
                       : 'Unknown',
                 ),
+                _buildInfoRow(
+                  'Machine State',
+                  t.machineState,
+                  color: t.machineState == 'RECIPE_PAUSED'
+                      ? AppTheme.goldLight
+                      : (t.machineState == 'RECIPE_EXECUTING'
+                          ? AppTheme.amberHeat
+                          : (t.isConnected ? AppTheme.emeraldSuccess : AppTheme.textMuted)),
+                ),
+                _buildInfoRow('Pairing State', t.pairingState),
               ],
             ),
           ),

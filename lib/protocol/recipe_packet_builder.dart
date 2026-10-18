@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:uuid/uuid.dart';
 import '../models/phase.dart';
+import '../models/recipe_step.dart';
 import 'crc16.dart';
 
 class RecipePacketBuilder {
@@ -37,13 +38,32 @@ class RecipePacketBuilder {
     return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
   }
 
-  /// Builds the exact SDataWay binary recipe packet
+  /// Builds the exact SDataWay binary recipe packet supporting single and multi-step recipes.
+  ///
+  /// Binary Packet Layout:
+  /// [0x00]       : targetPos (1..13, 1-based, omitted if isAppend == true)
+  /// [0x01..0x02] : CRC-16 CCITT (over all remaining payload bytes)
+  /// [0x03..0x04] : Payload length (big-endian)
+  /// [0x05..0x14] : 16-byte UUID
+  /// [0x15]       : Recipe Name length (N)
+  /// [0x16..]     : Recipe ASCII Name
+  /// [1 byte]     : stepCount (e.g. 1 or 2)
+  ///   -- For each Step (1 to stepCount) --
+  ///   [1 byte]   : Step Name length (e.g. 6 for "STEP 1")
+  ///   [M bytes]  : Step ASCII Name ("STEP 1", "STEP 2")
+  ///   [1 byte]   : phaseCount (1 to 3)
+  ///     -- For each Phase (6 bytes) --
+  ///     [2 bytes]: speed RPM (300 to 4000, big-endian)
+  ///     [2 bytes]: acceleration (50 to 2000, big-endian)
+  ///     [1 byte] : temperature (0 to 70 °C, 0 = cold froth)
+  ///     [1 byte] : duration (1 to 240 seconds)
   static List<int> buildPacket({
     required bool isAppend,
     required int targetPos, // 1-based (1..13)
     required String name,
     required String uuidStr,
-    required List<Phase> phases,
+    List<RecipeStep>? steps,
+    List<Phase>? phases,
   }) {
     // 1. Sanitize Recipe Name (Max 16 ASCII bytes)
     final cleanName = name.trim().isEmpty ? 'Recipe' : name.trim();
@@ -52,42 +72,58 @@ class RecipePacketBuilder {
     final nameBytes = ascii.encode(nameStr);
     final clampedNameBytes = nameBytes.take(16).toList();
 
-    // 2. Step name ("STEP 1")
-    final stepNameBytes = ascii.encode('STEP 1');
+    // 2. Resolve effective steps
+    final effectiveSteps = (steps != null && steps.isNotEmpty)
+        ? steps
+        : [
+            RecipeStep(
+              name: 'STEP 1',
+              phases: (phases != null && phases.isNotEmpty)
+                  ? phases
+                  : [Phase.clamped(speed: 3000, accel: 800, temp: 65, duration: 30)],
+            ),
+          ];
 
-    // 3. Active phases (duration > 0, 1 to 3 phases)
-    final activePhases = phases.where((p) => p.duration > 0).take(3).toList();
-    final effectivePhases = activePhases.isEmpty
-        ? [Phase.clamped(speed: 3000, accel: 800, temp: 65, duration: 30)]
-        : activePhases;
-    final phaseCount = effectivePhases.length;
+    // 3. Encode Steps Buffer
+    final stepsBytes = <int>[];
+    for (int i = 0; i < effectiveSteps.length; i++) {
+      final s = effectiveSteps[i];
+      final defaultName = 'STEP ${i + 1}';
+      final rawName = s.name.trim().isEmpty ? defaultName : s.name.trim();
+      final asciiName = rawName.replaceAll(RegExp(r'[^\x20-\x7E]'), '');
+      final stepNameStr = asciiName.isEmpty ? defaultName : asciiName;
+      final stepNameBytes = ascii.encode(stepNameStr).take(16).toList();
 
-    // 4. Encode Step Buffer
-    final stepBytesLen = 1 + stepNameBytes.length + 1 + (phaseCount * 6);
-    final stepBuf = List<int>.filled(stepBytesLen, 0);
-    int sIdx = 0;
-    stepBuf[sIdx++] = stepNameBytes.length;
-    for (int b in stepNameBytes) {
-      stepBuf[sIdx++] = b;
+      final activePhases = s.phases.where((p) => p.duration > 0).take(3).toList();
+      final effectivePhases = activePhases.isEmpty
+          ? [Phase.clamped(speed: 3000, accel: 800, temp: 65, duration: 30)]
+          : activePhases;
+
+      // [1 byte] Step Name length
+      stepsBytes.add(stepNameBytes.length);
+      // [M bytes] Step ASCII Name
+      stepsBytes.addAll(stepNameBytes);
+      // [1 byte] Phase count (1 to 3)
+      stepsBytes.add(effectivePhases.length);
+      // [6 bytes per Phase]
+      for (final p in effectivePhases) {
+        final speed = p.speed.clamp(300, 4000);
+        final accel = p.accel.clamp(50, 2000);
+        final temp = p.temp.clamp(0, 70);
+        final dur = p.duration.clamp(1, 240);
+
+        stepsBytes.add((speed >> 8) & 0xFF);
+        stepsBytes.add(speed & 0xFF);
+        stepsBytes.add((accel >> 8) & 0xFF);
+        stepsBytes.add(accel & 0xFF);
+        stepsBytes.add(temp & 0xFF);
+        stepsBytes.add(dur & 0xFF);
+      }
     }
-    stepBuf[sIdx++] = phaseCount;
 
-    for (final p in effectivePhases) {
-      final speed = p.speed.clamp(300, 4000);
-      final accel = p.accel.clamp(50, 2000);
-      final temp = p.temp.clamp(0, 70);
-      final dur = p.duration.clamp(1, 240);
-
-      stepBuf[sIdx++] = (speed >> 8) & 0xFF;
-      stepBuf[sIdx++] = speed & 0xFF;
-      stepBuf[sIdx++] = (accel >> 8) & 0xFF;
-      stepBuf[sIdx++] = accel & 0xFF;
-      stepBuf[sIdx++] = temp & 0xFF;
-      stepBuf[sIdx++] = dur & 0xFF;
-    }
-
-    // 5. Calculate Payload Length
-    final payloadLen = clampedNameBytes.length + 18 + stepBuf.length;
+    // 4. Calculate Payload Length
+    // 16 (UUID) + 1 (NameLen) + nameBytes.length + 1 (StepCount) + stepsBytes.length
+    final payloadLen = 16 + 1 + clampedNameBytes.length + 1 + stepsBytes.length;
     final totalPacketLen = (isAppend ? 4 : 5) + payloadLen;
     final packet = List<int>.filled(totalPacketLen, 0);
     int idx = 0;
@@ -116,15 +152,15 @@ class RecipePacketBuilder {
       packet[idx++] = b;
     }
 
-    // Step count (always 1)
-    packet[idx++] = 1;
+    // Step count
+    packet[idx++] = effectiveSteps.length;
 
-    // Step Buffer
-    for (int b in stepBuf) {
+    // Steps Bytes
+    for (int b in stepsBytes) {
       packet[idx++] = b;
     }
 
-    // 6. Compute CRC-16 CCITT over payload (from byte after CRC to end)
+    // 5. Compute CRC-16 CCITT over payload (from byte after CRC to end)
     final crcStart = isAppend ? 2 : 3;
     final crc = Crc16.compute(packet, crcStart, packet.length);
     packet[crcPos] = (crc >> 8) & 0xFF;
