@@ -55,6 +55,8 @@ class BaristaBleService extends ChangeNotifier {
   double get uploadProgress => _uploadProgress;
   bool _isUploading = false;
   bool get isUploading => _isUploading;
+  bool get isFlashing => _isUploading;
+  bool get isScanningSlots => _currentFetchingSlot != -1 || _slotFetchQueue.isNotEmpty;
   String? _uploadStatusText;
   String? get uploadStatusText => _uploadStatusText;
   Completer<bool>? _uploadCompleter;
@@ -374,11 +376,12 @@ class BaristaBleService extends ChangeNotifier {
   // ===========================================================================
   // 1.5. Live Status & Telemetry Polling Loop
   // ===========================================================================
-  // As confirmed in Nespresso's RecipesViewModel$startBaristaPolling$1$1.java,
-  // the Barista machine firmware does not stream spontaneous GATT notifications
-  // when machine state changes (Ready -> Executing -> Paused) or when the rotary
-  // dial is turned. Active background polling of CHAR_MACHINE_STATUS and
-  // CHAR_RECIPE_SELECTION is mandatory for live telemetry synchronization.
+  // The physical Barista firmware does not reliably emit spontaneous GATT
+  // notifications for autonomous machine state transitions (Ready -> Executing
+  // -> Paused -> Standby). An active background polling loop targeting
+  // CHAR_MACHINE_STATUS serves dual duty as real-time machine state telemetry
+  // and connection liveness heartbeat. Rotary dial selection (CHAR_RECIPE_SELECTION)
+  // remains strictly event-driven via its native hardware GATT notifications.
 
   Timer? _statusPollingTimer;
   int _consecutivePollingFailures = 0;
@@ -392,8 +395,8 @@ class BaristaBleService extends ChangeNotifier {
         return;
       }
 
-      // If active upload or slot queue is running, link is proven by active packets; yield BLE
-      if (_isUploading || _currentFetchingSlot != -1 || _opQueue.isBusy) {
+      // If active flash, 13-slot EEPROM scan, or pending queue operations are running, yield BLE bandwidth
+      if (isFlashing || isScanningSlots || _opQueue.isBusy) {
         _consecutivePollingFailures = 0;
         return;
       }
@@ -401,22 +404,9 @@ class BaristaBleService extends ChangeNotifier {
       _opQueue.enqueue(() async {
         if (!isConnected || _device == null || _charMachineStatus == null) return false;
         try {
-          // 1. Poll Machine Status (Byte 1: Standby, Ready, Executing, Paused)
+          // Poll Machine Status (Byte 1: Standby, Ready, Executing, Paused)
           final statusData = await _charMachineStatus!.read().timeout(const Duration(seconds: 2));
           _handleMachineStatus(statusData);
-
-          // 2. Poll Active Dial Position (1..13 -> 0..12)
-          if (_charRecipeSelection != null) {
-            final slotData = await _charRecipeSelection!.read().timeout(const Duration(seconds: 2));
-            if (slotData.isNotEmpty) {
-              final raw = slotData[0] & 0xFF;
-              final slotIndex = raw > 0 ? (raw - 1) : 0;
-              if (slotIndex != _telemetry.selectedSlot) {
-                _updateTelemetry(_telemetry.copyWith(selectedSlot: slotIndex));
-                _log('Machine rotary dial rotated: Slot ${slotIndex + 1}');
-              }
-            }
-          }
 
           _consecutivePollingFailures = 0;
           return true;
@@ -430,7 +420,7 @@ class BaristaBleService extends ChangeNotifier {
           }
           return false;
         }
-      }, description: 'Poll Machine Status & Dial', timeout: const Duration(seconds: 3));
+      }, description: 'Poll Machine Status', timeout: const Duration(seconds: 3));
     });
   }
 

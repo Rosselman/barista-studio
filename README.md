@@ -14,7 +14,7 @@ A clean, modern, open-source, standalone Flutter application for crafting, seque
 - **Full 13-Slot EEPROM Hardware Memory Management**: Read, flash, reorder, and erase recipes across all 13 physical EEPROM slots on the machine.
 - **Expanded Gourmet Preset Library (70+ Recipes)**: An extensive catalog of tuned presets covering **Multi-Step (18 signature dual-stage recipes)**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & Textures**.
 - **Multi-Step & 3-Phase Custom Recipe Builder**: Fine-tuned control over motor speed (300–4000 RPM), ramp acceleration (50–2000 RPM/s), induction heating temperature (0–70°C, with 0°C cold froth toggle), duration (1–240s per phase), custom step naming, and intermediate action prompts.
-- **Active 1.5s Telemetry Background Polling**: Proactively polls `CHAR_MACHINE_STATUS` and `CHAR_RECIPE_SELECTION` every 1.5s via a sequential GATT queue, matching the official SDataWay polling architecture (`RecipesViewModel$startBaristaPolling$1$1.java`) to ensure real-time status tracking.
+- **Targeted Telemetry Background Polling**: Proactively polls `CHAR_MACHINE_STATUS` periodically for real-time execution/pause state tracking and liveness detection, while physical rotary dial selection (`CHAR_RECIPE_SELECTION`) is synchronized via instant hardware GATT notifications.
 - **"My Recipes" Customization & Instant Sync**: Save, organize, edit descriptions, and flash custom recipes with immediate reactive UI refresh.
 - **Dynamic BLE Auto-Discovery**: Automatically discovers any nearby Barista machine (`White_*`, `Black_*`, `Barista*`, `W545*`) without hardcoded MAC addresses.
 - **Interactive Preparation Guides**: Complete step-by-step culinary preparation instructions, ingredient ratios, and temperature guidance for every recipe.
@@ -81,7 +81,7 @@ barista-studio/
 
 ## 3. Reverse-Engineered BLE Protocol Specification
 
-The Nespresso Barista Recipe Maker (Model W545) is powered by an SDataWay BLE chipset. The protocol was reverse-engineered from hardware traffic analysis and clean-room firmware deconstruction.
+The Nespresso Barista Recipe Maker (Model W545) communicates over Bluetooth Low Energy (BLE). The protocol was reverse-engineered through low-level packet capture and hardware traffic analysis.
 
 ### 3.1 Multi-Step Recipe Execution Flow
 
@@ -169,13 +169,13 @@ Before the Barista W545 accepts recipe commands, a cryptographic/pairing authori
 
 ### 3.4 Telemetry Reality: Machine State vs Sensor Stream
 
-Through hardware traffic analysis, live BLE sniffing, and decompilation of `MachineStatus.java` and `RecipesViewModel$startBaristaPolling$1$1.java`, we confirmed the exact hardware capabilities of the Barista BLE profile:
+Through low-level hardware traffic analysis and live BLE packet inspection, we confirmed the exact telemetry capabilities of the Barista BLE profile:
 
 #### 1. What the Machine DOES NOT Report
-- **No Live Sensor Stream**: Across the entire BLE GATT profile (15 characteristics), there is **no characteristic** for motor RPM, whisk speed, temperature in °C, or induction coil wattage.
+- **No Live Sensor Stream**: Across the entire BLE GATT profile (15 characteristics), there is **no characteristic** for motor RPM, whisk speed, temperature in °C, or induction coil wattage. Any live whisk animation in client applications is simulated locally while `machineState == RECIPE_EXECUTING`.
 - **Non-Functional 1-Bit Flags (Byte 0)**:
   - **Bit 5 Collision**: Bits 5 and 6 (`0x60`) encode `PairingKeyState` (`2` = `FINAL` / `0b10`). Setting Bit 5 would flip pairing state to 3 (`UNDEFINED`) and break authentication. The firmware permanently avoids setting Bit 5, making `inductionHeatingActive` always false.
-  - **Bit 4 is Dead**: The physical firmware never sets Bit 4 (`motorRunning`), which consistently reports false in  logs.
+  - **Bit 4 is Dead**: The physical firmware never sets Bit 4 (`motorRunning`), which consistently reports false across live hardware captures.
 
 #### 2. What the Machine DOES Actually Report
 The machine transmits its telemetry in `CHAR_MACHINE_STATUS`:
@@ -207,12 +207,15 @@ Byte 1:
   - `6` (`0x06`): **`OUT_OF_THE_BOX_SETTINGS`** (First-time setup mode)
   - `7` (`0x07`): **`RECIPE_PAUSED`** (Firmware pause between Step 1 and Step 2! Motor & heater stopped, OLED displays prompt, awaiting center dial press)
 
-- **Rotary Dial Selection (`CHAR_RECIPE_SELECTION`)**: 1-based position byte (`1` to `13`), mapped by client to 0-based slots (`0` to `12`).
+- **Rotary Dial Selection (`CHAR_RECIPE_SELECTION`)**: 1-based position byte (`1` to `13`), mapped by the client to 0-based slots (`0` to `12`). The machine fires immediate, reliable GATT notifications whenever the physical rotary dial is rotated.
 
-#### 3. Background Polling is Mandatory
-The physical Barista firmware **does not reliably stream spontaneous GATT notifications** when state changes (e.g. presses the button to start, or when Step 1 pauses). Without active polling, client apps remain frozen on stale connection states.
+#### 3. Targeted Background Polling for Machine Status
+While rotary dial movements fire spontaneous GATT notifications reliably, the physical Barista firmware **does not emit GATT notifications for autonomous internal state transitions** (such as when the user presses the center dial button to start a recipe, when Step 1 completes and the machine pauses, or when a recipe finishes and returns to ready/standby). Without periodic status reads, client applications remain frozen on stale connection states.
 
-To fix this, Barista Studio v1.3.1 runs an active **1.5-second background polling loop** through `GattOpQueue` for `CHAR_MACHINE_STATUS` and, ensuring instantaneous detection of running recipe and pause prompts.
+To solve this, Barista Studio v1.3.1 runs an active **1.5-second background polling loop** through `GattOpQueue` targeting **`CHAR_MACHINE_STATUS` only**. This serves dual duty:
+1. **Real-Time State Telemetry**: Instantly detects autonomous firmware transitions between `STANDBY`, `READY`, `RECIPE_EXECUTING`, and `RECIPE_PAUSED` (triggering the live amber HUD prompt for Step 2).
+2. **Heartbeat & Liveness**: Verifies the BLE link and detects machine power-off.
+3. **Queue Awareness**: The polling loop automatically skips ticks whenever a recipe upload (`isFlashing`), 13-slot EEPROM scan (`isScanningSlots`), or pending queue operations are in flight, ensuring background status reads never contend with multi-chunk recipe transfers.
 
 ---
 
@@ -366,7 +369,9 @@ flutter build apk --release
 ## 7. Changelog
 
 ### v1.3.1 (Latest Release)
-- **Active Telemetry Background Polling**: Solved permanent stale machine state over BLE. The Barista firmware does not reliably emit spontaneous GATT notifications when state transitions or dial rotations occur. Implemented a proactive 1.5-second polling loop through `GattOpQueue`, enabling real-time detection of `RECIPE_EXECUTING`, `RECIPE_PAUSED`, `READY` and `STANDBY`.
+- **Targeted Telemetry Background Polling**: Solved stale machine state over BLE. The Barista firmware does not emit spontaneous GATT notifications for autonomous internal state transitions. Implemented an active 1.5-second polling loop through `GattOpQueue` targeting `CHAR_MACHINE_STATUS`, enabling real-time detection of `RECIPE_EXECUTING`, `RECIPE_PAUSED`, `READY`, and `STANDBY`, while keeping rotary dial selection (`CHAR_RECIPE_SELECTION`) strictly event-driven via its native GATT notifications.
+- **Queue-Safe Liveness Architecture**: Background polling automatically yields BLE bandwidth whenever a recipe flash (`isFlashing`) or 13-slot EEPROM query (`isScanningSlots`) is in progress, preventing packet contention.
+- **Hardware Telemetry Verification**: Documented hardware realities confirmed via low-level BLE analysis: no live sensor stream exists for RPM or temperature, and legacy 1-bit status flags are inactive on physical hardware. Whisk visuals are cleanly simulated locally during recipe execution.
 - **8 New Multi-Step Recipes (18 Total, 70+ Presets)**: Expanded multi-step horizon beyond adding milk:
   - *Espresso Tonic* (Cold-sheared espresso crema -> Citrus tonic coconut mist float)
   - *Mocha Truffle* (Dark chocolate ganache melt -> Espresso & double cream froth)
@@ -394,7 +399,7 @@ flutter build apk --release
   - *Tiramisu Coffee* (Mascarpone espresso base -> dense sweet cream foam)
   - *London Fog* (Earl grey tea extraction -> hot vanilla milk froth)
 - **"My Recipes" Custom Descriptions & Instant Refresh**: Users can now add and edit custom descriptions and recipe names directly from their saved recipe cards via an "Edit Details" dialog. Integrated `ChangeNotifier` into `StorageService` for instant reactive refresh in the Recipes tab whenever a recipe is created, edited, or deleted.
-- **Decompiled Protocol Corrections**: Updated documentation to reflect clean-room decompilation findings: corrected `CHAR_MACHINE_STATUS` bitmask layout (Byte 0 pairing/telemetry vs Byte 1 machine state code) and updated EEPROM memory management opcodes (`CMD_GET_ID = 0x0A`, `CMD_DELETE = 0x03`, `CMD_MOVE = 0x04`, `CMD_CLEAR = 0x06`).
+- **Hardware Protocol Refinements**: Corrected `CHAR_MACHINE_STATUS` bitmask layout (Byte 0 pairing/telemetry vs Byte 1 machine state code) and updated EEPROM memory management opcodes (`CMD_GET_ID = 0x0A`, `CMD_DELETE = 0x03`, `CMD_MOVE = 0x04`, `CMD_CLEAR = 0x06`).
 
 ### v1.2.1
 - **Full "My Recipes" Management**: Renamed primary tab from Presets to Recipes and added a 2-way segmented control: **Curated Presets (52)** and **My Recipes (N)**. Users can now browse, flash, load/edit into the Builder, and delete user-created custom recipes.
