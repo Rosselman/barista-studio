@@ -211,19 +211,19 @@ sequenceDiagram
     Barista->>Barista: State: RECIPE_EXECUTING (2)
     Note over Barista: Step 1 runs (e.g. Cold Froth coffee for 15s)
     Barista->>Barista: Motor stops, Heater off
-    Barista->>Barista: State: RECIPE_PAUSED (7)
+    Barista->>Barista: State: RECIPE_PAUSED (1)
     Note over Barista: OLED Screen prompts user (Arrow / Prompt)
     User->>Barista: Adds milk/ingredients & Presses Center Button
     Barista->>Barista: State: RECIPE_EXECUTING (2)
     Note over Barista: Step 2 runs (e.g. Hot Froth at 65°C for 35s)
-    Barista->>Barista: State: READY (1) (Beeps done)
+    Barista->>Barista: State: READY (0) (Beeps done)
 ```
 
 1. **Step 1 Execution**: When the user presses the center dial button on a 2-step recipe, the machine enters `MachineState.RECIPE_EXECUTING` (`2`). Step 1 phases execute sequentially.
-2. **Firmware Pause**: When Step 1 completes, the firmware shuts off whisk motor PWM and induction heating, transitioning to `MachineState.RECIPE_PAUSED` (`7`).
+2. **Firmware Pause**: When Step 1 completes, the firmware shuts off whisk motor PWM and induction heating, transitioning to `MachineState.RECIPE_PAUSED` (`1` on modern hardware, `7` on legacy variants).
 3. **Hardware Prompt**: The OLED display shows an animated arrow/prompt instructing the user to add milk or ingredients into the jug.
 4. **Step 2 Resumption**: When the user presses the center dial button, the machine transitions back to `RECIPE_EXECUTING` (`2`) to execute Step 2.
-5. **Completion**: When Step 2 completes, the machine sounds an audible chime and returns to `MachineState.READY` (`1`).
+5. **Completion**: When Step 2 completes, the machine sounds an audible chime and returns to `MachineState.READY` (`0`).
 
 ---
 
@@ -443,7 +443,18 @@ flutter build web --release
 
 ## 7. Changelog
 
-### v1.3.1 (Latest Release)
+### v1.3.2 (Latest Release)
+- **Hardware Telemetry State Calibration**:
+  - Resolved physical telemetry inversion where the app displayed `Standby` when the machine was ready on the counter, and `Ready` when paused between multi-step stages.
+  - Aligned state decoding with verified physical hardware firmware: Code `0` maps to `Ready`, Code `1` (and `7`) maps to `Recipe Paused`, Code `2` maps to `Recipe Executing`, and Code `8` maps to `Standby`.
+  - The connected navigation HUD now accurately displays an emerald dot with `Ready` when idle, and immediately shifts to amber with `⏸️ Paused (Press Machine Dial)` when Step 1 completes on multi-step recipes.
+- **Affogato Cream Upgraded to Native 2-Step Recipe**:
+  - Corrected `Affogato Cream` preset definition to a native 2-step dual-stage recipe with Step 1 espresso aeration (65°C) and Step 2 velvety cream froth (68°C to pour over gelato).
+  - Passing `stepCount = 2` into the binary packet ensures the Barista firmware halts after Step 1, prompts the user, and executes Step 2 upon center dial press instead of returning prematurely to the rotary dial.
+- **Desktop Minimum Window Dimensions**:
+  - Enforced a minimum window dimension of 800x600 across all desktop platforms (macOS AppKit via `NSWindow.minSize`, Windows Win32 via `WM_GETMINMAXINFO`, and Linux GTK3 via `gtk_window_set_geometry_hints`), preventing the app from being collapsed or downsized until it disappears.
+
+### v1.3.1
 - **Targeted Telemetry Background Polling**: Solved stale machine state over BLE. The Barista firmware does not emit spontaneous GATT notifications for autonomous internal state transitions. Implemented an active 1.5-second polling loop through `GattOpQueue` targeting `CHAR_MACHINE_STATUS`, enabling real-time detection of `RECIPE_EXECUTING`, `RECIPE_PAUSED`, `READY`, and `STANDBY`, while keeping rotary dial selection (`CHAR_RECIPE_SELECTION`) strictly event-driven via its native GATT notifications.
 - **Queue-Safe Liveness Architecture**: Background polling automatically yields BLE bandwidth whenever a recipe flash (`isFlashing`) or 13-slot EEPROM query (`isScanningSlots`) is in progress, preventing packet contention.
 - **Hardware Telemetry Verification**: Documented hardware realities confirmed via low-level BLE analysis: no live sensor stream exists for RPM or temperature, and legacy 1-bit status flags are inactive on physical hardware. Whisk visuals are cleanly simulated locally during recipe execution.

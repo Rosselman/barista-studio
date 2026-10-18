@@ -5,7 +5,7 @@ import 'phase.dart';
 /// The Barista W545 firmware natively supports multi-step execution:
 /// - Step 1 executes (MachineState.RECIPE_EXECUTING = 2).
 /// - Upon completion, motor and heat cut off and the machine enters
-///   MachineState.RECIPE_PAUSED (7), prompting the user on the OLED display.
+///   MachineState.RECIPE_PAUSED (1 or 7), prompting the user on the OLED display.
 /// - When the user presses the center dial button, Step 2 executes.
 class RecipeStep {
   final String name; // e.g. "STEP 1", "STEP 2" (max 16 ASCII)

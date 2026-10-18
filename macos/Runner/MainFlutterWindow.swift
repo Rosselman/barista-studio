@@ -10,6 +10,9 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
 
+    // Enforce minimum window dimensions so the window cannot be collapsed or downsized until invisible
+    self.minSize = NSSize(width: 800, height: 600)
+
     super.awakeFromNib()
   }
 }

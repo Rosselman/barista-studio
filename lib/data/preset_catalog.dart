@@ -219,22 +219,36 @@ class PresetCatalog {
     Recipe(
       id: '9f8e7d6c-5b4a-4321-fedc-ba9876543210',
       name: 'Affogato Cream',
-      description: 'Ultra-rich dense cream froth designed to pour piping hot over vanilla bean gelato.',
+      description: 'Ultra-rich dual-stage affogato cream. Step 1 aerates hot espresso crema; Step 2 froths piping hot velvety cream over gelato.',
       category: 'Hot Coffee',
-      tags: const ['Hot Coffee', 'Dairy'],
-      phases: [
-        Phase.clamped(speed: 2100, accel: 600, temp: 68, duration: 25),
+      tags: const ['Multi-Step', 'Hot Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Extract 1 ristretto shot (40 ml) into the jug. Press start to aerate & bloom crema.',
+          phases: [
+            Phase.clamped(speed: 2000, accel: 600, temp: 65, duration: 15),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 70 ml heavy cream & milk mixture. Press dial to froth velvety warm cream (68°C).',
+          phases: [
+            Phase.clamped(speed: 2100, accel: 600, temp: 68, duration: 25),
+          ],
+        ),
       ],
       ingredients: [
+        '1 Nespresso Ristretto or Espresso capsule (40 ml)',
         '70 ml Heavy cream & whole milk (equal parts)',
         '1 Scoop Vanilla bean gelato',
-        '1 Nespresso Ristretto capsule',
       ],
       instructions: [
-        'Add cream and milk mixture to the Barista jug.',
-        'Start Affogato Cream cycle (heats to 68°C).',
+        'Extract 1 ristretto capsule directly into the Barista jug. Press start to initiate Step 1 crema aeration.',
+        'When the machine beeps and enters PAUSE, open lid and add 70 ml chilled cream & milk mixture.',
+        'Press the machine center dial to resume Step 2 (heats and whips velvety cream at 68°C).',
         'Place 1 generous scoop of vanilla bean gelato in a bowl or dessert glass.',
-        'Extract hot ristretto over gelato, then pour the warm velvety cream foam over everything.',
+        'Pour the piping hot velvety cream foam over the gelato and serve immediately.',
       ],
     ),
     Recipe(

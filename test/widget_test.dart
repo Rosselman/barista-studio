@@ -151,18 +151,18 @@ void main() {
     expect(storage.getCustomRecipes().isEmpty, true);
   });
 
-  test('MachineState correctly decodes all 8 official SDataWay firmware states', () {
-    // 0: STANDBY (0x00)
-    expect(MachineState.fromByte(0x00), MachineState.standby);
-    expect(MachineState.fromByte(0x00).label, 'Standby');
-    expect(MachineState.fromByte(0x00).isStandby, true);
+  test('MachineState correctly decodes hardware firmware states', () {
+    // 0: READY (0x00) - Machine awake on counter, dial selected
+    expect(MachineState.fromByte(0x00), MachineState.ready);
+    expect(MachineState.fromByte(0x00).label, 'Ready');
+    expect(MachineState.fromByte(0x00).isReady, true);
 
-    // 1: READY ((1 << 2) = 0x04)
-    expect(MachineState.fromByte(0x04), MachineState.ready);
-    expect(MachineState.fromByte(0x04).label, 'Ready');
-    expect(MachineState.fromByte(0x04).isReady, true);
+    // 1: RECIPE_PAUSED ((1 << 2) = 0x04) - Paused between multi-step stages
+    expect(MachineState.fromByte(0x04), MachineState.recipePaused);
+    expect(MachineState.fromByte(0x04).label, 'Paused (Press Button)');
+    expect(MachineState.fromByte(0x04).isPaused, true);
 
-    // 2: RECIPE_EXECUTING ((2 << 2) = 0x08)
+    // 2: RECIPE_EXECUTING ((2 << 2) = 0x08) - Motor / heater running
     expect(MachineState.fromByte(0x08), MachineState.recipeExecuting);
     expect(MachineState.fromByte(0x08).label, 'Executing');
     expect(MachineState.fromByte(0x08).isExecuting, true);
@@ -185,15 +185,30 @@ void main() {
     expect(MachineState.fromByte(0x18), MachineState.outOfTheBoxSettings);
     expect(MachineState.fromByte(0x18).label, 'First Setup');
 
-    // 7: RECIPE_PAUSED ((7 << 2) = 0x1C)
+    // 7: RECIPE_PAUSED ((7 << 2) = 0x1C) - Legacy firmware variant
     expect(MachineState.fromByte(0x1C), MachineState.recipePaused);
     expect(MachineState.fromByte(0x1C).label, 'Paused (Press Button)');
     expect(MachineState.fromByte(0x1C).isPaused, true);
 
+    // 8: STANDBY ((8 << 2) = 0x20)
+    expect(MachineState.fromByte(0x20), MachineState.standby);
+    expect(MachineState.fromByte(0x20).label, 'Standby');
+    expect(MachineState.fromByte(0x20).isStandby, true);
+
     // Verify operator precedence masking with noise in lower bits (0..1)
     expect(MachineState.fromByte(0x1F), MachineState.recipePaused); // 0x1C | 0x03 -> 7
     expect(MachineState.fromByte(0x0B), MachineState.recipeExecuting); // 0x08 | 0x03 -> 2
-    expect(MachineState.fromByte(0x07), MachineState.ready); // 0x04 | 0x03 -> 1
+    expect(MachineState.fromByte(0x07), MachineState.recipePaused); // 0x04 | 0x03 -> 1
+    expect(MachineState.fromByte(0x03), MachineState.ready); // 0x00 | 0x03 -> 0
+  });
+
+  test('Affogato Cream is configured as a native multi-step recipe', () {
+    final affogato = PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
+    expect(affogato.isMultiStep, true);
+    expect(affogato.stepCount, 2);
+    expect(affogato.steps.first.name, 'STEP 1');
+    expect(affogato.steps.last.name, 'STEP 2');
+    expect(affogato.tags.contains('Multi-Step'), true);
   });
 }
 
