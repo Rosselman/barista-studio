@@ -59,7 +59,7 @@ jobs:
       - name: Compress App Bundle
         run: |
           cd build/macos/Build/Products/Release
-          zip -r barista-studio-macos.zip barista_studio.app
+          zip -r barista-studio-macos.zip *.app
 
       - name: Upload macOS App
         uses: actions/upload-artifact@v4

@@ -1,11 +1,11 @@
 {
-    "name": "barista_studio",
-    "short_name": "barista_studio",
+    "name": "Barista Studio",
+    "short_name": "Barista Studio",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0F0D0B",
+    "theme_color": "#D4AF37",
+    "description": "A luxury companion app for crafting and flashing custom recipes on the Nespresso Barista Recipe Maker.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
