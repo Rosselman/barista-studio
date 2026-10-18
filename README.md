@@ -10,13 +10,13 @@ A clean, modern, open-source, standalone Flutter application for crafting, seque
 **Barista Studio** provides direct, cloudless, low-level control over the Nespresso Barista Recipe Maker hardware without proprietary vendor applications, cloud logins, or internet requirements:
 
 - **100% Offline & Privacy-First**: Communicates directly with the machine's local Bluetooth Low Energy (BLE) GATT profile. No telemetry collection, user registration, or cloud dependencies.
-- **Native Multi-Step Recipes (New in v1.3.0)**: Hardware-sequenced multi-step recipes natively supported by the Barista firmware. Executes Step 1 (e.g., cold foam or base extraction), automatically cuts motor power and induction heating, transitions to `RECIPE_PAUSED` with an OLED screen prompt for adding milk/ingredients, and resumes seamlessly into Step 2 upon center dial press.
+- **Native Multi-Step Recipes (v1.3.0+)**: Hardware-sequenced multi-step recipes natively supported by the Barista firmware. Executes Step 1, automatically cuts motor power and induction heating, transitions to `RECIPE_PAUSED` with an OLED screen prompt for adding milk/ingredients, and resumes seamlessly into Step 2 upon center dial press.
 - **Full 13-Slot EEPROM Hardware Memory Management**: Read, flash, reorder, and erase recipes across all 13 physical EEPROM slots on the machine.
-- **Expanded Gourmet Preset Library (60+ Recipes)**: An extensive catalog of tuned presets covering **Multi-Step**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & Textures**.
+- **Expanded Gourmet Preset Library (70+ Recipes)**: An extensive catalog of tuned presets covering **Multi-Step (18 signature dual-stage recipes)**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & Textures**.
 - **Multi-Step & 3-Phase Custom Recipe Builder**: Fine-tuned control over motor speed (300–4000 RPM), ramp acceleration (50–2000 RPM/s), induction heating temperature (0–70°C, with 0°C cold froth toggle), duration (1–240s per phase), custom step naming, and intermediate action prompts.
+- **Active 1.5s Telemetry Background Polling**: Proactively polls `CHAR_MACHINE_STATUS` and `CHAR_RECIPE_SELECTION` every 1.5s via a sequential GATT queue, matching the official SDataWay polling architecture (`RecipesViewModel$startBaristaPolling$1$1.java`) to ensure real-time status tracking.
 - **"My Recipes" Customization & Instant Sync**: Save, organize, edit descriptions, and flash custom recipes with immediate reactive UI refresh.
 - **Dynamic BLE Auto-Discovery**: Automatically discovers any nearby Barista machine (`White_*`, `Black_*`, `Barista*`, `W545*`) without hardcoded MAC addresses.
-- **Active Liveness Heartbeat**: Performs periodic GATT status reads to immediately detect when the physical machine is switched off, avoiding phantom connection states.
 - **Interactive Preparation Guides**: Complete step-by-step culinary preparation instructions, ingredient ratios, and temperature guidance for every recipe.
 
 ---
@@ -167,9 +167,18 @@ Before the Barista W545 accepts recipe commands, a cryptographic/pairing authori
 
 ---
 
-### 3.4 Status Bitmask & Rotary Dial Synchronization
+### 3.4 Telemetry Reality: Machine State vs Sensor Stream
 
-`CHAR_MACHINE_STATUS` provides real-time hardware telemetry in a 2-byte structure:
+Through hardware traffic analysis, live BLE sniffing, and decompilation of `MachineStatus.java` and `RecipesViewModel$startBaristaPolling$1$1.java`, we confirmed the exact hardware capabilities of the Barista BLE profile:
+
+#### 1. What the Machine DOES NOT Report
+- **No Live Sensor Stream**: Across the entire BLE GATT profile (15 characteristics), there is **no characteristic** for motor RPM, whisk speed, temperature in °C, or induction coil wattage.
+- **Non-Functional 1-Bit Flags (Byte 0)**:
+  - **Bit 5 Collision**: Bits 5 and 6 (`0x60`) encode `PairingKeyState` (`2` = `FINAL` / `0b10`). Setting Bit 5 would flip pairing state to 3 (`UNDEFINED`) and break authentication. The firmware permanently avoids setting Bit 5, making `inductionHeatingActive` always false.
+  - **Bit 4 is Dead**: The physical firmware never sets Bit 4 (`motorRunning`), which consistently reports false in  logs.
+
+#### 2. What the Machine DOES Actually Report
+The machine transmits its telemetry in `CHAR_MACHINE_STATUS`:
 
 ```
 Byte 0:
@@ -185,16 +194,8 @@ Byte 1:
 └────────────────────────────────────────────────────────┴────────┴────────┘
 ```
 
-#### Byte 0 (Pairing & Hardware Flags)
-- **Bits 5–6 (`(statusBytes[0] & 0x60) >> 5`)**: Pairing state:
-  - `0`: NONE (Unpaired)
-  - `1`: TEMPORARY (Transient pairing)
-  - `2`: FINAL (Authenticated pairing)
-- **Bit 4 (`0x10`)**: Whisk motor active telemetry indicator.
-- **Bit 3 (`0x08`)**: Induction heating active telemetry indicator.
-
-#### Byte 1 (Machine Operational Mode)
-- **Bits 2–7 (`(statusBytes[1] & 0xFC) >> 2`)**: Machine operational state code.
+- **Pairing State (`(b0 & 0x60) >> 5`)**: `0` = NONE, `1` = TEMPORARY, `2` = FINAL.
+- **Machine State Code (`(b1 & 0xFC) >> 2`)**:
   > [!IMPORTANT]
   > In Dart and Python, bitwise right shift (`>>`) has higher operator precedence than bitwise AND (`&`). Therefore, unparenthesized `b1 & 0xFC >> 2` erroneously evaluates as `b1 & 0x3F`. Extracting bits 2–7 strictly requires parentheses: `(b1 & 0xFC) >> 2`.
   - `0` (`0x00`): **`STANDBY`** (Machine idle / low-power sleep on counter)
@@ -206,7 +207,12 @@ Byte 1:
   - `6` (`0x06`): **`OUT_OF_THE_BOX_SETTINGS`** (First-time setup mode)
   - `7` (`0x07`): **`RECIPE_PAUSED`** (Firmware pause between Step 1 and Step 2! Motor & heater stopped, OLED displays prompt, awaiting center dial press)
 
-When the physical rotary dial on the front of the Barista is turned, `CHAR_RECIPE_SELECTION` fires a notification containing the 0-based active slot index (`0` to `12`), keeping the app's UI synchronized in real time.
+- **Rotary Dial Selection (`CHAR_RECIPE_SELECTION`)**: 1-based position byte (`1` to `13`), mapped by client to 0-based slots (`0` to `12`).
+
+#### 3. Background Polling is Mandatory
+The physical Barista firmware **does not reliably stream spontaneous GATT notifications** when state changes (e.g. presses the button to start, or when Step 1 pauses). Without active polling, client apps remain frozen on stale connection states.
+
+To fix this, Barista Studio v1.3.1 runs an active **1.5-second background polling loop** through `GattOpQueue` for `CHAR_MACHINE_STATUS` and, ensuring instantaneous detection of running recipe and pause prompts.
 
 ---
 
@@ -302,11 +308,11 @@ BLE controllers can drop rapid sequential write commands. To ensure 100% transmi
 
 ## 4. Presets & Recipe Categories
 
-Barista Studio features 60+ professionally tuned presets organized into intuitive categories with multi-tag filtering:
+Barista Studio features 70+ professionally tuned presets organized into intuitive categories with multi-tag filtering:
 
 | Category / Tag | Description | Sample Recipes |
 |---|---|---|
-| **Multi-Step** | Natively sequenced multi-step recipes featuring automatic firmware pause for intermediate ingredient addition | Latte Double, Nitro Swt Cream, Viennese Choco, Affogato Foam, Matcha Cloud, Caramel Macch, Cortado Extr, Golden Turmeric, Tiramisu Coffee, London Fog |
+| **Multi-Step** | Natively sequenced multi-step recipes featuring automatic firmware pause for intermediate culinary addition | Latte Double, Nitro Swt Cream, Viennese Choco, Affogato Foam, Matcha Cloud, Caramel Macch, Espresso Tonic, Mocha Truffle, Pistachio Cloud, Irish Velvet, Cascara Spark, Biscoff Swirl, Salted Crown, Chai Ganache |
 | **Hot Coffee** | Traditional European espresso classics & rich textured specialties | Cappuccino, Latte Macchiato, Flat White, Velvet Cortado, Vienna Melange, Spanish Latte, Caffè Breve, Mocha Viennois |
 | **Iced & Cold Coffee** | Chilled coffee drinks utilizing high shear and zero-heat cold froth | Iced Frappé, Nitro Cold Foam, Espresso Freddo, Cold Shakerato, Iced Caramel Macchiato, Brown Sugar Oat |
 | **Non-Coffee** | Decadent warmers, chocolates, and botanical tea infusions | Hot Chocolate, Mexican Cocoa, White Hot Cocoa, Matcha Silk, Turmeric Elixir, Spiced Chai, London Fog, Babyccino, Vanilla Steamer, Rooibos Honey, Spiced Cider |
@@ -359,7 +365,20 @@ flutter build apk --release
 
 ## 7. Changelog
 
-### v1.3.0 (Latest Release)
+### v1.3.1 (Latest Release)
+- **Active Telemetry Background Polling**: Solved permanent stale machine state over BLE. The Barista firmware does not reliably emit spontaneous GATT notifications when state transitions or dial rotations occur. Implemented a proactive 1.5-second polling loop through `GattOpQueue`, enabling real-time detection of `RECIPE_EXECUTING`, `RECIPE_PAUSED`, `READY` and `STANDBY`.
+- **8 New Multi-Step Recipes (18 Total, 70+ Presets)**: Expanded multi-step horizon beyond adding milk:
+  - *Espresso Tonic* (Cold-sheared espresso crema -> Citrus tonic coconut mist float)
+  - *Mocha Truffle* (Dark chocolate ganache melt -> Espresso & double cream froth)
+  - *Pistachio Cloud* (Stone-ground pistachio emulsion -> Hot oat microfoam)
+  - *Irish Velvet* (Sweetened double ristretto reduction -> Chilled heavy cream float)
+  - *Cascara Spark* (Cascara coffee cherry tea extraction -> Almond cold cloud)
+  - *Biscoff Swirl* (Speculoos cookie butter melt -> Espresso cappuccino foam)
+  - *Salted Crown* (Cold brew caramel shear -> Maldon sea-salt sweet cream crown)
+  - *Chai Ganache* (Spiced white chocolate ganache melt -> Steamed Assam tea microfoam)
+- **Polished Status HUD**: Main navigation HUD displays clean `Barista connected • <Status>` with dedicated indicator colors, reserving raw Bluetooth identifiers and MAC addresses exclusively for the Developer Menu.
+
+### v1.3.0
 - **Native Multi-Step Recipes**: Added full end-to-end support for multi-step recipes natively supported by the Barista hardware and firmware. The machine executes Step 1, halts motor and heater power, enters `MachineState.RECIPE_PAUSED` (`7`), prompts the user on its OLED screen to add milk or ingredients, and resumes Step 2 upon center dial press.
 - **Hardware Pause Detection & Live HUD Alert**: Connected HUD immediately detects `RECIPE_PAUSED` (`7`) and displays an amber notification banner: `⏸️ PAUSED: ADD MILK & PRESS MACHINE DIAL`. Developer diagnostics and telemetry modal display real-time pause status.
 - **Multi-Step Custom Recipe Builder**: Added a dedicated "Multi-Step" toggle switch in the Custom Recipe builder. Users can seamlessly configure Step 1 and Step 2 with custom step names, action prompts, and up to 3 granular phases per step. Includes a step tab switcher, live packet serialization preview showing step count and per-step encoding, and direct flashing to machine slots.

@@ -65,6 +65,8 @@ class GattOpQueue {
 
   int get length => _queue.length;
   bool get isEmpty => _queue.isEmpty;
+  bool get isProcessing => _isProcessing;
+  bool get isBusy => _isProcessing || _queue.isNotEmpty;
 }
 
 class _QueuedOp {

@@ -1598,6 +1598,294 @@ class PresetCatalog {
         'Garnish with dried edible lavender buds.',
       ],
     ),
+    Recipe(
+      id: 'e528b741-0f72-46b1-91a5-8321de620401',
+      name: 'Espresso Tonic',
+      description: 'Coffee-first sparkling spritz. Step 1 hyper-shears espresso into aromatic crema; Step 2 textures a velvety coconut foam float.',
+      category: 'Iced & Cold Coffee',
+      tags: const ['Multi-Step', 'Iced & Cold Coffee', 'Cold Foam & Textures', 'Non-Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Extract 1 espresso (40 ml) over 1 ice cube & 5 ml syrup. Press dial to hyper-shear crema.',
+          phases: [
+            Phase.clamped(speed: 3600, accel: 900, temp: 0, duration: 18),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Pour espresso into glass over tonic water & ice. Add 60 ml coconut milk to jug; press dial for mist float.',
+          phases: [
+            Phase.clamped(speed: 3200, accel: 800, temp: 0, duration: 22),
+          ],
+        ),
+      ],
+      ingredients: [
+        '1 Nespresso Espresso capsule (40 ml)',
+        '1 Ice cube (for jug) + fresh ice for glass',
+        '120 ml Premium tonic water',
+        '60 ml Cold coconut milk or oat milk',
+        '1 Fresh lime or grapefruit wheel',
+      ],
+      instructions: [
+        'Insert whisk. Extract 1 fresh espresso into jug with 1 ice cube. Run Step 1 for cold high-shear crema.',
+        'At the pause prompt, pour the chilled espresso over a tall glass filled with ice and 120 ml tonic water.',
+        'Add 60 ml cold coconut or oat milk into the jug, close lid, and press the machine dial.',
+        'Step 2 creates an ethereal cloud float. Layer gently over the sparkling tonic coffee and garnish with citrus.',
+      ],
+    ),
+    Recipe(
+      id: 'b639c852-1a83-47c2-a2b6-9432ef731512',
+      name: 'Mocha Truffle',
+      description: 'Decadent multi-stage mocha. Step 1 gently melts real dark chocolate callets; Step 2 infuses hot espresso and heavy cream.',
+      category: 'Hot Coffee',
+      tags: const ['Multi-Step', 'Hot Coffee', 'Non-Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 20g 70% dark chocolate callets & 40 ml whole milk. Press dial to melt & temper into ganache.',
+          phases: [
+            Phase.clamped(speed: 1400, accel: 500, temp: 62, duration: 28),
+            Phase.clamped(speed: 2200, accel: 650, temp: 65, duration: 14),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Extract 1 espresso (40 ml) & add 70 ml heavy cream. Press dial to whip truffle foam.',
+          phases: [
+            Phase.clamped(speed: 2800, accel: 800, temp: 66, duration: 30),
+          ],
+        ),
+      ],
+      ingredients: [
+        '20g Artisanal 70% dark chocolate callets or chips',
+        '40 ml Fresh cold whole milk (Step 1)',
+        '1 Nespresso Espresso or Ristretto capsule (40 ml)',
+        '70 ml Heavy whipping cream (Step 2)',
+        'Optional: dusting of cocoa powder and sea salt',
+      ],
+      instructions: [
+        'Add chocolate callets and 40 ml milk into jug. Run Step 1 to melt into a glossy, hot chocolate foundation.',
+        'When the machine pauses, brew fresh espresso into the jug and add 70 ml heavy cream.',
+        'Press the center dial button to trigger Step 2. High shear blends the emulsion into a glossy chocolate cloud.',
+        'Pour into a preheated ceramic cup and finish with a pinch of flaky sea salt.',
+      ],
+    ),
+    Recipe(
+      id: 'c740d963-2b94-48d3-b3c7-0543fa842623',
+      name: 'Pistachio Cloud',
+      description: 'Gourmet botanical fusion. Step 1 emulsifies stone-ground Sicilian pistachio butter into a rich base; Step 2 froths hot oat microfoam.',
+      category: 'Hot Coffee',
+      tags: const ['Multi-Step', 'Hot Coffee', 'Non-Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 15g pure pistachio paste & 30 ml espresso or water. Press dial to emulsify into silky paste.',
+          phases: [
+            Phase.clamped(speed: 3000, accel: 750, temp: 50, duration: 20),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 120 ml barista oat milk & drop of agave. Press dial for textured microfoam.',
+          phases: [
+            Phase.clamped(speed: 2400, accel: 700, temp: 58, duration: 35),
+          ],
+        ),
+      ],
+      ingredients: [
+        '15g 100% Pure Sicilian pistachio paste (no additives)',
+        '1 Nespresso Espresso capsule (40 ml)',
+        '120 ml Barista oat milk (high protein)',
+        '5 ml Pure agave nectar or honey',
+        'Crushed roasted pistachio nuts for topping',
+      ],
+      instructions: [
+        'Add pistachio paste and 30 ml hot espresso into the jug. Run Step 1 to dissolve and emulsify the nutty oils.',
+        'At the pause prompt, pour in 120 ml barista oat milk and agave nectar.',
+        'Press the machine dial: Step 2 heats gently to 58°C, preserving oat sweetness and creating tight microfoam.',
+        'Pour into a wide latte bowl and sprinkle with crushed green pistachios.',
+      ],
+    ),
+    Recipe(
+      id: 'd851ea74-3ca5-49e4-c4d8-16540b953734',
+      name: 'Irish Velvet',
+      description: 'Temperature-contrast showpiece. Step 1 aerates and sweetens hot double ristretto; Step 2 layers a chilled heavy cream crown.',
+      category: 'Hot Coffee',
+      tags: const ['Multi-Step', 'Hot Coffee', 'Cold Foam & Textures', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Extract 2 ristrettos (50 ml) with 10 ml brown sugar syrup. Press dial to blend & heat.',
+          phases: [
+            Phase.clamped(speed: 2200, accel: 600, temp: 64, duration: 25),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 60 ml heavy cream directly to the jug. Press dial for cold whip crown.',
+          phases: [
+            Phase.clamped(speed: 3600, accel: 900, temp: 0, duration: 20),
+          ],
+        ),
+      ],
+      ingredients: [
+        '2 Nespresso Ristretto capsules (50 ml total)',
+        '10 ml Dark muscovado or brown sugar syrup',
+        '60 ml Cold heavy cream (36%+ milkfat)',
+        'Optional: 15 ml Irish whiskey (for adult version)',
+      ],
+      instructions: [
+        'Extract double ristretto directly into jug with brown sugar syrup (and optional whiskey).',
+        'Run Step 1 to heat to 64°C and dissolve sugars completely.',
+        'At the pause prompt, pour hot sweetened coffee into a stemmed Irish coffee glass.',
+        'Add 60 ml chilled heavy cream into the jug and press machine dial: Step 2 whips thick cold cream.',
+        'Gently float the dense cold cream over the hot coffee with a warm bar spoon.',
+      ],
+    ),
+    Recipe(
+      id: 'e962fb85-4db6-4af5-d5e9-27651ca64845',
+      name: 'Cascara Spark',
+      description: 'Botanical coffee-cherry refresher. Step 1 extracts cascara tea with honey; Step 2 whips an almond milk cold cloud.',
+      category: 'Non-Coffee',
+      tags: const ['Multi-Step', 'Non-Coffee', 'Cold Foam & Textures', 'Non-Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 6g dried cascara & 80 ml hot water with orange peel. Press dial to steep & extract.',
+          phases: [
+            Phase.clamped(speed: 1800, accel: 500, temp: 65, duration: 32),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Strain tea into ice glass. Add 70 ml cold almond milk to jug; press dial for float.',
+          phases: [
+            Phase.clamped(speed: 3400, accel: 850, temp: 0, duration: 22),
+          ],
+        ),
+      ],
+      ingredients: [
+        '6g Organic dried cascara (coffee cherry tea)',
+        '80 ml Filtered water',
+        '1 Strip fresh orange peel',
+        '70 ml Cold barista almond milk',
+        '5 ml Orange blossom honey',
+      ],
+      instructions: [
+        'Add cascara, orange peel, honey, and water to the jug. Run Step 1 to steep at 65°C.',
+        'At the pause prompt, strain the warm cascara nectar over a tumbler of fresh ice cubes.',
+        'Rinse jug quickly with cold water, add 70 ml cold almond milk, and press machine dial for Step 2.',
+        'Pour the silky almond cold cloud over the cascara tea for a refreshing layered drink.',
+      ],
+    ),
+    Recipe(
+      id: 'fa730c96-5ec7-4ba6-e6fa-38762db75956',
+      name: 'Biscoff Swirl',
+      description: 'Spiced speculoos caramel indulgence. Step 1 melts creamy Biscoff spread into milk; Step 2 infuses fresh espresso and froths.',
+      category: 'Hot Coffee',
+      tags: const ['Multi-Step', 'Hot Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 20g Lotus Biscoff spread & 40 ml whole milk. Press dial to melt into butter sauce.',
+          phases: [
+            Phase.clamped(speed: 1600, accel: 550, temp: 62, duration: 25),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Extract 1 espresso (40 ml) & add 80 ml cold milk. Press dial to froth.',
+          phases: [
+            Phase.clamped(speed: 2900, accel: 800, temp: 65, duration: 32),
+          ],
+        ),
+      ],
+      ingredients: [
+        '20g Creamy Lotus Biscoff speculoos cookie spread',
+        '40 ml Whole milk (Step 1) + 80 ml Whole milk (Step 2)',
+        '1 Nespresso Espresso capsule (40 ml)',
+        '1 Lotus Biscoff cookie (crumbled)',
+      ],
+      instructions: [
+        'Spoon Biscoff spread and 40 ml milk into jug. Run Step 1 to melt into a silky spiced cookie sauce.',
+        'At pause prompt, brew fresh espresso into the jug and add remaining 80 ml cold milk.',
+        'Press machine dial: Step 2 froths the mixture into a rich spiced speculoos cappuccino.',
+        'Pour into your favorite mug and sprinkle with crunchy crushed Biscoff crumbs.',
+      ],
+    ),
+    Recipe(
+      id: '0b841da7-6fd8-4cb7-f70b-49873ec86a67',
+      name: 'Salted Crown',
+      description: 'Specialty cafe cold brew craft. Step 1 hyper-shears cold brew with dark caramel; Step 2 layers a dense salted sweet cream crown.',
+      category: 'Iced & Cold Coffee',
+      tags: const ['Multi-Step', 'Iced & Cold Coffee', 'Cold Foam & Textures', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 60 ml cold brew & 15 ml dark caramel syrup. Press dial to hyper-shear base.',
+          phases: [
+            Phase.clamped(speed: 3500, accel: 850, temp: 0, duration: 20),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 70 ml heavy cream & pinch of flaky sea salt. Press dial for crown float.',
+          phases: [
+            Phase.clamped(speed: 2900, accel: 750, temp: 0, duration: 24),
+          ],
+        ),
+      ],
+      ingredients: [
+        '60 ml High-strength cold brew concentrate',
+        '15 ml Dark caramel or dulce de leche syrup',
+        '70 ml Heavy whipping cream (chilled)',
+        'Large pinch Maldon flaky sea salt',
+        'Ice cubes for serving glass',
+      ],
+      instructions: [
+        'Add cold brew concentrate and caramel syrup into jug. Run Step 1 for 20s zero-heat cold shear.',
+        'Pour the micro-bubbled caramel coffee base into a rocks glass packed with ice.',
+        'At the pause prompt, add 70 ml chilled heavy cream and sea salt to the jug.',
+        'Press dial to whip the salted sweet cream into a thick, glossy crown and float atop the coffee.',
+      ],
+    ),
+    Recipe(
+      id: '1c952eb8-70e9-4dc8-081c-5a984fd97b78',
+      name: 'Chai Ganache',
+      description: 'Spiced confection latte. Step 1 melts white chocolate with cardamom, cinnamon, and clove; Step 2 textures spiced black tea microfoam.',
+      category: 'Non-Coffee',
+      tags: const ['Multi-Step', 'Non-Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 20g white chocolate & 30 ml milk with ground chai spice. Press dial to melt ganache.',
+          phases: [
+            Phase.clamped(speed: 1500, accel: 500, temp: 60, duration: 28),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 100 ml strong Assam black tea or milk. Press dial to froth.',
+          phases: [
+            Phase.clamped(speed: 2700, accel: 750, temp: 66, duration: 30),
+          ],
+        ),
+      ],
+      ingredients: [
+        '20g Premium white chocolate callets',
+        '1/4 tsp Ground cardamom, cinnamon, and ginger blend',
+        '30 ml Whole milk (Step 1)',
+        '100 ml Strongly brewed hot Assam tea or whole milk (Step 2)',
+        'Star anise pod for garnish',
+      ],
+      instructions: [
+        'Place white chocolate, spices, and 30 ml milk into jug. Run Step 1 to melt into a spiced white chocolate ganache.',
+        'At the pause prompt, add 100 ml strong brewed Assam tea (or cold milk).',
+        'Press machine dial: Step 2 whips the spiced tea and chocolate into a velvety microfoam.',
+        'Garnish with a whole star anise pod and a dusting of cinnamon.',
+      ],
+    ),
   ];
 
   /// Lookup preset by 16-byte UUID

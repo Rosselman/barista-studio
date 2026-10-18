@@ -335,7 +335,7 @@ class BaristaBleService extends ChangeNotifier {
   }
 
   Future<void> disconnect() async {
-    _stopLivenessHeartbeat();
+    _stopStatusPollingLoop();
     _slotTimeoutTimer?.cancel();
     _slotFetchQueue.clear();
     _currentFetchingSlot = -1;
@@ -360,7 +360,7 @@ class BaristaBleService extends ChangeNotifier {
   }
 
   void _handleDisconnection() {
-    _stopLivenessHeartbeat();
+    _stopStatusPollingLoop();
     _slotTimeoutTimer?.cancel();
     _slotFetchQueue.clear();
     _currentFetchingSlot = -1;
@@ -372,47 +372,72 @@ class BaristaBleService extends ChangeNotifier {
   }
 
   // ===========================================================================
-  // 1.5. Liveness Heartbeat
+  // 1.5. Live Status & Telemetry Polling Loop
   // ===========================================================================
+  // As confirmed in Nespresso's RecipesViewModel$startBaristaPolling$1$1.java,
+  // the Barista machine firmware does not stream spontaneous GATT notifications
+  // when machine state changes (Ready -> Executing -> Paused) or when the rotary
+  // dial is turned. Active background polling of CHAR_MACHINE_STATUS and
+  // CHAR_RECIPE_SELECTION is mandatory for live telemetry synchronization.
 
-  Timer? _heartbeatTimer;
-  int _consecutiveHeartbeatFailures = 0;
+  Timer? _statusPollingTimer;
+  int _consecutivePollingFailures = 0;
 
-  void _startLivenessHeartbeat() {
-    _heartbeatTimer?.cancel();
-    _consecutiveHeartbeatFailures = 0;
-    _heartbeatTimer = Timer.periodic(const Duration(seconds: 4), (timer) async {
+  void _startStatusPollingLoop() {
+    _statusPollingTimer?.cancel();
+    _consecutivePollingFailures = 0;
+    _statusPollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) {
       if (!isConnected || _device == null || _charMachineStatus == null) {
-        _stopLivenessHeartbeat();
+        _stopStatusPollingLoop();
         return;
       }
 
-      // If active upload or slot queue is running, link is proven by active packets
-      if (_isUploading || _currentFetchingSlot != -1) {
-        _consecutiveHeartbeatFailures = 0;
+      // If active upload or slot queue is running, link is proven by active packets; yield BLE
+      if (_isUploading || _currentFetchingSlot != -1 || _opQueue.isBusy) {
+        _consecutivePollingFailures = 0;
         return;
       }
 
-      try {
-        final data = await _charMachineStatus!.read().timeout(const Duration(seconds: 2));
-        _consecutiveHeartbeatFailures = 0;
-        _handleMachineStatus(data);
-      } catch (e) {
-        _consecutiveHeartbeatFailures++;
-        _log('Liveness probe missed ($_consecutiveHeartbeatFailures/2): $e');
-        if (_consecutiveHeartbeatFailures >= 2) {
-          _log('Machine powered down or unreachable. Disconnecting.');
-          _stopLivenessHeartbeat();
-          disconnect();
+      _opQueue.enqueue(() async {
+        if (!isConnected || _device == null || _charMachineStatus == null) return false;
+        try {
+          // 1. Poll Machine Status (Byte 1: Standby, Ready, Executing, Paused)
+          final statusData = await _charMachineStatus!.read().timeout(const Duration(seconds: 2));
+          _handleMachineStatus(statusData);
+
+          // 2. Poll Active Dial Position (1..13 -> 0..12)
+          if (_charRecipeSelection != null) {
+            final slotData = await _charRecipeSelection!.read().timeout(const Duration(seconds: 2));
+            if (slotData.isNotEmpty) {
+              final raw = slotData[0] & 0xFF;
+              final slotIndex = raw > 0 ? (raw - 1) : 0;
+              if (slotIndex != _telemetry.selectedSlot) {
+                _updateTelemetry(_telemetry.copyWith(selectedSlot: slotIndex));
+                _log('Machine rotary dial rotated: Slot ${slotIndex + 1}');
+              }
+            }
+          }
+
+          _consecutivePollingFailures = 0;
+          return true;
+        } catch (e) {
+          _consecutivePollingFailures++;
+          _log('Status poll missed ($_consecutivePollingFailures/3): $e');
+          if (_consecutivePollingFailures >= 3) {
+            _log('Machine unreachable after 3 consecutive poll attempts. Disconnecting.');
+            _stopStatusPollingLoop();
+            disconnect();
+          }
+          return false;
         }
-      }
+      }, description: 'Poll Machine Status & Dial', timeout: const Duration(seconds: 3));
     });
   }
 
-  void _stopLivenessHeartbeat() {
-    _heartbeatTimer?.cancel();
-    _heartbeatTimer = null;
-    _consecutiveHeartbeatFailures = 0;
+  void _stopStatusPollingLoop() {
+    _statusPollingTimer?.cancel();
+    _statusPollingTimer = null;
+    _consecutivePollingFailures = 0;
   }
 
   // ===========================================================================
@@ -626,7 +651,7 @@ class BaristaBleService extends ChangeNotifier {
           pairingState: pairingCode == 2 ? 'FINAL' : (pairingCode == 1 ? 'TEMPORARY' : 'NONE'),
         ));
 
-        _startLivenessHeartbeat();
+        _startStatusPollingLoop();
         _log('Machine authenticated and confirmed ONLINE. Fetching all 13 slots...');
         fetchAllSlots();
         return true;
@@ -654,6 +679,10 @@ class BaristaBleService extends ChangeNotifier {
     final pStateStr = (pairingCode < BaristaBleConstants.pairingStates.length)
         ? BaristaBleConstants.pairingStates[pairingCode]
         : 'UNKNOWN';
+
+    if (state != _telemetry.machineState) {
+      _log('Machine state changed: ${_telemetry.machineState.label} -> ${state.label} (${state.code})');
+    }
 
     _updateTelemetry(_telemetry.copyWith(
       machineState: state,
