@@ -444,6 +444,10 @@ flutter build web --release
 ## 7. Changelog
 
 ### v1.4.1 (Latest Release)
+- **Portrait Responsive Layout & RenderFlex Overflow Fixes**:
+  - Eliminated horizontal `RenderFlex` overflows on mobile portrait displays (e.g., Samsung Galaxy A52s at ~392px width).
+  - Fixed Developer Menu layout overflow on disconnected MAC addresses by wrapping the value in `Expanded` with right alignment and shortening cached status text.
+  - Responsive Manual Sequencer cards: Converted the active phase parameter header (`Step 1 • Phase 1 Parameters` + live badge) and the Sequence Architecture Overview header to responsive `LayoutBuilder` components that seamlessly stack on narrow mobile viewports (< 420px / < 380px) while maintaining side-by-side layouts on wide screens and tablets.
 - **Flatpak Single-File Bundle for Linux**:
   - Added dedicated Flatpak packaging (`packaging/flatpak/com.baristastudio.barista_studio.yml`) using the Freedesktop 24.08 runtime.
   - Granted sandboxed permissions (`--system-talk-name=org.bluez`, `--socket=wayland`, `--socket=x11`, `--device=dri`) allowing full Bluetooth BLE communication with the Barista machine directly from within the Flatpak sandbox.

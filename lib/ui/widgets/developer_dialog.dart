@@ -191,7 +191,7 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
                 _buildInfoRow('Device Name', t.deviceName ?? 'Unknown'),
                 _buildInfoRow(
                   'MAC Address',
-                  t.macAddress ?? (lastMac != null ? '$lastMac (Last Paired)' : 'None (Disconnected)'),
+                  t.macAddress ?? (lastMac != null ? '$lastMac (Paired)' : 'Disconnected'),
                 ),
                 _buildInfoRow('Serial Number', t.serialNumber ?? 'Not Read'),
                 _buildInfoRow(
@@ -300,15 +300,20 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13)),
-          Text(
-            value,
-            style: TextStyle(
-              color: color ?? AppTheme.crema,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'monospace',
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                color: color ?? AppTheme.crema,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'monospace',
+              ),
             ),
           ),
         ],

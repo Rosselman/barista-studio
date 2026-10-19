@@ -1369,21 +1369,22 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Phase Header Summary
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
+              // Responsive Phase Header Summary
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 420;
+                  final titleWidget = Text(
                     _isMultiStep
                         ? 'Step ${_activeStepIndex + 1} • Phase ${_activePhaseIndex + 1} Parameters'
                         : 'Phase ${_activePhaseIndex + 1} Parameters',
                     style: const TextStyle(
                       color: AppTheme.crema,
-                      fontSize: 15,
+                      fontSize: 14.5,
                       fontWeight: FontWeight.w700,
                     ),
-                  ),
-                  Container(
+                  );
+
+                  final badgeWidget = Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: activePhase.duration == 0
@@ -1408,8 +1409,28 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        titleWidget,
+                        const SizedBox(height: 6),
+                        badgeWidget,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(child: titleWidget),
+                      const SizedBox(width: 8),
+                      badgeWidget,
+                    ],
+                  );
+                },
               ),
               const Divider(color: AppTheme.borderSubtle, height: 24),
 
@@ -1519,26 +1540,54 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 380;
+                  const titleText = Text(
                     'Sequence Architecture Overview',
                     style: TextStyle(
                       color: AppTheme.crema,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
-                  ),
-                  Text(
-                    _isMultiStep ? '2 Stages • Dual Whisk' : '1 Stage • Single Cycle',
-                    style: const TextStyle(
-                      color: AppTheme.goldLight,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                  );
+                  final badgeText = Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceElevated,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.35)),
                     ),
-                  ),
-                ],
+                    child: Text(
+                      _isMultiStep ? '2 Stages • Dual Whisk' : '1 Stage • Single Cycle',
+                      style: const TextStyle(
+                        color: AppTheme.goldLight,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        titleText,
+                        const SizedBox(height: 6),
+                        badgeText,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Flexible(child: titleText),
+                      const SizedBox(width: 8),
+                      badgeText,
+                    ],
+                  );
+                },
               ),
               const Divider(color: AppTheme.borderSubtle, height: 18),
 
