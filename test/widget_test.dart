@@ -6,6 +6,7 @@ import 'package:barista_studio/models/machine_state.dart';
 import 'package:barista_studio/models/phase.dart';
 import 'package:barista_studio/models/recipe.dart';
 import 'package:barista_studio/models/recipe_step.dart';
+import 'package:barista_studio/models/slot_info.dart';
 import 'package:barista_studio/models/wheel_loadout.dart';
 import 'package:barista_studio/protocol/crc16.dart';
 import 'package:barista_studio/protocol/recipe_packet_builder.dart';
@@ -304,6 +305,82 @@ void main() {
     await storage.deleteLoadout(custom.id);
     expect(storage.getCustomLoadouts().isEmpty, true);
     expect(storage.getAllLoadouts().length, all.length);
+  });
+
+  test('PresetCatalog.findByUuid matches with and without hyphens, case-insensitively', () {
+    const rawHyphen = '6450bd62-b706-44e7-8b67-7063ec64a492'; // Cappuccino
+    final unhyphenated = rawHyphen.replaceAll('-', '').toUpperCase();
+
+    final match1 = PresetCatalog.findByUuid(rawHyphen);
+    expect(match1, isNotNull);
+    expect(match1!.name, 'Cappuccino');
+
+    final match2 = PresetCatalog.findByUuid(unhyphenated);
+    expect(match2, isNotNull);
+    expect(match2!.name, 'Cappuccino');
+
+    final nonExistent = PresetCatalog.findByUuid('00000000-0000-0000-0000-000000000000');
+    expect(nonExistent, isNull);
+  });
+
+  test('StorageService.resolveRecipeName resolves presets, custom recipes, and caches cleanly', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+
+    // 1. Resolve preset recipe
+    final resolvedPreset = storage.resolveRecipeName('d4648f3a-7a66-4e51-bb3d-848ed1176709');
+    expect(resolvedPreset, 'Latte Macchiato');
+
+    // 2. Resolve custom recipe
+    final customRecipe = Recipe(
+      id: 'e1e2e3e4-a1a2-b1b2-c1c2-d1d2d3d4d5d6',
+      name: 'Artisan Hazelnut Cloud',
+      description: 'Rich hazelnut infused foam',
+      category: 'Cold Foam & Textures',
+      phases: [Phase.clamped(speed: 2500, accel: 600, temp: 55, duration: 20)],
+    );
+    await storage.saveCustomRecipe(customRecipe);
+
+    // Resolve with unhyphenated uppercase UUID
+    final resolvedCustom = storage.resolveRecipeName('E1E2E3E4A1A2B1B2C1C2D1D2D3D4D5D6');
+    expect(resolvedCustom, 'Artisan Hazelnut Cloud');
+
+    // 3. Resolve unknown UUID
+    final resolvedUnknown = storage.resolveRecipeName('99999999-9999-9999-9999-999999999999');
+    expect(resolvedUnknown, isNull);
+  });
+
+  test('StorageService slot caching roundtrip preserves 13 hardware slots', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+    const mac = '19:10:7D:71:4A:E9';
+
+    expect(storage.getCachedSlots(mac), isNull);
+
+    final testSlots = List.generate(
+      13,
+      (i) => i == 0
+          ? const SlotInfo(
+              slotIndex: 0,
+              isOccupied: true,
+              recipeName: 'Cappuccino',
+              recipeUuid: '6450bd62-b706-44e7-8b67-7063ec64a492',
+              crc: 0x1234,
+            )
+          : SlotInfo(slotIndex: i, recipeName: 'Slot ${i + 1} (Empty)', isOccupied: false),
+    );
+
+    await storage.saveCachedSlots(mac, testSlots);
+    final cached = storage.getCachedSlots(mac);
+
+    expect(cached, isNotNull);
+    expect(cached!.length, 13);
+    expect(cached[0].isOccupied, true);
+    expect(cached[0].recipeName, 'Cappuccino');
+    expect(cached[0].recipeUuid, '6450bd62-b706-44e7-8b67-7063ec64a492');
+    expect(cached[0].crc, 0x1234);
+    expect(cached[1].isOccupied, false);
+    expect(cached[12].isOccupied, false);
   });
 }
 

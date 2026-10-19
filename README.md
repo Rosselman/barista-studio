@@ -444,6 +444,11 @@ flutter build web --release
 ## 7. Changelog
 
 ### v1.4.1 (Latest Release)
+- **Hardware Memory & Slot Reading Engine Overhaul**:
+  - Replaced loose async timers and decoupled GATT writes with an atomic sequential transaction engine (`_querySlotInternal`) in `GattOpQueue`. Each slot query awaits its dedicated response `Completer` before advancing, completely eliminating packet collisions, out-of-order chunk contamination, and cascading 1-slot index shifts ("populated slots showing as empty and vice versa").
+  - Fixed false "Custom Recipe" readings: Uninitialized or erased EEPROM slots (all `0x00` or `0xFF` bytes) are now detected and properly recognized as Empty rather than falling back to an occupied generic "Custom Recipe".
+  - Multi-Tier Recipe Resolution: Added `StorageService.resolveRecipeName` which matches normalized 32-character hex UUIDs (case-insensitive, hyphen-agnostic) across the presets catalog, saved custom recipes, and built-in loadouts.
+  - Instant Responsive Memory Caching: Added persistent 13-slot layout caching in `StorageService` keyed by machine MAC address. Upon connecting, the user's last known wheel arrangement is displayed immediately (0ms delay) while sequential hardware EEPROM verification runs smoothly in the background with live progress indicators and spinners.
 - **Portrait Responsive Layout & RenderFlex Overflow Fixes**:
   - Eliminated horizontal `RenderFlex` overflows on mobile portrait displays (e.g., Samsung Galaxy A52s at ~392px width).
   - Fixed Developer Menu layout overflow on disconnected MAC addresses by wrapping the value in `Expanded` with right alignment and shortening cached status text.

@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -12,7 +11,6 @@ import '../models/wheel_loadout.dart';
 import '../protocol/barista_ble_constants.dart';
 import '../protocol/gatt_op_queue.dart';
 import '../protocol/recipe_packet_builder.dart';
-import '../data/preset_catalog.dart';
 import 'storage_service.dart';
 
 class BaristaBleService extends ChangeNotifier {
@@ -45,11 +43,14 @@ class BaristaBleService extends ChangeNotifier {
   );
   List<SlotInfo> get slots => List.unmodifiable(_slots);
 
-  // Slot Query State
-  final Queue<int> _slotFetchQueue = Queue<int>();
+  // Slot Query State (Atomic Sequential Transactor)
+  Completer<SlotInfo>? _currentSlotCompleter;
   int _currentFetchingSlot = -1;
+  bool _isFetchingAllSlots = false;
   final List<int> _slotIdBuffer = [];
-  Timer? _slotTimeoutTimer;
+
+  int get currentFetchingSlot => _currentFetchingSlot;
+  bool get isScanningSlots => _isFetchingAllSlots || _currentFetchingSlot != -1;
 
   // Upload State
   double _uploadProgress = 0.0;
@@ -57,7 +58,6 @@ class BaristaBleService extends ChangeNotifier {
   bool _isUploading = false;
   bool get isUploading => _isUploading;
   bool get isFlashing => _isUploading;
-  bool get isScanningSlots => _currentFetchingSlot != -1 || _slotFetchQueue.isNotEmpty;
   String? _uploadStatusText;
   String? get uploadStatusText => _uploadStatusText;
   Completer<bool>? _uploadCompleter;
@@ -75,7 +75,28 @@ class BaristaBleService extends ChangeNotifier {
     _logController.add(message);
   }
 
-  BaristaBleService({required this.storageService});
+  BaristaBleService({required this.storageService}) {
+    _initCachedSlots();
+  }
+
+  void _initCachedSlots() {
+    final lastMac = storageService.getLastConnectedMac();
+    if (lastMac != null && lastMac.isNotEmpty) {
+      final cached = storageService.getCachedSlots(lastMac);
+      if (cached != null && cached.length == 13) {
+        for (int i = 0; i < 13; i++) {
+          _slots[i] = cached[i];
+        }
+      }
+    }
+  }
+
+  void _persistSlotsCache() {
+    final mac = _telemetry.macAddress;
+    if (mac != null && mac.isNotEmpty) {
+      storageService.saveCachedSlots(mac, _slots);
+    }
+  }
 
   bool get isConnected => _telemetry.isConnected;
 
@@ -353,9 +374,10 @@ class BaristaBleService extends ChangeNotifier {
 
   Future<void> disconnect() async {
     _stopStatusPollingLoop();
-    _slotTimeoutTimer?.cancel();
-    _slotFetchQueue.clear();
+    _currentSlotCompleter = null;
     _currentFetchingSlot = -1;
+    _isFetchingAllSlots = false;
+    _slotIdBuffer.clear();
     _opQueue.clear();
 
     await _statusSub?.cancel();
@@ -378,13 +400,11 @@ class BaristaBleService extends ChangeNotifier {
 
   void _handleDisconnection() {
     _stopStatusPollingLoop();
-    _slotTimeoutTimer?.cancel();
-    _slotFetchQueue.clear();
+    _currentSlotCompleter = null;
     _currentFetchingSlot = -1;
+    _isFetchingAllSlots = false;
+    _slotIdBuffer.clear();
     _opQueue.clear();
-    for (int i = 0; i < 13; i++) {
-      _slots[i] = SlotInfo(slotIndex: i, recipeName: 'Slot ${i + 1}');
-    }
     _updateTelemetry(const MachineTelemetry());
   }
 
@@ -646,6 +666,17 @@ class BaristaBleService extends ChangeNotifier {
 
         // Confirmed active & authenticated connection!
         storageService.setLastConnectedMac(device.remoteId.str);
+
+        // Load cached slots immediately for instant responsiveness!
+        final cached = storageService.getCachedSlots(device.remoteId.str);
+        if (cached != null && cached.length == 13) {
+          for (int i = 0; i < 13; i++) {
+            _slots[i] = cached[i];
+          }
+          _log('Loaded 13 cached slots from local storage for ${device.remoteId.str}.');
+          notifyListeners();
+        }
+
         _updateTelemetry(_telemetry.copyWith(
           isConnected: true,
           deviceName: device.platformName.isNotEmpty
@@ -722,154 +753,179 @@ class BaristaBleService extends ChangeNotifier {
     }, description: 'Query Active Slot');
   }
 
-  void fetchAllSlots() {
-    _slotFetchQueue.clear();
-    for (int i = 0; i < 13; i++) {
-      _slotFetchQueue.add(i);
-    }
-    if (_currentFetchingSlot == -1) {
-      _processNextSlotQuery();
-    }
-  }
+  Future<void> fetchAllSlots() async {
+    if (_isFetchingAllSlots || !isConnected || _charRecipeCommand == null) return;
+    _isFetchingAllSlots = true;
+    notifyListeners();
 
-  void fetchSlot(int slot) {
-    if (!_slotFetchQueue.contains(slot)) {
-      _slotFetchQueue.add(slot);
-    }
-    if (_currentFetchingSlot == -1) {
-      _processNextSlotQuery();
-    }
-  }
-
-  void _processNextSlotQuery() {
-    _slotTimeoutTimer?.cancel();
-    if (_slotFetchQueue.isEmpty) {
-      _currentFetchingSlot = -1;
-      _log('Finished querying all queued slots.');
-      return;
-    }
-    if (_charRecipeCommand == null || !isConnected) {
-      _currentFetchingSlot = -1;
-      _slotFetchQueue.clear();
-      return;
-    }
-
-    _currentFetchingSlot = _slotFetchQueue.removeFirst();
-    final slot = _currentFetchingSlot;
-    final pos = slot + 1; // 1-based (1..13)
-    _slotIdBuffer.clear();
-
-    _slotTimeoutTimer = Timer(const Duration(milliseconds: 1400), () {
-      if (_currentFetchingSlot == slot) {
-        _log('Timeout querying Slot $pos.');
-        _slots[slot] = SlotInfo(
-          slotIndex: slot,
-          isOccupied: false,
-          recipeName: 'Slot $pos (Empty)',
-        );
-        _currentFetchingSlot = -1;
-        notifyListeners();
-        _processNextSlotQuery();
+    _log('Starting sequential scan of all 13 slots...');
+    try {
+      for (int i = 0; i < 13; i++) {
+        if (!isConnected) break;
+        await _querySlotInternal(i);
+        // Brief settling delay between slots (35ms)
+        await Future.delayed(const Duration(milliseconds: 35));
       }
-    });
+      _log('Completed sequential scan of all 13 slots.');
+    } catch (e) {
+      _log('Error during fetchAllSlots: $e');
+    } finally {
+      _isFetchingAllSlots = false;
+      _currentFetchingSlot = -1;
+      _currentSlotCompleter = null;
+      notifyListeners();
+    }
+  }
 
-    final cmd = [BaristaBleConstants.cmdGetId, 0x01, pos & 0xFF];
-    _opQueue.enqueue(() async {
+  Future<SlotInfo> fetchSlot(int slot) async {
+    if (!isConnected || _charRecipeCommand == null || slot < 0 || slot >= 13) {
+      return (slot >= 0 && slot < 13) ? _slots[slot] : const SlotInfo(slotIndex: 0, recipeName: 'Slot 1');
+    }
+    return await _querySlotInternal(slot);
+  }
+
+  Future<SlotInfo> _querySlotInternal(int slotIndex) async {
+    if (!isConnected || _charRecipeCommand == null) {
+      return _slots[slotIndex];
+    }
+
+    final pos = slotIndex + 1; // 1-based (1..13)
+    final completer = Completer<SlotInfo>();
+
+    await _opQueue.enqueue(() async {
+      _currentFetchingSlot = slotIndex;
+      _currentSlotCompleter = completer;
+      _slotIdBuffer.clear();
+
+      final cmd = [BaristaBleConstants.cmdGetId, 0x01, pos & 0xFF];
       try {
         await _charRecipeCommand!.write(cmd, withoutResponse: false);
-        return true;
       } catch (e) {
         _log('Error sending CMD_GET_ID for Slot $pos: $e');
-        _slotTimeoutTimer?.cancel();
-        if (_currentFetchingSlot == slot) {
-          _slots[slot] = SlotInfo(
-            slotIndex: slot,
-            isOccupied: false,
-            recipeName: 'Slot $pos (Empty)',
-          );
-          _currentFetchingSlot = -1;
-          notifyListeners();
-          _processNextSlotQuery();
-        }
+        _currentFetchingSlot = -1;
+        _currentSlotCompleter = null;
         return false;
       }
-    }, description: 'Query Slot $pos', timeout: const Duration(milliseconds: 1400));
+
+      try {
+        final result = await completer.future.timeout(
+          const Duration(milliseconds: 2500),
+          onTimeout: () {
+            _log('Timeout waiting for Slot $pos response.');
+            // Do NOT overwrite already known occupied slot with empty on a transient timeout!
+            return _slots[slotIndex].isOccupied
+                ? _slots[slotIndex]
+                : SlotInfo(
+                    slotIndex: slotIndex,
+                    isOccupied: false,
+                    recipeName: 'Slot $pos (Empty)',
+                  );
+          },
+        );
+
+        _slots[slotIndex] = result;
+        _persistSlotsCache();
+        notifyListeners();
+        return true;
+      } catch (e) {
+        _log('Exception during slot $pos query: $e');
+        return false;
+      } finally {
+        _currentFetchingSlot = -1;
+        _currentSlotCompleter = null;
+        _slotIdBuffer.clear();
+      }
+    }, description: 'Query Slot $pos', timeout: const Duration(milliseconds: 3200));
+
+    return _slots[slotIndex];
   }
 
   void _handleRecipeResponse(List<int> data) {
-    if (data.length < 3) return;
+    if (data.isEmpty) return;
+    final rawHex = data.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    debugPrint('>>> [RECIPE_RSP RAW] $rawHex');
+    _logController.add('>>> [RECIPE_RSP RAW] $rawHex');
+
     final cmdId = data[0] & 0x3F;
 
     if (cmdId == BaristaBleConstants.cmdGetId) {
-      if (_currentFetchingSlot == -1) return;
+      final completer = _currentSlotCompleter;
       final slot = _currentFetchingSlot;
-      final pos = slot + 1;
+      if (completer == null || completer.isCompleted || slot < 0 || slot >= 13) {
+        _log('Ignoring late or unsolicited GET_ID packet: $rawHex');
+        return;
+      }
 
+      final pos = slot + 1;
       final ctrl = (data.length > 1) ? (data[1] & 0xFF) : 0;
       final hasNext = (ctrl & 0x80) != 0;
       final payloadLen = ctrl & 0x1F;
 
-      // Check if this is an empty slot response (3 bytes: [0x0A, 0x01, 0x23])
-      if (!hasNext && _slotIdBuffer.isEmpty && data.length == 3) {
-        final status = data[2] & 0xFF;
-        _slotTimeoutTimer?.cancel();
-        _log('Slot $pos status: 0x${status.toRadixString(16)} (Empty)');
-        _slots[slot] = SlotInfo(
+      // 1. Check for explicit Empty Slot response ([0x0A, 0x01, 0x23])
+      if (_slotIdBuffer.isEmpty && data.length >= 3 && data[2] == BaristaBleConstants.rspOutOfRange) {
+        _log('Slot $pos is Empty (0x23 rspOutOfRange)');
+        completer.complete(SlotInfo(
           slotIndex: slot,
           isOccupied: false,
           recipeName: 'Slot $pos (Empty)',
-        );
-        _currentFetchingSlot = -1;
-        notifyListeners();
-        _processNextSlotQuery();
+        ));
         return;
       }
 
-      // Otherwise accumulate the 18-byte UUID response payload
+      // 2. Accumulate payload bytes (CRC: 2 bytes, UUID: 16 bytes = 18 bytes total)
       final bytesToRead = (payloadLen < data.length - 2) ? payloadLen : data.length - 2;
       for (int i = 0; i < bytesToRead; i++) {
-        _slotIdBuffer.add(data[2 + i]);
+        if (_slotIdBuffer.length < 18) {
+          _slotIdBuffer.add(data[2 + i]);
+        }
       }
 
-      if (!hasNext || _slotIdBuffer.length >= 18) {
-        _slotTimeoutTimer?.cancel();
-        if (_slotIdBuffer.length >= 18) {
-          final crc = ((_slotIdBuffer[0] & 0xFF) << 8) | (_slotIdBuffer[1] & 0xFF);
-          final uuidBytes = _slotIdBuffer.sublist(2, 18);
-          final uuidStr = RecipePacketBuilder.bytesToUuid(uuidBytes);
+      // 3. If payload is complete (18 bytes: 2 CRC + 16 UUID)
+      if (_slotIdBuffer.length >= 18) {
+        final crc = ((_slotIdBuffer[0] & 0xFF) << 8) | (_slotIdBuffer[1] & 0xFF);
+        final uuidBytes = _slotIdBuffer.sublist(2, 18);
 
-          // Resolve Recipe Name
-          String resolvedName = 'Slot $pos';
-          final preset = PresetCatalog.findByUuid(uuidStr);
-          if (preset != null) {
-            resolvedName = preset.name;
-          } else {
-            final cached = storageService.getCachedRecipeName(uuidStr);
-            if (cached != null && cached.isNotEmpty) {
-              resolvedName = cached;
-            } else {
-              resolvedName = 'Custom Recipe';
-            }
-          }
+        // Check if uninitialized or blank EEPROM (all 0x00 or all 0xFF)
+        final isAllZeros = uuidBytes.every((b) => b == 0x00);
+        final isAllFFs = uuidBytes.every((b) => b == 0xFF);
 
-          _log('Slot $pos OCCUPIED: $resolvedName (UUID: $uuidStr, CRC: $crc)');
-          _slots[slot] = SlotInfo(
-            slotIndex: slot,
-            isOccupied: true,
-            recipeUuid: uuidStr,
-            recipeName: resolvedName,
-            crc: crc,
-          );
-        } else {
-          _slots[slot] = SlotInfo(
+        if (isAllZeros || isAllFFs) {
+          _log('Slot $pos EEPROM is blank/uninitialized ($uuidBytes). Treating as Empty.');
+          completer.complete(SlotInfo(
             slotIndex: slot,
             isOccupied: false,
             recipeName: 'Slot $pos (Empty)',
-          );
+          ));
+          return;
         }
-        _currentFetchingSlot = -1;
-        notifyListeners();
-        _processNextSlotQuery();
+
+        final uuidStr = RecipePacketBuilder.bytesToUuid(uuidBytes);
+        final resolvedName = storageService.resolveRecipeName(uuidStr) ?? 'Custom Recipe';
+
+        _log('Slot $pos OCCUPIED: "$resolvedName" (UUID: $uuidStr, CRC: 0x${crc.toRadixString(16).padLeft(4, '0')})');
+        completer.complete(SlotInfo(
+          slotIndex: slot,
+          isOccupied: true,
+          recipeUuid: uuidStr,
+          recipeName: resolvedName,
+          crc: crc,
+        ));
+        return;
+      }
+
+      // 4. If packet ended without reaching 18 bytes (e.g. machine error status code)
+      if (!hasNext && _slotIdBuffer.length < 18) {
+        if (data.length >= 3) {
+          final statusCode = data[2] & 0xFF;
+          _log('Slot $pos query returned non-payload code: 0x${statusCode.toRadixString(16)} (${BaristaBleConstants.getStatusMessage(statusCode)})');
+        } else {
+          _log('Slot $pos query packet truncated (${_slotIdBuffer.length} bytes received).');
+        }
+
+        final fallback = _slots[slot].isOccupied
+            ? _slots[slot]
+            : SlotInfo(slotIndex: slot, isOccupied: false, recipeName: 'Slot $pos (Empty)');
+        completer.complete(fallback);
       }
     } else if (cmdId == BaristaBleConstants.cmdInsert ||
         cmdId == BaristaBleConstants.cmdAppend) {
@@ -905,6 +961,7 @@ class BaristaBleService extends ChangeNotifier {
         for (int i = 0; i < 13; i++) {
           _slots[i] = SlotInfo(slotIndex: i, recipeName: 'Slot ${i + 1} (Empty)');
         }
+        _persistSlotsCache();
         _clearCompleter?.complete(true);
         notifyListeners();
         if (_refreshSlotsAfterClear) {

@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/default_loadouts.dart';
+import '../data/preset_catalog.dart';
 import '../models/recipe.dart';
+import '../models/slot_info.dart';
 import '../models/wheel_loadout.dart';
 import '../protocol/barista_ble_constants.dart';
 
@@ -11,6 +13,7 @@ class StorageService extends ChangeNotifier {
   static const String _keyLastMac = 'barista_last_connected_mac';
   static const String _keyCustomRecipes = 'barista_custom_recipes';
   static const String _keyUuidNamePrefix = 'barista_recipe_name_';
+  static const String _keyCachedSlotsPrefix = 'barista_cached_slots_';
   static const String _keyFavorites = 'barista_favorite_recipes';
   static const String _keyLoadouts = 'barista_custom_wheel_loadouts';
 
@@ -115,15 +118,104 @@ class StorageService extends ChangeNotifier {
     return res;
   }
 
-  // --- UUID to Name Mapping Cache ---
+  // --- UUID to Name Mapping Cache & Comprehensive Recipe Resolver ---
   Future<void> cacheRecipeName(String uuid, String name) async {
-    final key = '$_keyUuidNamePrefix${uuid.toLowerCase()}';
-    await _prefs.setString(key, name);
+    final clean = uuid.replaceAll('-', '').toLowerCase().trim();
+    if (clean.isEmpty) return;
+    await _prefs.setString('$_keyUuidNamePrefix$clean', name);
+    if (uuid != clean) {
+      await _prefs.setString('$_keyUuidNamePrefix${uuid.toLowerCase().trim()}', name);
+    }
   }
 
   String? getCachedRecipeName(String uuid) {
-    final key = '$_keyUuidNamePrefix${uuid.toLowerCase()}';
-    return _prefs.getString(key);
+    final clean = uuid.replaceAll('-', '').toLowerCase().trim();
+    return _prefs.getString('$_keyUuidNamePrefix$clean') ??
+        _prefs.getString('$_keyUuidNamePrefix${uuid.toLowerCase().trim()}');
+  }
+
+  /// Comprehensive recipe name resolver:
+  /// 1. Checks SharedPreferences cache by normalized UUID
+  /// 2. Checks PresetCatalog presets
+  /// 3. Checks saved Custom Recipes in StorageService
+  /// 4. Checks built-in Default Loadouts recipes
+  /// Automatically populates cache on match for fast O(1) subsequent lookups.
+  String? resolveRecipeName(String uuid) {
+    final clean = uuid.replaceAll('-', '').toLowerCase().trim();
+    if (clean.isEmpty) return null;
+
+    // 1. Direct cache lookup
+    final cached = getCachedRecipeName(uuid);
+    if (cached != null && cached.trim().isNotEmpty) {
+      return cached.trim();
+    }
+
+    // 2. Preset catalog
+    final preset = PresetCatalog.findByUuid(uuid);
+    if (preset != null) {
+      cacheRecipeName(uuid, preset.name);
+      return preset.name;
+    }
+
+    // 3. User custom recipes
+    for (final custom in getCustomRecipes()) {
+      if (custom.id.replaceAll('-', '').toLowerCase().trim() == clean) {
+        cacheRecipeName(uuid, custom.name);
+        return custom.name;
+      }
+    }
+
+    // 4. Default Loadouts
+    for (final loadout in DefaultLoadouts.defaults) {
+      for (final entry in loadout.slots) {
+        if (entry.recipeId.replaceAll('-', '').toLowerCase().trim() == clean) {
+          cacheRecipeName(uuid, entry.recipeName);
+          return entry.recipeName;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // --- Hardware Memory / Cached Slot Table ---
+  List<SlotInfo>? getCachedSlots(String? macAddress) {
+    if (macAddress == null || macAddress.isEmpty) return null;
+    final cleanMac = macAddress.replaceAll(':', '').toUpperCase().trim();
+    final rawList = _prefs.getStringList('$_keyCachedSlotsPrefix$cleanMac');
+    if (rawList == null || rawList.length != 13) return null;
+    try {
+      final list = <SlotInfo>[];
+      for (int i = 0; i < rawList.length; i++) {
+        final Map<String, dynamic> json = jsonDecode(rawList[i]);
+        list.add(SlotInfo(
+          slotIndex: json['slotIndex'] as int? ?? i,
+          isOccupied: json['isOccupied'] as bool? ?? false,
+          recipeUuid: json['recipeUuid'] as String?,
+          recipeName: json['recipeName'] as String? ?? 'Slot ${i + 1}',
+          crc: json['crc'] as int?,
+        ));
+      }
+      return list;
+    } catch (e) {
+      if (kDebugMode) {
+        print('[StorageService] Error decoding cached slots for $macAddress: $e');
+      }
+      return null;
+    }
+  }
+
+  Future<void> saveCachedSlots(String? macAddress, List<SlotInfo> slots) async {
+    if (macAddress == null || macAddress.isEmpty || slots.length != 13) return;
+    final cleanMac = macAddress.replaceAll(':', '').toUpperCase().trim();
+    final rawList = slots.map((s) => jsonEncode({
+      'slotIndex': s.slotIndex,
+      'isOccupied': s.isOccupied,
+      'recipeUuid': s.recipeUuid,
+      'recipeName': s.recipeName,
+      'crc': s.crc,
+    })).toList();
+    await _prefs.setStringList('$_keyCachedSlotsPrefix$cleanMac', rawList);
   }
 
   // --- Favorite Recipes ---

@@ -142,9 +142,11 @@ class SlotsTab extends StatelessWidget {
                             const SizedBox(height: 2),
                             if (isConnected)
                               Text(
-                                '$occupiedCount of 13 Slots Occupied',
-                                style: const TextStyle(
-                                  color: AppTheme.goldPrimary,
+                                bleService.isScanningSlots
+                                    ? 'Syncing Slot ${(bleService.currentFetchingSlot >= 0 ? bleService.currentFetchingSlot + 1 : 1)} of 13...'
+                                    : '$occupiedCount of 13 Slots Occupied',
+                                style: TextStyle(
+                                  color: bleService.isScanningSlots ? AppTheme.cyanCold : AppTheme.goldPrimary,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -190,13 +192,26 @@ class SlotsTab extends StatelessWidget {
                         const SizedBox(width: 4),
                       ],
                       IconButton(
-                        icon: Icon(
-                          Icons.refresh,
-                          color: isConnected ? AppTheme.goldLight : AppTheme.textMuted,
-                          size: 22,
-                        ),
-                        tooltip: isConnected ? 'Refresh Slots' : 'Connect machine to refresh',
-                        onPressed: isConnected ? () => bleService.fetchAllSlots() : null,
+                        icon: bleService.isScanningSlots
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppTheme.goldLight,
+                                ),
+                              )
+                            : Icon(
+                                Icons.refresh,
+                                color: isConnected ? AppTheme.goldLight : AppTheme.textMuted,
+                                size: 22,
+                              ),
+                        tooltip: isConnected
+                            ? (bleService.isScanningSlots ? 'Syncing slots...' : 'Refresh Slots')
+                            : 'Connect machine to refresh',
+                        onPressed: (isConnected && !bleService.isScanningSlots)
+                            ? () => bleService.fetchAllSlots()
+                            : null,
                       ),
                       const SizedBox(width: 4),
                       OutlinedButton.icon(

@@ -1902,11 +1902,14 @@ class PresetCatalog {
     ),
   ];
 
-  /// Lookup preset by 16-byte UUID
+  /// Lookup preset by 16-byte UUID (supports both hyphenated and unhyphenated representations)
   static Recipe? findByUuid(String uuid) {
-    final clean = uuid.toLowerCase();
+    final clean = uuid.replaceAll('-', '').toLowerCase().trim();
+    if (clean.isEmpty) return null;
     try {
-      return presets.firstWhere((p) => p.id.toLowerCase() == clean);
+      return presets.firstWhere(
+        (p) => p.id.replaceAll('-', '').toLowerCase().trim() == clean,
+      );
     } catch (_) {
       return null;
     }

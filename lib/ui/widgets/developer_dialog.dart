@@ -268,8 +268,8 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
               ),
               OutlinedButton.icon(
                 icon: const Icon(Icons.download, size: 16),
-                label: const Text('Scan 13 Slots'),
-                onPressed: t.isConnected ? () => widget.bleService.fetchAllSlots() : null,
+                label: Text(widget.bleService.isScanningSlots ? 'Scanning...' : 'Scan 13 Slots'),
+                onPressed: (t.isConnected && !widget.bleService.isScanningSlots) ? () => widget.bleService.fetchAllSlots() : null,
               ),
               OutlinedButton.icon(
                 icon: const Icon(Icons.link_off, size: 16, color: AppTheme.rubyEmergency),
