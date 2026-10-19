@@ -112,8 +112,10 @@ class RecipeDetailDialog extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Badges Row
-                  Row(
+                  // Badges / Tags Wrap
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -131,7 +133,6 @@ class RecipeDetailDialog extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -161,8 +162,7 @@ class RecipeDetailDialog extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (recipe.isMultiStep) ...[
-                        const SizedBox(width: 8),
+                      if (recipe.isMultiStep)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
@@ -186,7 +186,26 @@ class RecipeDetailDialog extends StatelessWidget {
                             ],
                           ),
                         ),
-                      ],
+                      for (final tag in recipe.tags)
+                        if (tag != recipe.category &&
+                            tag != 'Multi-Step' &&
+                            !tag.toLowerCase().contains('step'))
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceInput,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppTheme.borderSubtle),
+                            ),
+                            child: Text(
+                              tag,
+                              style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -211,13 +230,13 @@ class RecipeDetailDialog extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildStatItem('Duration', '${recipe.totalDurationSeconds}s', Icons.timer_outlined),
+                        Expanded(child: _buildStatItem('Duration', '${recipe.totalDurationSeconds}s', Icons.timer_outlined)),
                         Container(width: 1, height: 28, color: AppTheme.borderSubtle),
-                        _buildStatItem('Peak RPM', '${recipe.peakRpm}', Icons.rotate_right),
+                        Expanded(child: _buildStatItem('Peak RPM', '${recipe.peakRpm}', Icons.rotate_right)),
                         Container(width: 1, height: 28, color: AppTheme.borderSubtle),
-                        _buildStatItem('Phases', '${recipe.activePhases.length}', Icons.layers_outlined),
+                        Expanded(child: _buildStatItem('Phases', '${recipe.activePhases.length}', Icons.layers_outlined)),
                         Container(width: 1, height: 28, color: AppTheme.borderSubtle),
-                        _buildStatItem('Max Temp', '${recipe.maxTemp}°C', Icons.thermostat_outlined),
+                        Expanded(child: _buildStatItem('Max Temp', '${recipe.maxTemp}°C', Icons.thermostat_outlined)),
                       ],
                     ),
                   ),
@@ -225,17 +244,19 @@ class RecipeDetailDialog extends StatelessWidget {
 
                   // Ingredients
                   if (recipe.ingredients.isNotEmpty) ...[
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.inventory_2_outlined, size: 15, color: AppTheme.goldPrimary),
-                        SizedBox(width: 6),
-                        Text(
-                          'INGREDIENTS',
-                          style: TextStyle(
-                            color: AppTheme.goldPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
+                        const Icon(Icons.inventory_2_outlined, size: 15, color: AppTheme.goldPrimary),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'INGREDIENTS',
+                            style: const TextStyle(
+                              color: AppTheme.goldPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
                           ),
                         ),
                       ],
@@ -282,17 +303,19 @@ class RecipeDetailDialog extends StatelessWidget {
 
                   // Step-by-Step Preparation Guide
                   if (recipe.instructions.isNotEmpty) ...[
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.format_list_numbered, size: 15, color: AppTheme.goldPrimary),
-                        SizedBox(width: 6),
-                        Text(
-                          'STEP-BY-STEP PREPARATION GUIDE',
-                          style: TextStyle(
-                            color: AppTheme.goldPrimary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
+                        const Icon(Icons.format_list_numbered, size: 15, color: AppTheme.goldPrimary),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'STEP-BY-STEP PREPARATION GUIDE',
+                            style: const TextStyle(
+                              color: AppTheme.goldPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
                           ),
                         ),
                       ],
@@ -357,15 +380,17 @@ class RecipeDetailDialog extends StatelessWidget {
                     children: [
                       const Icon(Icons.tune, size: 15, color: AppTheme.goldPrimary),
                       const SizedBox(width: 6),
-                      Text(
-                        recipe.isMultiStep
-                            ? 'MULTI-STEP EXECUTION PROFILE'
-                            : 'MOTOR & HEATER PHASES',
-                        style: const TextStyle(
-                          color: AppTheme.goldPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
+                      Expanded(
+                        child: Text(
+                          recipe.isMultiStep
+                              ? 'MULTI-STEP EXECUTION PROFILE'
+                              : 'MOTOR & HEATER PHASES',
+                          style: const TextStyle(
+                            color: AppTheme.goldPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
                         ),
                       ),
                     ],
@@ -427,14 +452,19 @@ class RecipeDetailDialog extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Step ${sIdx + 1}: ${recipe.steps[sIdx].name}',
-                              style: const TextStyle(
-                                color: AppTheme.goldLight,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
+                            Expanded(
+                              child: Text(
+                                'Step ${sIdx + 1}: ${recipe.steps[sIdx].name}',
+                                style: const TextStyle(
+                                  color: AppTheme.goldLight,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            const SizedBox(width: 8),
                             Text(
                               '${recipe.steps[sIdx].totalDurationSeconds}s • ${recipe.steps[sIdx].peakRpm} RPM • ${recipe.steps[sIdx].isCold ? "Cold" : "${recipe.steps[sIdx].maxTemp}°C"}',
                               style: const TextStyle(

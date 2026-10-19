@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barista_studio/data/default_loadouts.dart';
@@ -10,7 +11,10 @@ import 'package:barista_studio/models/slot_info.dart';
 import 'package:barista_studio/models/wheel_loadout.dart';
 import 'package:barista_studio/protocol/crc16.dart';
 import 'package:barista_studio/protocol/recipe_packet_builder.dart';
+import 'package:barista_studio/services/barista_ble_service.dart';
 import 'package:barista_studio/services/storage_service.dart';
+import 'package:barista_studio/theme/app_theme.dart';
+import 'package:barista_studio/ui/widgets/recipe_detail_dialog.dart';
 
 void main() {
   test('PresetCatalog has recipes loaded with required categories', () {
@@ -462,6 +466,36 @@ void main() {
     expect(step2.totalDurationSeconds, 25);
     expect(step2.maxTemp, 68);
     expect(step2.peakRpm, 2100);
+  });
+
+  testWidgets('RecipeDetailDialog renders Affogato Cream without overflow on small screens', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+    final ble = BaristaBleService(storageService: storage);
+
+    final affogato = PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
+
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: RecipeDetailDialog(
+            recipe: affogato,
+            bleService: ble,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Affogato Cream'), findsOneWidget);
+    expect(find.text('Multi-Step (2 Steps)'), findsOneWidget);
+    expect(find.text('Hot Coffee'), findsOneWidget);
+    expect(find.text('Dairy'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
 

@@ -565,33 +565,13 @@ class SlotsTab extends StatelessWidget {
                 color: AppTheme.surfaceCard,
                 elevation: 8,
                 tooltip: 'Slot Options',
+                enabled: bleService.isConnected,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: const BorderSide(color: AppTheme.borderSubtle),
                 ),
                 padding: EdgeInsets.zero,
                 itemBuilder: (ctx) => [
-                  if (isPaused)
-                    const PopupMenuItem(
-                      value: 'step2',
-                      child: Row(
-                        children: [
-                          Icon(Icons.bolt, size: 16, color: AppTheme.amberHeat),
-                          SizedBox(width: 10),
-                          Text("What's Step 2?", style: TextStyle(color: AppTheme.amberHeat, fontSize: 13, fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                    ),
-                  const PopupMenuItem(
-                    value: 'guide',
-                    child: Row(
-                      children: [
-                        Icon(Icons.menu_book_outlined, size: 16, color: AppTheme.goldLight),
-                        SizedBox(width: 10),
-                        Text('Step-by-step Guide', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
                   if (bleService.isConnected) ...[
                     const PopupMenuItem(
                       value: 'select',
@@ -626,11 +606,7 @@ class SlotsTab extends StatelessWidget {
                   ],
                 ],
                 onSelected: (val) {
-                  if (val == 'step2') {
-                    _openRecipeGuide(context, slot, preferStep2: true);
-                  } else if (val == 'guide') {
-                    _openRecipeGuide(context, slot);
-                  } else if (val == 'select') {
+                  if (val == 'select') {
                     bleService.selectSlot(slotIdx);
                   } else if (val == 'move') {
                     _showMoveDialog(context, slotIdx);
