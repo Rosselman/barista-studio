@@ -244,14 +244,14 @@ class RecipeDetailDialog extends StatelessWidget {
 
                   // Ingredients
                   if (recipe.ingredients.isNotEmpty) ...[
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.inventory_2_outlined, size: 15, color: AppTheme.goldPrimary),
-                        const SizedBox(width: 6),
+                        Icon(Icons.inventory_2_outlined, size: 15, color: AppTheme.goldPrimary),
+                        SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'INGREDIENTS',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.goldPrimary,
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
@@ -303,14 +303,14 @@ class RecipeDetailDialog extends StatelessWidget {
 
                   // Step-by-Step Preparation Guide
                   if (recipe.instructions.isNotEmpty) ...[
-                    Row(
+                    const Row(
                       children: [
-                        const Icon(Icons.format_list_numbered, size: 15, color: AppTheme.goldPrimary),
-                        const SizedBox(width: 6),
+                        Icon(Icons.format_list_numbered, size: 15, color: AppTheme.goldPrimary),
+                        SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             'STEP-BY-STEP PREPARATION GUIDE',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.goldPrimary,
                               fontSize: 12,
                               fontWeight: FontWeight.w800,

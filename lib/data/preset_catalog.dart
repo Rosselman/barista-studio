@@ -225,14 +225,14 @@ class PresetCatalog {
       steps: [
         RecipeStep(
           name: 'STEP 1',
-          instruction: 'Extract 1 ristretto shot (40 ml) into the jug. Press start to aerate & bloom crema.',
+          instruction: 'Extract 1 ristretto shot (40 ml) into the jug. Press start to aerate & bloom crema (unheated).',
           phases: [
-            Phase.clamped(speed: 2000, accel: 600, temp: 65, duration: 15),
+            Phase.clamped(speed: 2000, accel: 600, temp: 0, duration: 15),
           ],
         ),
         RecipeStep(
           name: 'STEP 2',
-          instruction: 'Machine pauses. Add 70 ml heavy cream & milk mixture. Press dial to froth velvety warm cream (68°C).',
+          instruction: 'Machine pauses ("ADD MILK" prompt). Add 70 ml heavy cream & milk mixture. Press dial to froth velvety warm cream (68°C).',
           phases: [
             Phase.clamped(speed: 2100, accel: 600, temp: 68, duration: 25),
           ],
@@ -244,8 +244,8 @@ class PresetCatalog {
         '1 Scoop Vanilla bean gelato',
       ],
       instructions: [
-        'Extract 1 ristretto capsule directly into the Barista jug. Press start to initiate Step 1 crema aeration.',
-        'When the machine beeps and enters PAUSE, open lid and add 70 ml chilled cream & milk mixture.',
+        'Extract 1 ristretto capsule directly into the Barista jug. Press start to initiate Step 1 crema aeration (unheated, protects jug base).',
+        'When the machine beeps and enters PAUSE (OLED displays "ADD MILK"), open lid and add 70 ml chilled cream & milk mixture.',
         'Press the machine center dial to resume Step 2 (heats and whips velvety cream at 68°C).',
         'Place 1 generous scoop of vanilla bean gelato in a bowl or dessert glass.',
         'Pour the piping hot velvety cream foam over the gelato and serve immediately.',

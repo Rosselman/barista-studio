@@ -928,7 +928,8 @@ class BaristaBleService extends ChangeNotifier {
         completer.complete(fallback);
       }
     } else if (cmdId == BaristaBleConstants.cmdInsert ||
-        cmdId == BaristaBleConstants.cmdAppend) {
+        cmdId == BaristaBleConstants.cmdAppend ||
+        cmdId == BaristaBleConstants.cmdReplace) {
       final statusCode = data[2] & 0xFF;
       if (statusCode == BaristaBleConstants.rspSuccess) {
         _log('Recipe flashed successfully to Barista! (Status: 0x20)');
@@ -999,15 +1000,45 @@ class BaristaBleService extends ChangeNotifier {
     // Determine occupied count
     final occupiedCount = _slots.where((s) => s.isOccupied).length;
 
-    // SDataWay firmware rules:
-    // CMD_INSERT (0x00) is used when target slot is already occupied (1..occupiedCount).
-    // For empty memory (occupiedCount == 0), or appending to the next slot (targetSlot < 0 or >= occupiedCount),
-    // the machine firmware requires CMD_APPEND (0x01)!
-    final isAppend = (targetSlot < 0 || occupiedCount == 0 || targetSlot >= occupiedCount);
-    final targetPos = isAppend ? (occupiedCount + 1) : (targetSlot + 1);
-    final clampedPos = targetPos.clamp(1, 13);
+    // Reject auto-append if hardware memory is completely full
+    if (targetSlot < 0 && occupiedCount >= 13) {
+      _log('Cannot flash: Hardware memory is full (13/13). Overwrite required.');
+      _isUploading = false;
+      _uploadStatusText = 'Memory full (13/13). Select an existing slot to overwrite.';
+      notifyListeners();
+      return false;
+    }
 
-    _log('Flashing "${recipe.name}" via ${isAppend ? 'CMD_APPEND' : 'CMD_INSERT'} at position $clampedPos');
+    // Determine target slot characteristics
+    final isExplicitSlot = targetSlot >= 0 && targetSlot < 13;
+    final isOverwrite = isExplicitSlot && _slots[targetSlot].isOccupied;
+
+    // SDataWay firmware rules:
+    // CMD_REPLACE (0x02): Overwrites an existing occupied slot in place.
+    // CMD_APPEND (0x01): Appends recipe to the next free slot (omits targetPos).
+    // CMD_INSERT (0x00): Inserts before target position and shifts existing down.
+    final bool isAppend;
+    final int commandId;
+    final int clampedPos;
+
+    if (isOverwrite) {
+      isAppend = false;
+      commandId = BaristaBleConstants.cmdReplace;
+      clampedPos = (targetSlot + 1).clamp(1, 13);
+    } else if (targetSlot < 0 || occupiedCount == 0 || targetSlot >= occupiedCount) {
+      isAppend = true;
+      commandId = BaristaBleConstants.cmdAppend;
+      clampedPos = (occupiedCount + 1).clamp(1, 13);
+    } else {
+      isAppend = false;
+      commandId = BaristaBleConstants.cmdInsert;
+      clampedPos = (targetSlot + 1).clamp(1, 13);
+    }
+
+    final cmdName = commandId == BaristaBleConstants.cmdReplace
+        ? 'CMD_REPLACE'
+        : (isAppend ? 'CMD_APPEND' : 'CMD_INSERT');
+    _log('Flashing "${recipe.name}" via $cmdName at slot position $clampedPos');
 
     try {
       final packet = RecipePacketBuilder.buildPacket(
@@ -1019,7 +1050,6 @@ class BaristaBleService extends ChangeNotifier {
         phases: recipe.phases,
       );
 
-      final commandId = isAppend ? BaristaBleConstants.cmdAppend : BaristaBleConstants.cmdInsert;
       final chunks = RecipePacketBuilder.buildChunks(commandId, packet);
       final totalChunks = chunks.length;
 

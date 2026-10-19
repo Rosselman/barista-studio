@@ -14,6 +14,7 @@ import 'package:barista_studio/protocol/recipe_packet_builder.dart';
 import 'package:barista_studio/services/barista_ble_service.dart';
 import 'package:barista_studio/services/storage_service.dart';
 import 'package:barista_studio/theme/app_theme.dart';
+import 'package:barista_studio/ui/widgets/flash_recipe_dialog.dart';
 import 'package:barista_studio/ui/widgets/recipe_detail_dialog.dart';
 
 void main() {
@@ -459,6 +460,12 @@ void main() {
     expect(affogato.isMultiStep, true);
     expect(affogato.steps.length, greaterThanOrEqualTo(2));
 
+    // Step 1: unheated crema bloom to prevent base overheating
+    final step1 = affogato.steps[0];
+    expect(step1.phases.first.temp, 0);
+    expect(step1.phases.first.isCold, true);
+
+    // Step 2: velvety warm cream
     final step2 = affogato.steps[1];
     expect(step2.name, 'STEP 2');
     expect(step2.instruction, isNotNull);
@@ -495,6 +502,54 @@ void main() {
     expect(find.text('Multi-Step (2 Steps)'), findsOneWidget);
     expect(find.text('Hot Coffee'), findsOneWidget);
     expect(find.text('Dairy'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('FlashRecipeDialog handles full memory without overflow in portrait', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+
+    // Cache 13 occupied slots so bleService initializes with full memory
+    final fullSlots = List.generate(
+      13,
+      (i) => SlotInfo(
+        slotIndex: i,
+        isOccupied: true,
+        recipeName: 'Preset Recipe ${i + 1}',
+        recipeUuid: '00000000-0000-0000-0000-${i.toString().padLeft(12, '0')}',
+      ),
+    );
+    const testMac = 'AA:BB:CC:DD:EE:FF';
+    await storage.setLastConnectedMac(testMac);
+    await storage.saveCachedSlots(testMac, fullSlots);
+
+    final ble = BaristaBleService(storageService: storage);
+    final cappuccino = PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
+
+    // Narrow portrait phone screen (320px width)
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: FlashRecipeDialog(
+            recipe: cappuccino,
+            bleService: ble,
+          ),
+        ),
+      ),
+    );
+
+    // Memory full alert is visible
+    expect(find.textContaining('Hardware memory full (13/13)'), findsOneWidget);
+    // Auto-append option is hidden
+    expect(find.text('Next Available Slot (Auto-Append)'), findsNothing);
+    // Overwrite Slot 1 is displayed on the button
+    expect(find.text('Overwrite Slot 1'), findsOneWidget);
+    // No layout overflow exception thrown
     expect(tester.takeException(), isNull);
   });
 }

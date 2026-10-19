@@ -60,7 +60,15 @@ class _FlashRecipeDialogState extends State<FlashRecipeDialog> {
   @override
   void initState() {
     super.initState();
-    _selectedSlot = widget.initialTargetSlot;
+    final isMemoryFull = widget.bleService.slots.isNotEmpty &&
+        widget.bleService.slots.every((s) => s.isOccupied);
+    if (widget.initialTargetSlot >= 0 && widget.initialTargetSlot < 13) {
+      _selectedSlot = widget.initialTargetSlot;
+    } else if (isMemoryFull) {
+      _selectedSlot = 0; // Default to Slot 1 for overwrite when memory is full
+    } else {
+      _selectedSlot = -1; // Auto-append
+    }
   }
 
   void _startFlash() async {
@@ -109,6 +117,12 @@ class _FlashRecipeDialogState extends State<FlashRecipeDialog> {
   @override
   Widget build(BuildContext context) {
     final slots = widget.bleService.slots;
+    final isMemoryFull = slots.isNotEmpty && slots.every((s) => s.isOccupied);
+
+    // If memory is full and current selection is still auto-append, point to slot 0
+    if (isMemoryFull && _selectedSlot < 0) {
+      _selectedSlot = 0;
+    }
 
     return Dialog(
       backgroundColor: AppTheme.surfaceCard,
@@ -172,9 +186,36 @@ class _FlashRecipeDialogState extends State<FlashRecipeDialog> {
 
             // Target Slot Selector
             if (!_isFlashing && !_isSuccess) ...[
-              const Text(
-                'Select Destination Slot',
-                style: TextStyle(
+              if (isMemoryFull) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.amberHeat.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.amberHeat.withOpacity(0.4)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppTheme.amberHeat, size: 16),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Hardware memory full (13/13). Select an existing slot to overwrite.',
+                          style: TextStyle(
+                            color: AppTheme.amberHeat,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              Text(
+                isMemoryFull ? 'Select Slot to Overwrite' : 'Select Destination Slot',
+                style: const TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -195,23 +236,24 @@ class _FlashRecipeDialogState extends State<FlashRecipeDialog> {
                     dropdownColor: AppTheme.surfaceCard,
                     icon: const Icon(Icons.keyboard_arrow_down, color: AppTheme.goldPrimary),
                     items: [
-                      const DropdownMenuItem<int>(
-                        value: -1,
-                        child: Text(
-                          'Next Available Slot (Auto-Append)',
-                          style: TextStyle(
-                            color: AppTheme.goldLight,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
+                      if (!isMemoryFull)
+                        const DropdownMenuItem<int>(
+                          value: -1,
+                          child: Text(
+                            'Next Available Slot (Auto-Append)',
+                            style: TextStyle(
+                              color: AppTheme.goldLight,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
-                      ),
                       for (int i = 0; i < 13; i++)
                         DropdownMenuItem<int>(
                           value: i,
                           child: Text(
                             slots[i].isOccupied
-                                ? 'Slot ${i + 1} (${slots[i].recipeName})'
+                                ? 'Slot ${i + 1} (${slots[i].recipeName}) - Overwrite'
                                 : 'Slot ${i + 1} (Empty)',
                             style: TextStyle(
                               color: slots[i].isOccupied
@@ -219,6 +261,7 @@ class _FlashRecipeDialogState extends State<FlashRecipeDialog> {
                                   : AppTheme.textMuted,
                               fontSize: 13,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                     ],
@@ -296,13 +339,22 @@ class _FlashRecipeDialogState extends State<FlashRecipeDialog> {
                     ),
                   ),
                 if (!_isSuccess && !_isFlashing) ...[
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.flash_on, size: 18),
-                    label: Text(_selectedSlot == -1
-                        ? 'Append Recipe'
-                        : 'Overwrite Slot ${_selectedSlot + 1}'),
-                    onPressed: _startFlash,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                      icon: const Icon(Icons.flash_on, size: 16),
+                      label: Text(
+                        _selectedSlot == -1
+                            ? 'Append Recipe'
+                            : 'Overwrite Slot ${_selectedSlot + 1}',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
+                      onPressed: _startFlash,
+                    ),
                   ),
                 ],
               ],
