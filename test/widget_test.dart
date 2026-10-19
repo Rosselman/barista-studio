@@ -449,6 +449,20 @@ void main() {
     expect(resolvedCustom, isNotNull);
     expect(resolvedCustom!.id, 'c0ffee00-1111-2222-3333-444455556666');
   });
+
+  test('Multi-step recipes correctly configure Step 2 with instructions and parameters', () {
+    final affogato = PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
+    expect(affogato.isMultiStep, true);
+    expect(affogato.steps.length, greaterThanOrEqualTo(2));
+
+    final step2 = affogato.steps[1];
+    expect(step2.name, 'STEP 2');
+    expect(step2.instruction, isNotNull);
+    expect(step2.instruction!.contains('heavy cream'), true);
+    expect(step2.totalDurationSeconds, 25);
+    expect(step2.maxTemp, 68);
+    expect(step2.peakRpm, 2100);
+  });
 }
 
 

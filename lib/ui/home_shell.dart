@@ -11,6 +11,7 @@ import 'tabs/slots_tab.dart';
 import 'widgets/about_dialog.dart';
 import 'widgets/developer_dialog.dart';
 import 'widgets/recipe_detail_dialog.dart';
+import 'widgets/step2_instruction_dialog.dart';
 
 class HomeShell extends StatefulWidget {
   final BaristaBleService bleService;
@@ -415,9 +416,79 @@ class _HomeShellState extends State<HomeShell> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        // Step 2 Button for Multi-Step Recipes (at end of step 1 / paused, or preview during step 1)
+                        if (activeRecipe != null &&
+                            activeRecipe.isMultiStep &&
+                            (telemetry.machineState.isPaused ||
+                                (telemetry.machineState.isExecuting && _currentStepNumber == 1))) ...[
+                          const SizedBox(width: 8),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(6),
+                            onTap: () {
+                              Step2InstructionDialog.show(
+                                context,
+                                recipe: activeRecipe,
+                                bleService: widget.bleService,
+                                onCustomize: _onCustomizeRecipe,
+                              );
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: telemetry.machineState.isPaused ? 9 : 8,
+                                vertical: telemetry.machineState.isPaused ? 3.5 : 3,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: telemetry.machineState.isPaused
+                                    ? const LinearGradient(
+                                        colors: [AppTheme.goldPrimary, AppTheme.amberHeat],
+                                      )
+                                    : null,
+                                color: telemetry.machineState.isPaused
+                                    ? null
+                                    : AppTheme.goldPrimary.withOpacity(0.16),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: telemetry.machineState.isPaused
+                                      ? AppTheme.goldLight
+                                      : AppTheme.goldPrimary.withOpacity(0.5),
+                                  width: telemetry.machineState.isPaused ? 1.2 : 0.8,
+                                ),
+                                boxShadow: telemetry.machineState.isPaused
+                                    ? [
+                                        BoxShadow(
+                                          color: AppTheme.amberHeat.withOpacity(0.4),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    telemetry.machineState.isPaused ? Icons.bolt : Icons.next_plan_outlined,
+                                    size: 13,
+                                    color: telemetry.machineState.isPaused ? Colors.black : AppTheme.goldLight,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    telemetry.machineState.isPaused ? "What's Step 2?" : 'Step 2 Prep',
+                                    style: TextStyle(
+                                      color: telemetry.machineState.isPaused ? Colors.black : AppTheme.goldLight,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                         if ((telemetry.machineState.isExecuting || telemetry.machineState.isPaused) &&
                             activeRecipe != null) ...[
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           InkWell(
                             borderRadius: BorderRadius.circular(6),
                             onTap: () {

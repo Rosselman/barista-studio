@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import '../widgets/flash_recipe_dialog.dart';
 import '../widgets/loadout_manager_dialog.dart';
 import '../widgets/recipe_detail_dialog.dart';
+import '../widgets/step2_instruction_dialog.dart';
 
 class SlotsTab extends StatelessWidget {
   final BaristaBleService bleService;
@@ -267,7 +268,7 @@ class SlotsTab extends StatelessWidget {
     );
   }
 
-  void _openRecipeGuide(BuildContext context, dynamic slot) {
+  void _openRecipeGuide(BuildContext context, dynamic slot, {bool preferStep2 = false}) {
     Recipe? recipe;
     final uuid = slot.recipeUuid as String?;
     final name = slot.recipeName as String;
@@ -300,12 +301,21 @@ class SlotsTab extends StatelessWidget {
       ],
     );
 
-    RecipeDetailDialog.show(
-      context,
-      recipe: recipe,
-      bleService: bleService,
-      onCustomize: onCustomize,
-    );
+    if (preferStep2 && recipe.isMultiStep) {
+      Step2InstructionDialog.show(
+        context,
+        recipe: recipe,
+        bleService: bleService,
+        onCustomize: onCustomize,
+      );
+    } else {
+      RecipeDetailDialog.show(
+        context,
+        recipe: recipe,
+        bleService: bleService,
+        onCustomize: onCustomize,
+      );
+    }
   }
 
   Widget _buildSlotCard(BuildContext context, dynamic slot, bool isSelected) {
@@ -476,33 +486,33 @@ class SlotsTab extends StatelessWidget {
 
           // Slot Actions
           if (isOccupied) ...[
-            // Guide Link Button
+            // Guide / Step 2 Link Button
             Tooltip(
-              message: 'View Recipe Guide',
+              message: isPaused ? 'View Step 2 Instructions' : 'View Recipe Guide',
               child: InkWell(
                 borderRadius: BorderRadius.circular(6),
-                onTap: () => _openRecipeGuide(context, slot),
+                onTap: () => _openRecipeGuide(context, slot, preferStep2: isPaused),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
                   decoration: BoxDecoration(
                     color: isExecuting
                         ? AppTheme.cyanCold.withOpacity(0.2)
                         : (isPaused
-                            ? AppTheme.amberHeat.withOpacity(0.2)
+                            ? AppTheme.amberHeat.withOpacity(0.25)
                             : AppTheme.surfaceElevated),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: isExecuting
                           ? AppTheme.cyanCold
                           : (isPaused ? AppTheme.amberHeat : AppTheme.borderSubtle),
-                      width: 0.8,
+                      width: isPaused ? 1.2 : 0.8,
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.menu_book_outlined,
+                        isPaused ? Icons.bolt : Icons.menu_book_outlined,
                         size: 13,
                         color: isExecuting
                             ? AppTheme.cyanCold
@@ -510,7 +520,7 @@ class SlotsTab extends StatelessWidget {
                       ),
                       const SizedBox(width: 3.5),
                       Text(
-                        'Guide',
+                        isPaused ? 'Step 2' : 'Guide',
                         style: TextStyle(
                           color: isExecuting
                               ? AppTheme.cyanCold
@@ -561,6 +571,17 @@ class SlotsTab extends StatelessWidget {
                 ),
                 padding: EdgeInsets.zero,
                 itemBuilder: (ctx) => [
+                  if (isPaused)
+                    const PopupMenuItem(
+                      value: 'step2',
+                      child: Row(
+                        children: [
+                          Icon(Icons.bolt, size: 16, color: AppTheme.amberHeat),
+                          SizedBox(width: 10),
+                          Text("What's Step 2?", style: TextStyle(color: AppTheme.amberHeat, fontSize: 13, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
                   const PopupMenuItem(
                     value: 'guide',
                     child: Row(
@@ -605,7 +626,9 @@ class SlotsTab extends StatelessWidget {
                   ],
                 ],
                 onSelected: (val) {
-                  if (val == 'guide') {
+                  if (val == 'step2') {
+                    _openRecipeGuide(context, slot, preferStep2: true);
+                  } else if (val == 'guide') {
                     _openRecipeGuide(context, slot);
                   } else if (val == 'select') {
                     bleService.selectSlot(slotIdx);

@@ -444,6 +444,15 @@ flutter build web --release
 ## 7. Changelog
 
 ### v1.5.0 (In Development — Feature Complete)
+- **Interactive Multi-Step Guidance & "What's Step 2?" Action System**:
+  - **Live Step 2 Guidance**: When a 2-step recipe finishes Step 1 and the Barista machine enters its hardware pause state (`MachineState.recipePaused`), the top HUD banner instantly displays an animated glowing `[⚡ What's Step 2?]` button.
+  - **`Step2InstructionDialog`**: Tapping the action button opens a dedicated modal specifically highlighting what to do for Step 2:
+    - Exact human-readable Step 2 instruction text and measurements.
+    - 4-step actionable checklist (Open lid -> Add ingredients -> Secure lid -> Press dial).
+    - Live machine status callout explaining that the motor has cut off and dial press is required.
+    - Telemetry profile of the upcoming step (duration, temperature, RPM) and optional ingredients accordion.
+  - **Step 2 Prep Preview**: While Step 1 is actively executing, the top bar displays a subtle `[Step 2 Prep]` button so users can get milk, syrups, or espresso ready in advance.
+  - **Slots Tab Step 2 Integration**: Occupied slot cards automatically switch their Guide pill to `[⚡ Step 2]` when paused, alongside a new `What's Step 2?` menu option.
 - **Direct Step-by-Step Recipe Guides in Slots Tab**:
   - Added direct `[📖 Guide]` action buttons on every occupied rotary slot card in the Slots tab, opening the complete step-by-step preparation instructions, measurements, and ingredient lists without leaving the tab.
   - Added `Step-by-step Guide` option to each slot's overflow menu (available both online and offline).
