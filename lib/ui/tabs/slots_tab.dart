@@ -5,6 +5,7 @@ import '../../services/barista_ble_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/flash_recipe_dialog.dart';
+import '../widgets/loadout_manager_dialog.dart';
 
 class SlotsTab extends StatelessWidget {
   final BaristaBleService bleService;
@@ -170,6 +171,24 @@ class SlotsTab extends StatelessWidget {
                           ],
                         ),
                       ),
+                      if (storageService != null) ...[
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.goldPrimary,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            minimumSize: const Size(88, 32),
+                          ),
+                          icon: const Icon(Icons.dashboard_customize_outlined, size: 14),
+                          label: const Text('Loadouts', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700)),
+                          onPressed: () => LoadoutManagerDialog.show(
+                            context,
+                            bleService: bleService,
+                            storageService: storageService!,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       IconButton(
                         icon: Icon(
                           Icons.refresh,

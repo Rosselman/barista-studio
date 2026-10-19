@@ -443,7 +443,24 @@ flutter build web --release
 
 ## 7. Changelog
 
-### v1.3.2 (Latest Release)
+### v1.4.0 (Latest Release)
+- **Saved Loadouts (Profiles) & 13-Slot Batch Flashing**:
+  - **Wheel Profiles**: Users can now capture and save their entire 13-slot rotary dial arrangement as a named Loadout (e.g., *"Summer Iced Wheel"*, *"Winter Warmers"*, *"House Guests"*).
+  - **Batch Flash Engine**: Re-flash all 13 slots in one automated batch operation. The engine safely issues `CMD_CLEAR` (`0x06`) to wipe physical EEPROM memory, then sequentially writes each recipe via `CMD_APPEND` (`0x01`) with CRC verification and settling delays.
+  - **Dual-Level Progress Tracking**: Interactive `BatchFlashDialog` displays total batch progress, active chunk transmission percentages, and per-slot checkmarks.
+  - **3 Built-In Curated Loadouts**: Shipped out-of-the-box with *Summer Iced Wheel* (13 cold foams, nitro clouds, and freddos), *Winter Warmers* (13 rich chocolates, spiced comforts, and warm coffees), and *House Guests* (13 crowd-pleasers and classics).
+- **Favorites System**:
+  - Added a responsive ★ (Star/Favorite) toggle icon on every recipe card across both Curated Presets and My Recipes.
+  - Added a dedicated `★ Favorites` filter chip situated immediately next to `All` at the top of the Recipes tab for 1-tap filtering.
+  - Instant reactive state synchronization powered by `StorageService` ChangeNotifier.
+- **Live Brewing Timer & Phase Tracker**:
+  - Whenever a known recipe is executing in the active rotary dial slot, the top HUD banner displays a live countdown timer and phase tracker:
+    - *Multi-Step*: `🔄 Executing • Step 1, Phase 2 • 18s left • Slot 3 (Affogato Cream)`
+    - *Single-Step*: `🔄 Executing • Phase 1 of 2 • 12s left • Slot 1 (Cappuccino)`
+  - Tracks hardware transitions in real time: shifts to `⏸️ Paused (Step 1 Complete • Press Dial for Step 2)` during intermediate additions, automatically switches to Step 2 when the center dial is pressed, and resets upon completion.
+  - Sleek cyan micro-progress bar rendered along the status banner showing live step progression.
+
+### v1.3.2
 - **Hardware Telemetry State Decoding Fix**:
   - Eliminated bogus bitmask and right-shift `(byte1 & 0xFC) >> 2` that collapsed states `01` (Ready), `02` (Executing), and `03` (Settings) into `0` (Standby), and mapped `07` (Paused) into `1` (Ready).
   - Aligned `MachineState.fromByte` with the firmware's unshifted 0..7 state index: `0x00` = Standby, `0x01` = Ready, `0x02` = Executing, `0x03` = Settings Mode, `0x04` = Error, `0x05` = Overheated, `0x06` = First Setup, and `0x07` = Paused.

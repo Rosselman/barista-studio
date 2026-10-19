@@ -64,10 +64,17 @@ class _RecipesTabState extends State<RecipesTab> {
     });
   }
 
+  List<String> get _categories => [
+        'All',
+        '★ Favorites',
+        ...PresetCatalog.categories.where((c) => c != 'All'),
+      ];
+
   List<Recipe> get _filteredPresets {
     final query = _searchQuery.toLowerCase().trim();
     return PresetCatalog.presets.where((r) {
       final matchesCategory = _selectedCategory == 'All' ||
+          (_selectedCategory == '★ Favorites' && widget.storageService.isFavorite(r.id)) ||
           r.category == _selectedCategory ||
           r.tags.contains(_selectedCategory);
       final matchesSearch = query.isEmpty ||
@@ -82,12 +89,17 @@ class _RecipesTabState extends State<RecipesTab> {
 
   List<Recipe> get _filteredCustomRecipes {
     final query = _searchQuery.toLowerCase().trim();
-    if (query.isEmpty) return _customRecipes;
     return _customRecipes.where((r) {
-      return r.name.toLowerCase().contains(query) ||
+      final matchesCategory = _selectedCategory == 'All' ||
+          (_selectedCategory == '★ Favorites' && widget.storageService.isFavorite(r.id)) ||
+          r.category == _selectedCategory ||
+          r.tags.contains(_selectedCategory);
+      final matchesSearch = query.isEmpty ||
+          r.name.toLowerCase().contains(query) ||
           r.description.toLowerCase().contains(query) ||
           r.category.toLowerCase().contains(query) ||
           r.tags.any((t) => t.toLowerCase().contains(query));
+      return matchesCategory && matchesSearch;
     }).toList();
   }
 
@@ -406,7 +418,7 @@ class _RecipesTabState extends State<RecipesTab> {
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: PresetCatalog.categories.map((cat) {
+                        children: _categories.map((cat) {
                           final isSelected = _selectedCategory == cat;
                           return Padding(
                             padding: const EdgeInsets.only(right: 8),
@@ -507,6 +519,39 @@ class _RecipesTabState extends State<RecipesTab> {
 
   Widget _buildPresetsGrid() {
     final recipes = _filteredPresets;
+    if (recipes.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _selectedCategory == '★ Favorites' ? Icons.star_border : Icons.search_off,
+                size: 48,
+                color: AppTheme.goldPrimary.withOpacity(0.5),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _selectedCategory == '★ Favorites'
+                    ? 'No favorite presets yet'
+                    : 'No matching recipes found',
+                style: const TextStyle(color: AppTheme.crema, fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _selectedCategory == '★ Favorites'
+                    ? 'Tap the ★ star icon on any recipe card to add it to your favorites.'
+                    : 'Try refining your search term or selecting another category.',
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
       sliver: SliverLayoutBuilder(
@@ -536,6 +581,39 @@ class _RecipesTabState extends State<RecipesTab> {
 
   Widget _buildCustomRecipesGrid() {
     final recipes = _filteredCustomRecipes;
+    if (recipes.isEmpty) {
+      return SliverFillRemaining(
+        hasScrollBody: false,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                _selectedCategory == '★ Favorites' ? Icons.star_border : Icons.search_off,
+                size: 48,
+                color: AppTheme.goldPrimary.withOpacity(0.5),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _selectedCategory == '★ Favorites'
+                    ? 'No favorite custom recipes'
+                    : 'No matching custom recipes found',
+                style: const TextStyle(color: AppTheme.crema, fontSize: 15, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _selectedCategory == '★ Favorites'
+                    ? 'Tap the ★ star icon on your custom recipes to add them to your favorites.'
+                    : 'Try refining your search term.',
+                style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return SliverPadding(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
       sliver: SliverLayoutBuilder(
@@ -565,6 +643,7 @@ class _RecipesTabState extends State<RecipesTab> {
 
   Widget _buildRecipeCard(BuildContext context, Recipe recipe, {required bool isCustom}) {
     final isCold = recipe.isCold;
+    final isFavorite = widget.storageService.isFavorite(recipe.id);
 
     return Container(
       decoration: BoxDecoration(
@@ -578,7 +657,7 @@ class _RecipesTabState extends State<RecipesTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Name and Hot/Cold Badge
+          // Header: Name, Star Favorite, and Hot/Cold Badge
           Row(
             children: [
               Expanded(
@@ -593,6 +672,19 @@ class _RecipesTabState extends State<RecipesTab> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              IconButton(
+                icon: Icon(
+                  isFavorite ? Icons.star : Icons.star_border,
+                  size: 20,
+                  color: isFavorite ? AppTheme.goldPrimary : AppTheme.textMuted,
+                ),
+                tooltip: isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                visualDensity: VisualDensity.compact,
+                onPressed: () => widget.storageService.toggleFavorite(recipe.id),
+              ),
+              const SizedBox(width: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                 decoration: BoxDecoration(

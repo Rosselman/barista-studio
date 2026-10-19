@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:barista_studio/data/default_loadouts.dart';
 import 'package:barista_studio/data/preset_catalog.dart';
 import 'package:barista_studio/models/machine_state.dart';
 import 'package:barista_studio/models/phase.dart';
 import 'package:barista_studio/models/recipe.dart';
 import 'package:barista_studio/models/recipe_step.dart';
+import 'package:barista_studio/models/wheel_loadout.dart';
 import 'package:barista_studio/protocol/crc16.dart';
 import 'package:barista_studio/protocol/recipe_packet_builder.dart';
 import 'package:barista_studio/services/storage_service.dart';
@@ -210,5 +212,99 @@ void main() {
     expect(affogato.steps.last.name, 'STEP 2');
     expect(affogato.tags.contains('Multi-Step'), true);
   });
+
+  test('DefaultLoadouts contains curated 13-slot profiles and resolves properly', () {
+    expect(DefaultLoadouts.defaults.length, 3);
+
+    final summer = DefaultLoadouts.summerIcedWheel;
+    expect(summer.name, 'Summer Iced Wheel');
+    expect(summer.slots.length, 13);
+    final resolvedSummer = summer.resolveRecipes([]);
+    expect(resolvedSummer.where((r) => r != null).length, 13);
+
+    final winter = DefaultLoadouts.winterWarmers;
+    expect(winter.name, 'Winter Warmers');
+    expect(winter.slots.length, 13);
+    final resolvedWinter = winter.resolveRecipes([]);
+    expect(resolvedWinter.where((r) => r != null).length, 13);
+
+    final guests = DefaultLoadouts.houseGuests;
+    expect(guests.name, 'House Guests');
+    expect(guests.slots.length, 13);
+    final resolvedGuests = guests.resolveRecipes([]);
+    expect(resolvedGuests.where((r) => r != null).length, 13);
+  });
+
+  test('WheelLoadout serialization roundtrip works correctly', () {
+    final loadout = WheelLoadout.create(
+      name: 'Custom Party Loadout',
+      description: 'Favorite party drinks',
+      slots: [
+        const LoadoutSlotEntry(slotIndex: 0, recipeId: 'rec-1', recipeName: 'Drink 1'),
+        const LoadoutSlotEntry(slotIndex: 1, recipeId: 'rec-2', recipeName: 'Drink 2', isCustom: true),
+      ],
+    );
+
+    final json = loadout.toJson();
+    final restored = WheelLoadout.fromJson(json);
+
+    expect(restored.name, 'Custom Party Loadout');
+    expect(restored.description, 'Favorite party drinks');
+    expect(restored.slots.length, 2);
+    expect(restored.slots[0].slotIndex, 0);
+    expect(restored.slots[0].recipeName, 'Drink 1');
+    expect(restored.slots[1].isCustom, true);
+  });
+
+  test('StorageService favorites management and persistence work reactively', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+
+    int notificationCount = 0;
+    storage.addListener(() => notificationCount++);
+
+    expect(storage.getFavorites().isEmpty, true);
+    expect(storage.isFavorite('test-recipe-1'), false);
+
+    // Toggle ON
+    await storage.toggleFavorite('test-recipe-1');
+    expect(storage.isFavorite('test-recipe-1'), true);
+    expect(storage.getFavorites().contains('test-recipe-1'), true);
+    expect(notificationCount, 1);
+
+    // Toggle OFF
+    await storage.toggleFavorite('test-recipe-1');
+    expect(storage.isFavorite('test-recipe-1'), false);
+    expect(storage.getFavorites().isEmpty, true);
+    expect(notificationCount, 2);
+  });
+
+  test('StorageService custom wheel loadouts persistence and defaults work', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+
+    // Defaults are always included
+    final all = storage.getAllLoadouts();
+    expect(all.length, greaterThanOrEqualTo(3));
+    expect(storage.getCustomLoadouts().isEmpty, true);
+
+    // Save a custom loadout
+    final custom = WheelLoadout.create(
+      name: 'My Special Wheel',
+      slots: [
+        const LoadoutSlotEntry(slotIndex: 0, recipeId: 'rec-1', recipeName: 'Recipe 1'),
+      ],
+    );
+
+    await storage.saveLoadout(custom);
+    expect(storage.getCustomLoadouts().length, 1);
+    expect(storage.getAllLoadouts().length, all.length + 1);
+
+    // Delete custom loadout
+    await storage.deleteLoadout(custom.id);
+    expect(storage.getCustomLoadouts().isEmpty, true);
+    expect(storage.getAllLoadouts().length, all.length);
+  });
 }
+
 

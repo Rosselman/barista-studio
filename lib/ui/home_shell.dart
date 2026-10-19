@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../data/preset_catalog.dart';
+import '../models/machine_telemetry.dart';
 import '../models/recipe.dart';
 import '../services/barista_ble_service.dart';
 import '../services/storage_service.dart';
@@ -27,12 +30,184 @@ class _HomeShellState extends State<HomeShell> {
   int _currentIndex = 0;
   final GlobalKey<CustomRecipeTabState> _customRecipeKey = GlobalKey<CustomRecipeTabState>();
 
+  Timer? _brewTicker;
+  DateTime? _stepStartTime;
+  int _currentStepNumber = 1;
+  MachineState _lastMachineState = MachineState.standby;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.bleService.autoConnect();
     });
+  }
+
+  @override
+  void dispose() {
+    _brewTicker?.cancel();
+    super.dispose();
+  }
+
+  void _syncBrewingState(MachineTelemetry telemetry) {
+    final currentState = telemetry.machineState;
+    if (currentState == _lastMachineState) return;
+
+    if (currentState == MachineState.recipeExecuting) {
+      if (_lastMachineState == MachineState.recipePaused) {
+        _currentStepNumber++;
+      } else {
+        _currentStepNumber = 1;
+      }
+      _stepStartTime = DateTime.now();
+      _startBrewTicker();
+    } else if (currentState == MachineState.recipePaused) {
+      _stopBrewTicker();
+    } else if (currentState == MachineState.ready || currentState == MachineState.standby) {
+      _stopBrewTicker();
+      _currentStepNumber = 1;
+      _stepStartTime = null;
+    }
+
+    _lastMachineState = currentState;
+  }
+
+  void _startBrewTicker() {
+    _brewTicker?.cancel();
+    _brewTicker = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _stopBrewTicker() {
+    _brewTicker?.cancel();
+    _brewTicker = null;
+  }
+
+  Recipe? _resolveActiveRecipe(int? slotIdx) {
+    if (slotIdx == null || slotIdx < 0 || slotIdx >= 13) return null;
+    final slot = widget.bleService.slots[slotIdx];
+    if (slot.recipeUuid != null && slot.recipeUuid!.isNotEmpty) {
+      final fromUuid = PresetCatalog.findByUuid(slot.recipeUuid!);
+      if (fromUuid != null) return fromUuid;
+    }
+    if (slot.recipeName.isNotEmpty && !slot.recipeName.startsWith('Slot ')) {
+      final nameLower = slot.recipeName.toLowerCase().trim();
+      final fromPresetName = PresetCatalog.presets
+          .where((r) => r.name.toLowerCase().trim() == nameLower)
+          .firstOrNull;
+      if (fromPresetName != null) return fromPresetName;
+
+      final fromCustom = widget.storageService.getCustomRecipes().where((r) {
+        return r.name.toLowerCase().trim() == nameLower ||
+            (slot.recipeUuid != null && r.id == slot.recipeUuid);
+      }).firstOrNull;
+      if (fromCustom != null) return fromCustom;
+    }
+    return null;
+  }
+
+  (String, double?) _buildBrewingStatus(
+    MachineTelemetry telemetry,
+    bool isConnected,
+    bool isScanning,
+  ) {
+    if (!isConnected) {
+      final text = isScanning
+          ? 'SEARCHING FOR BARISTA W545...'
+          : 'DISCONNECTED • TAP CONNECT TO PAIR';
+      return (text, null);
+    }
+
+    final isPaused = telemetry.machineState.isPaused;
+    final isExecuting = telemetry.machineState.isExecuting;
+    final slotIdx = telemetry.selectedSlot;
+    final slotNumStr = (slotIdx != null && slotIdx >= 0 && slotIdx < 13)
+        ? 'Slot ${slotIdx + 1}'
+        : '';
+
+    if (isPaused) {
+      final recipe = _resolveActiveRecipe(slotIdx);
+      final recipeName = recipe?.name ??
+          (slotIdx != null ? widget.bleService.slots[slotIdx].recipeName : '');
+      final nameSuffix = recipeName.isNotEmpty ? ' • $recipeName' : '';
+      return ('Barista connected • ⏸️ Paused (Press Dial for Step 2)$nameSuffix', 1.0);
+    }
+
+    if (isExecuting) {
+      final recipe = _resolveActiveRecipe(slotIdx);
+      final elapsed = _stepStartTime != null
+          ? DateTime.now().difference(_stepStartTime!).inSeconds
+          : 0;
+
+      if (recipe != null) {
+        if (recipe.isMultiStep && recipe.steps.isNotEmpty) {
+          final stepIdx = (_currentStepNumber - 1).clamp(0, recipe.steps.length - 1);
+          final activeStep = recipe.steps[stepIdx];
+          final phases = activeStep.phases;
+          final stepTotalSec = phases.fold<int>(0, (s, p) => s + p.duration);
+
+          int currentPhase = 1;
+          int phaseRemaining = phases.isNotEmpty ? phases[0].duration : 0;
+          int acc = 0;
+          for (int i = 0; i < phases.length; i++) {
+            final pDuration = phases[i].duration;
+            if (elapsed < acc + pDuration || i == phases.length - 1) {
+              currentPhase = i + 1;
+              phaseRemaining = ((acc + pDuration) - elapsed).clamp(0, pDuration);
+              break;
+            }
+            acc += pDuration;
+          }
+
+          final prog = stepTotalSec > 0
+              ? (elapsed / stepTotalSec).clamp(0.0, 1.0)
+              : 0.0;
+          final text =
+              '🔄 Executing • Step $_currentStepNumber, Phase $currentPhase • ${phaseRemaining}s left • $slotNumStr (${recipe.name})';
+          return (text, prog);
+        } else {
+          final phases = recipe.activePhases;
+          final totalSec = recipe.totalDurationSeconds;
+
+          int currentPhase = 1;
+          int phaseRemaining = phases.isNotEmpty ? phases[0].duration : 0;
+          int acc = 0;
+          for (int i = 0; i < phases.length; i++) {
+            final pDuration = phases[i].duration;
+            if (elapsed < acc + pDuration || i == phases.length - 1) {
+              currentPhase = i + 1;
+              phaseRemaining = ((acc + pDuration) - elapsed).clamp(0, pDuration);
+              break;
+            }
+            acc += pDuration;
+          }
+
+          final prog = totalSec > 0
+              ? (elapsed / totalSec).clamp(0.0, 1.0)
+              : 0.0;
+          final phaseStr = phases.length > 1
+              ? 'Phase $currentPhase of ${phases.length}'
+              : 'Phase 1';
+          final text =
+              '🔄 Executing • $phaseStr • ${phaseRemaining}s left • $slotNumStr (${recipe.name})';
+          return (text, prog);
+        }
+      } else {
+        // Unknown recipe fallback
+        final slotName = (slotIdx != null && slotIdx >= 0 && slotIdx < 13)
+            ? widget.bleService.slots[slotIdx].recipeName
+            : '';
+        final nameStr = slotName.isNotEmpty ? ' ($slotName)' : '';
+        final text = '🔄 Executing • $slotNumStr$nameStr • ${elapsed}s elapsed';
+        return (text, null);
+      }
+    }
+
+    // Idle states: Ready, Standby, Settings
+    final slotStatus = slotNumStr.isNotEmpty ? ' • $slotNumStr' : '';
+    final text = 'Barista connected • ${telemetry.machineState.label}$slotStatus';
+    return (text, null);
   }
 
   void _onCustomizeRecipe(Recipe recipe) {
@@ -56,6 +231,25 @@ class _HomeShellState extends State<HomeShell> {
         final telemetry = widget.bleService.telemetry;
         final isConnected = telemetry.isConnected;
         final isScanning = telemetry.isScanning;
+
+        _syncBrewingState(telemetry);
+        final (statusText, brewProgress) =
+            _buildBrewingStatus(telemetry, isConnected, isScanning);
+
+        Color indicatorColor;
+        if (!isConnected) {
+          indicatorColor = isScanning ? AppTheme.amberHeat : AppTheme.textMuted;
+        } else if (telemetry.machineState.isPaused) {
+          indicatorColor = AppTheme.goldLight;
+        } else if (telemetry.machineState.isExecuting) {
+          indicatorColor = AppTheme.cyanCold;
+        } else if (telemetry.machineState.isReady) {
+          indicatorColor = AppTheme.emeraldSuccess;
+        } else if (telemetry.machineState.isStandby) {
+          indicatorColor = AppTheme.crema.withOpacity(0.65);
+        } else {
+          indicatorColor = AppTheme.amberHeat;
+        }
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -209,76 +403,39 @@ class _HomeShellState extends State<HomeShell> {
                         bottom: BorderSide(color: AppTheme.borderSubtle, width: 1),
                       ),
                     ),
-                    child: Builder(
-                          builder: (context) {
-                            final isPaused = telemetry.machineState.isPaused;
-                            final isExecuting = telemetry.machineState.isExecuting;
-                            final isReady = telemetry.machineState.isReady;
-                            final isStandby = telemetry.machineState.isStandby;
-
-                            Color indicatorColor;
-                            if (!isConnected) {
-                              indicatorColor = isScanning ? AppTheme.amberHeat : AppTheme.textMuted;
-                            } else if (isPaused) {
-                              indicatorColor = AppTheme.goldLight;
-                            } else if (isExecuting) {
-                              indicatorColor = AppTheme.cyanCold;
-                            } else if (isReady) {
-                              indicatorColor = AppTheme.emeraldSuccess;
-                            } else if (isStandby) {
-                              indicatorColor = AppTheme.crema.withOpacity(0.65);
-                            } else {
-                              indicatorColor = AppTheme.amberHeat;
-                            }
-
-                            final slot = telemetry.selectedSlot;
-                            final slotStatus = (slot != null && slot >= 0 && slot < 13)
-                                ? ' • Slot ${slot + 1}'
-                                : '';
-
-                            String statusText;
-                            if (!isConnected) {
-                              statusText = isScanning
-                                  ? 'SEARCHING FOR BARISTA W545...'
-                                  : 'DISCONNECTED • TAP CONNECT TO PAIR';
-                            } else {
-                              if (isPaused) {
-                                statusText = 'Barista connected • ⏸️ Paused (Press Machine Dial)';
-                              } else if (isExecuting) {
-                                statusText = 'Barista connected • 🔄 Executing$slotStatus';
-                              } else {
-                                statusText = 'Barista connected • ${telemetry.machineState.label}$slotStatus';
-                              }
-                            }
-
-                            return Row(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: BoxDecoration(
-                                    color: indicatorColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    statusText,
-                                    style: TextStyle(
-                                      color: indicatorColor,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.3,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: indicatorColor,
+                            shape: BoxShape.circle,
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              color: indicatorColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (telemetry.machineState.isExecuting && brewProgress != null)
+                    LinearProgressIndicator(
+                      value: brewProgress,
+                      minHeight: 2.5,
+                      backgroundColor: AppTheme.surfaceElevated,
+                      valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.cyanCold),
                     ),
 
                   // Main View Area

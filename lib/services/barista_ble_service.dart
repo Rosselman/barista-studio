@@ -8,6 +8,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/machine_telemetry.dart';
 import '../models/recipe.dart';
 import '../models/slot_info.dart';
+import '../models/wheel_loadout.dart';
 import '../protocol/barista_ble_constants.dart';
 import '../protocol/gatt_op_queue.dart';
 import '../protocol/recipe_packet_builder.dart';
@@ -60,6 +61,9 @@ class BaristaBleService extends ChangeNotifier {
   String? _uploadStatusText;
   String? get uploadStatusText => _uploadStatusText;
   Completer<bool>? _uploadCompleter;
+  Completer<bool>? _clearCompleter;
+  bool _refreshSlotsAfterClear = true;
+  bool _refreshSlotsAfterUpload = true;
 
   // Protocol Log Stream
   final _logController = StreamController<String>.broadcast();
@@ -866,7 +870,9 @@ class BaristaBleService extends ChangeNotifier {
         _uploadStatusText = 'Recipe added! Check your Barista.';
         _uploadCompleter?.complete(true);
         notifyListeners();
-        fetchAllSlots();
+        if (_refreshSlotsAfterUpload) {
+          fetchAllSlots();
+        }
       } else {
         final err = BaristaBleConstants.getStatusMessage(statusCode);
         _log('Upload failed: $err (0x${statusCode.toRadixString(16)})');
@@ -888,8 +894,13 @@ class BaristaBleService extends ChangeNotifier {
         for (int i = 0; i < 13; i++) {
           _slots[i] = SlotInfo(slotIndex: i, recipeName: 'Slot ${i + 1} (Empty)');
         }
+        _clearCompleter?.complete(true);
         notifyListeners();
-        fetchAllSlots();
+        if (_refreshSlotsAfterClear) {
+          fetchAllSlots();
+        }
+      } else {
+        _clearCompleter?.complete(false);
       }
     }
   }
@@ -903,12 +914,14 @@ class BaristaBleService extends ChangeNotifier {
     required Recipe recipe,
     int targetSlot = -1, // -1 = next available slot (Auto-Append)
     void Function(double progress)? onProgress,
+    bool refreshSlotsAfter = true,
   }) async {
     if (!isConnected || _charRecipeCommand == null) {
       _log('Cannot flash: Machine not connected.');
       return false;
     }
 
+    _refreshSlotsAfterUpload = refreshSlotsAfter;
     _isUploading = true;
     _uploadProgress = 0.0;
     _uploadStatusText = 'Preparing binary packet...';
@@ -1047,11 +1060,15 @@ class BaristaBleService extends ChangeNotifier {
   }
 
   /// Clears all 13 slots in machine EEPROM
-  Future<void> clearAllSlots() async {
-    if (_charRecipeCommand == null) return;
+  Future<bool> clearAllSlots({bool waitForAck = false, bool refreshSlots = true}) async {
+    if (_charRecipeCommand == null) return false;
+    _refreshSlotsAfterClear = refreshSlots;
+    if (waitForAck) {
+      _clearCompleter = Completer<bool>();
+    }
     final cmd = [BaristaBleConstants.cmdClear, 0x00];
     _log('Clearing all 13 slots on machine...');
-    await _opQueue.enqueue(() async {
+    final sent = await _opQueue.enqueue(() async {
       try {
         await _charRecipeCommand!.write(cmd, withoutResponse: false);
         return true;
@@ -1060,6 +1077,91 @@ class BaristaBleService extends ChangeNotifier {
         return false;
       }
     }, description: 'Clear All Slots');
+
+    if (sent != true) {
+      _clearCompleter?.complete(false);
+      return false;
+    }
+
+    if (waitForAck && _clearCompleter != null) {
+      return await _clearCompleter!.future.timeout(
+        const Duration(seconds: 6),
+        onTimeout: () {
+          _clearCompleter = null;
+          return false;
+        },
+      );
+    }
+    return true;
+  }
+
+  /// Batch-flashes an entire 13-slot WheelLoadout to the machine in one operation
+  Future<bool> flashBatchLoadout({
+    required WheelLoadout loadout,
+    required List<Recipe> customRecipes,
+    void Function(int currentStep, int totalSteps, String recipeName, double stepProgress)? onProgress,
+  }) async {
+    if (!isConnected || _charRecipeCommand == null) {
+      _log('Cannot batch flash: Machine not connected.');
+      return false;
+    }
+
+    final resolved = loadout.resolveRecipes(customRecipes);
+    final itemsToFlash = <(int slotIndex, Recipe recipe)>[];
+    for (int i = 0; i < 13; i++) {
+      final r = resolved[i];
+      if (r != null) {
+        itemsToFlash.add((i, r));
+      }
+    }
+
+    if (itemsToFlash.isEmpty) {
+      _log('Cannot batch flash: No valid recipes found in loadout.');
+      return false;
+    }
+
+    final total = itemsToFlash.length;
+    _log('Starting batch flash of "${loadout.name}" ($total recipes)...');
+
+    // Step 0: Erase EEPROM memory cleanly
+    onProgress?.call(0, total, 'Erasing wheel EEPROM...', 0.0);
+    final cleared = await clearAllSlots(waitForAck: true, refreshSlots: false);
+    if (!cleared) {
+      _log('Batch flash aborted: Failed to clear slots.');
+      return false;
+    }
+
+    // Settling delay for hardware EEPROM write cycle
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    // Sequentially flash each recipe into empty slots 1..N
+    for (int i = 0; i < total; i++) {
+      final (_, recipe) = itemsToFlash[i];
+      onProgress?.call(i + 1, total, recipe.name, 0.0);
+
+      final success = await flashRecipe(
+        recipe: recipe,
+        targetSlot: -1, // auto-append sequentially
+        refreshSlotsAfter: false,
+        onProgress: (prog) {
+          onProgress?.call(i + 1, total, recipe.name, prog);
+        },
+      );
+
+      if (!success) {
+        _log('Batch flash failed on slot ${i + 1} (${recipe.name})');
+        fetchAllSlots();
+        return false;
+      }
+
+      // Brief buffer pause between recipes
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+
+    // All flashed successfully! Single refresh to populate all 13 slots from EEPROM
+    _log('Batch flash completed successfully! Fetching slot table...');
+    fetchAllSlots();
+    return true;
   }
 
   /// Moves/reorders slot position on the machine
