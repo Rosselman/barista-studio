@@ -407,6 +407,48 @@ void main() {
     expect(cached[1].isOccupied, false);
     expect(cached[12].isOccupied, false);
   });
+
+  test('PresetCatalog.findByName matches case-insensitively and returns correct Recipe', () {
+    final r1 = PresetCatalog.findByName('Cappuccino');
+    expect(r1, isNotNull);
+    expect(r1!.name, 'Cappuccino');
+
+    final r2 = PresetCatalog.findByName('cappuccino');
+    expect(r2, isNotNull);
+    expect(r2!.name, 'Cappuccino');
+
+    final r3 = PresetCatalog.findByName('non existent drink');
+    expect(r3, isNull);
+  });
+
+  test('StorageService.resolveRecipe resolves full model by uuid and name', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+
+    // 1. Resolve preset by UUID
+    final p1 = storage.resolveRecipe(uuid: '6450bd62-b706-44e7-8b67-7063ec64a492');
+    expect(p1, isNotNull);
+    expect(p1!.name, 'Cappuccino');
+
+    // 2. Resolve preset by Name
+    final p2 = storage.resolveRecipe(name: 'Latte Macchiato');
+    expect(p2, isNotNull);
+    expect(p2!.id, 'd4648f3a-7a66-4e51-bb3d-848ed1176709');
+
+    // 3. Resolve custom recipe by Name
+    final custom = Recipe(
+      id: 'c0ffee00-1111-2222-3333-444455556666',
+      name: 'Custom Cold Brew Delight',
+      description: 'Special chilled foam',
+      category: 'Iced & Cold Coffee',
+      phases: [Phase.clamped(speed: 1800, accel: 500, temp: 20, duration: 25)],
+    );
+    await storage.saveCustomRecipe(custom);
+
+    final resolvedCustom = storage.resolveRecipe(name: 'custom cold brew delight');
+    expect(resolvedCustom, isNotNull);
+    expect(resolvedCustom!.id, 'c0ffee00-1111-2222-3333-444455556666');
+  });
 }
 
 

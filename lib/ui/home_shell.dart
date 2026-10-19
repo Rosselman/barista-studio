@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../data/preset_catalog.dart';
 import '../models/machine_telemetry.dart';
 import '../models/recipe.dart';
 import '../services/barista_ble_service.dart';
@@ -11,6 +10,7 @@ import 'tabs/presets_tab.dart';
 import 'tabs/slots_tab.dart';
 import 'widgets/about_dialog.dart';
 import 'widgets/developer_dialog.dart';
+import 'widgets/recipe_detail_dialog.dart';
 
 class HomeShell extends StatefulWidget {
   final BaristaBleService bleService;
@@ -87,24 +87,10 @@ class _HomeShellState extends State<HomeShell> {
   Recipe? _resolveActiveRecipe(int? slotIdx) {
     if (slotIdx == null || slotIdx < 0 || slotIdx >= 13) return null;
     final slot = widget.bleService.slots[slotIdx];
-    if (slot.recipeUuid != null && slot.recipeUuid!.isNotEmpty) {
-      final fromUuid = PresetCatalog.findByUuid(slot.recipeUuid!);
-      if (fromUuid != null) return fromUuid;
-    }
-    if (slot.recipeName.isNotEmpty && !slot.recipeName.startsWith('Slot ')) {
-      final nameLower = slot.recipeName.toLowerCase().trim();
-      final fromPresetName = PresetCatalog.presets
-          .where((r) => r.name.toLowerCase().trim() == nameLower)
-          .firstOrNull;
-      if (fromPresetName != null) return fromPresetName;
-
-      final fromCustom = widget.storageService.getCustomRecipes().where((r) {
-        return r.name.toLowerCase().trim() == nameLower ||
-            (slot.recipeUuid != null && r.id == slot.recipeUuid);
-      }).firstOrNull;
-      if (fromCustom != null) return fromCustom;
-    }
-    return null;
+    return widget.storageService.resolveRecipe(
+      uuid: slot.recipeUuid,
+      name: slot.recipeName,
+    );
   }
 
   (String, double?) _buildBrewingStatus(
@@ -235,6 +221,7 @@ class _HomeShellState extends State<HomeShell> {
         _syncBrewingState(telemetry);
         final (statusText, brewProgress) =
             _buildBrewingStatus(telemetry, isConnected, isScanning);
+        final activeRecipe = _resolveActiveRecipe(telemetry.selectedSlot);
 
         Color indicatorColor;
         if (!isConnected) {
@@ -270,6 +257,7 @@ class _HomeShellState extends State<HomeShell> {
               SlotsTab(
                 bleService: widget.bleService,
                 storageService: widget.storageService,
+                onCustomize: _onCustomizeRecipe,
               ),
             ];
 
@@ -427,6 +415,44 @@ class _HomeShellState extends State<HomeShell> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if ((telemetry.machineState.isExecuting || telemetry.machineState.isPaused) &&
+                            activeRecipe != null) ...[
+                          const SizedBox(width: 8),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(6),
+                            onTap: () {
+                              RecipeDetailDialog.show(
+                                context,
+                                recipe: activeRecipe,
+                                bleService: widget.bleService,
+                                onCustomize: _onCustomizeRecipe,
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: indicatorColor.withOpacity(0.18),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: indicatorColor.withOpacity(0.5)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.menu_book_outlined, size: 12, color: indicatorColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Guide',
+                                    style: TextStyle(
+                                      color: indicatorColor,
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),

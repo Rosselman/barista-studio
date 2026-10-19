@@ -178,6 +178,55 @@ class StorageService extends ChangeNotifier {
     return null;
   }
 
+  /// Comprehensive Recipe model resolver:
+  /// Resolves the full Recipe model from UUID or recipe name across PresetCatalog,
+  /// user Custom Recipes, and Default Loadouts.
+  Recipe? resolveRecipe({String? uuid, String? name}) {
+    if (uuid != null && uuid.trim().isNotEmpty) {
+      final clean = uuid.replaceAll('-', '').toLowerCase().trim();
+      final preset = PresetCatalog.findByUuid(clean);
+      if (preset != null) return preset;
+
+      for (final custom in getCustomRecipes()) {
+        if (custom.id.replaceAll('-', '').toLowerCase().trim() == clean) {
+          return custom;
+        }
+      }
+
+      for (final loadout in DefaultLoadouts.defaults) {
+        for (final entry in loadout.slots) {
+          if (entry.recipeId.replaceAll('-', '').toLowerCase().trim() == clean) {
+            final fromCatalog = PresetCatalog.findByUuid(entry.recipeId);
+            if (fromCatalog != null) return fromCatalog;
+          }
+        }
+      }
+    }
+
+    if (name != null && name.trim().isNotEmpty) {
+      final cleanName = name.toLowerCase().trim();
+      final preset = PresetCatalog.findByName(cleanName);
+      if (preset != null) return preset;
+
+      for (final custom in getCustomRecipes()) {
+        if (custom.name.toLowerCase().trim() == cleanName) {
+          return custom;
+        }
+      }
+
+      for (final loadout in DefaultLoadouts.defaults) {
+        for (final entry in loadout.slots) {
+          if (entry.recipeName.toLowerCase().trim() == cleanName) {
+            final fromCatalog = PresetCatalog.findByUuid(entry.recipeId);
+            if (fromCatalog != null) return fromCatalog;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
   // --- Hardware Memory / Cached Slot Table ---
   List<SlotInfo>? getCachedSlots(String? macAddress) {
     if (macAddress == null || macAddress.isEmpty) return null;

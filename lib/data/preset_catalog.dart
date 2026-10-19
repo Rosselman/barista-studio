@@ -1914,4 +1914,17 @@ class PresetCatalog {
       return null;
     }
   }
+
+  /// Lookup preset by exact or case-insensitive name
+  static Recipe? findByName(String name) {
+    final clean = name.toLowerCase().trim();
+    if (clean.isEmpty) return null;
+    try {
+      return presets.firstWhere(
+        (p) => p.name.toLowerCase().trim() == clean,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 }

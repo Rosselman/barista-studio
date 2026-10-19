@@ -6,15 +6,18 @@ import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/flash_recipe_dialog.dart';
 import '../widgets/loadout_manager_dialog.dart';
+import '../widgets/recipe_detail_dialog.dart';
 
 class SlotsTab extends StatelessWidget {
   final BaristaBleService bleService;
   final StorageService? storageService;
+  final void Function(Recipe recipe)? onCustomize;
 
   const SlotsTab({
     super.key,
     required this.bleService,
     this.storageService,
+    this.onCustomize,
   });
 
   void _confirmClearAll(BuildContext context) {
@@ -264,10 +267,53 @@ class SlotsTab extends StatelessWidget {
     );
   }
 
+  void _openRecipeGuide(BuildContext context, dynamic slot) {
+    Recipe? recipe;
+    final uuid = slot.recipeUuid as String?;
+    final name = slot.recipeName as String;
+
+    if (storageService != null) {
+      recipe = storageService!.resolveRecipe(uuid: uuid, name: name);
+    } else {
+      if (uuid != null && uuid.isNotEmpty) {
+        recipe = PresetCatalog.findByUuid(uuid);
+      }
+      if (recipe == null && name.isNotEmpty) {
+        recipe = PresetCatalog.findByName(name);
+      }
+    }
+
+    // Graceful fallback for physical slots without an exact catalog match
+    recipe ??= Recipe(
+      id: uuid ?? 'slot-${slot.slotIndex}',
+      name: name,
+      description: 'Custom recipe profile residing in rotary Slot ${slot.displayNumber} on the machine.',
+      category: 'Machine Slot',
+      ingredients: const [
+        'Insert the Barista whisk into the jug.',
+        'Add milk, coffee, water, or other ingredients up to the level indicator.',
+      ],
+      instructions: const [
+        'Ensure the jug lid is securely closed.',
+        'Select this slot on the rotary dial or via the app.',
+        'Press the start button to brew.',
+      ],
+    );
+
+    RecipeDetailDialog.show(
+      context,
+      recipe: recipe,
+      bleService: bleService,
+      onCustomize: onCustomize,
+    );
+  }
+
   Widget _buildSlotCard(BuildContext context, dynamic slot, bool isSelected) {
     final isOccupied = slot.isOccupied as bool;
     final slotNum = slot.displayNumber as int;
     final slotIdx = slot.slotIndex as int;
+    final isExecuting = isSelected && bleService.telemetry.machineState.isExecuting;
+    final isPaused = isSelected && bleService.telemetry.machineState.isPaused;
 
     return Material(
       color: Colors.transparent,
@@ -278,25 +324,47 @@ class SlotsTab extends StatelessWidget {
             : null,
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.surfaceCard,
+            color: isExecuting
+                ? AppTheme.cyanCold.withOpacity(0.04)
+                : (isPaused ? AppTheme.amberHeat.withOpacity(0.04) : AppTheme.surfaceCard),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected
-                  ? AppTheme.goldPrimary
-                  : (isOccupied ? AppTheme.borderSubtle : AppTheme.surfaceElevated),
-              width: isSelected ? 1.6 : 1,
+              color: isExecuting
+                  ? AppTheme.cyanCold
+                  : (isPaused
+                      ? AppTheme.amberHeat
+                      : (isSelected
+                          ? AppTheme.goldPrimary
+                          : (isOccupied ? AppTheme.borderSubtle : AppTheme.surfaceElevated))),
+              width: (isSelected || isExecuting || isPaused) ? 1.6 : 1,
             ),
-            boxShadow: isSelected
+            boxShadow: isExecuting
                 ? [
                     BoxShadow(
-                      color: AppTheme.goldPrimary.withOpacity(0.12),
-                      blurRadius: 8,
+                      color: AppTheme.cyanCold.withOpacity(0.2),
+                      blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
                   ]
-                : null,
+                : (isPaused
+                    ? [
+                        BoxShadow(
+                          color: AppTheme.amberHeat.withOpacity(0.2),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : (isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppTheme.goldPrimary.withOpacity(0.12),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null)),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: Row(
             children: [
           // Slot Number Indicator
@@ -304,12 +372,20 @@ class SlotsTab extends StatelessWidget {
             width: 34,
             height: 34,
             decoration: BoxDecoration(
-              color: isSelected
-                  ? AppTheme.goldPrimary
-                  : (isOccupied ? AppTheme.surfaceElevated : AppTheme.surfaceInput),
+              color: isExecuting
+                  ? AppTheme.cyanCold
+                  : (isPaused
+                      ? AppTheme.amberHeat
+                      : (isSelected
+                          ? AppTheme.goldPrimary
+                          : (isOccupied ? AppTheme.surfaceElevated : AppTheme.surfaceInput))),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isSelected ? AppTheme.goldLight : AppTheme.borderSubtle,
+                color: isExecuting
+                    ? AppTheme.cyanCold
+                    : (isPaused
+                        ? AppTheme.amberHeat
+                        : (isSelected ? AppTheme.goldLight : AppTheme.borderSubtle)),
               ),
             ),
             alignment: Alignment.center,
@@ -323,7 +399,7 @@ class SlotsTab extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
 
           // Slot Details
           Expanded(
@@ -338,7 +414,7 @@ class SlotsTab extends StatelessWidget {
                         slot.recipeName,
                         style: TextStyle(
                           color: isOccupied ? AppTheme.crema : AppTheme.textMuted,
-                          fontSize: 13.5,
+                          fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
                         maxLines: 1,
@@ -346,19 +422,30 @@ class SlotsTab extends StatelessWidget {
                       ),
                     ),
                     if (isSelected) ...[
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                         decoration: BoxDecoration(
-                          color: AppTheme.goldPrimary.withOpacity(0.18),
+                          color: isExecuting
+                              ? AppTheme.cyanCold.withOpacity(0.2)
+                              : (isPaused
+                                  ? AppTheme.amberHeat.withOpacity(0.2)
+                                  : AppTheme.goldPrimary.withOpacity(0.18)),
                           borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: AppTheme.goldPrimary, width: 0.6),
+                          border: Border.all(
+                            color: isExecuting
+                                ? AppTheme.cyanCold
+                                : (isPaused ? AppTheme.amberHeat : AppTheme.goldPrimary),
+                            width: 0.6,
+                          ),
                         ),
-                        child: const Text(
-                          'ACTIVE',
+                        child: Text(
+                          isExecuting ? 'BREWING' : (isPaused ? 'PAUSED' : 'ACTIVE'),
                           style: TextStyle(
-                            color: AppTheme.goldLight,
-                            fontSize: 9,
+                            color: isExecuting
+                                ? AppTheme.cyanCold
+                                : (isPaused ? AppTheme.amberHeat : AppTheme.goldLight),
+                            fontSize: 8.5,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.5,
                           ),
@@ -389,6 +476,55 @@ class SlotsTab extends StatelessWidget {
 
           // Slot Actions
           if (isOccupied) ...[
+            // Guide Link Button
+            Tooltip(
+              message: 'View Recipe Guide',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(6),
+                onTap: () => _openRecipeGuide(context, slot),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4.5),
+                  decoration: BoxDecoration(
+                    color: isExecuting
+                        ? AppTheme.cyanCold.withOpacity(0.2)
+                        : (isPaused
+                            ? AppTheme.amberHeat.withOpacity(0.2)
+                            : AppTheme.surfaceElevated),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: isExecuting
+                          ? AppTheme.cyanCold
+                          : (isPaused ? AppTheme.amberHeat : AppTheme.borderSubtle),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.menu_book_outlined,
+                        size: 13,
+                        color: isExecuting
+                            ? AppTheme.cyanCold
+                            : (isPaused ? AppTheme.amberHeat : AppTheme.goldLight),
+                      ),
+                      const SizedBox(width: 3.5),
+                      Text(
+                        'Guide',
+                        style: TextStyle(
+                          color: isExecuting
+                              ? AppTheme.cyanCold
+                              : (isPaused ? AppTheme.amberHeat : AppTheme.goldLight),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 3),
             // Direct machine selection action
             IconButton(
               icon: Icon(
@@ -396,28 +532,29 @@ class SlotsTab extends StatelessWidget {
                 size: 20,
               ),
               color: isSelected
-                  ? AppTheme.goldPrimary
+                  ? (isExecuting
+                      ? AppTheme.cyanCold
+                      : (isPaused ? AppTheme.amberHeat : AppTheme.goldPrimary))
                   : (bleService.isConnected ? AppTheme.textSecondary : AppTheme.borderSubtle),
               tooltip: bleService.isConnected ? 'Select on Screen' : 'Machine offline',
-              constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+              constraints: const BoxConstraints.tightFor(width: 30, height: 30),
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.compact,
               onPressed: bleService.isConnected ? () => bleService.selectSlot(slotIdx) : null,
             ),
             // Options overflow
             SizedBox(
-              width: 32,
-              height: 32,
+              width: 26,
+              height: 26,
               child: PopupMenuButton<String>(
                 icon: Icon(
                   Icons.more_vert,
-                  size: 18,
+                  size: 17,
                   color: bleService.isConnected ? AppTheme.textMuted : AppTheme.borderSubtle,
                 ),
                 color: AppTheme.surfaceCard,
                 elevation: 8,
                 tooltip: 'Slot Options',
-                enabled: bleService.isConnected,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: const BorderSide(color: AppTheme.borderSubtle),
@@ -425,38 +562,52 @@ class SlotsTab extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 itemBuilder: (ctx) => [
                   const PopupMenuItem(
-                    value: 'select',
+                    value: 'guide',
                     child: Row(
                       children: [
-                        Icon(Icons.touch_app, size: 16, color: AppTheme.goldPrimary),
+                        Icon(Icons.menu_book_outlined, size: 16, color: AppTheme.goldLight),
                         SizedBox(width: 10),
-                        Text('Select on Machine', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
+                        Text('Step-by-step Guide', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'move',
-                    child: Row(
-                      children: [
-                        Icon(Icons.swap_vert, size: 16, color: AppTheme.crema),
-                        SizedBox(width: 10),
-                        Text('Move Position', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
-                      ],
+                  if (bleService.isConnected) ...[
+                    const PopupMenuItem(
+                      value: 'select',
+                      child: Row(
+                        children: [
+                          Icon(Icons.touch_app, size: 16, color: AppTheme.goldPrimary),
+                          SizedBox(width: 10),
+                          Text('Select on Machine', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, size: 16, color: AppTheme.rubyEmergency),
-                        SizedBox(width: 10),
-                        Text('Delete Recipe', style: TextStyle(color: AppTheme.rubyEmergency, fontSize: 13, fontWeight: FontWeight.w600)),
-                      ],
+                    const PopupMenuItem(
+                      value: 'move',
+                      child: Row(
+                        children: [
+                          Icon(Icons.swap_vert, size: 16, color: AppTheme.crema),
+                          SizedBox(width: 10),
+                          Text('Move Position', style: TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                     ),
-                  ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, size: 16, color: AppTheme.rubyEmergency),
+                          SizedBox(width: 10),
+                          Text('Delete Recipe', style: TextStyle(color: AppTheme.rubyEmergency, fontSize: 13, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
                 onSelected: (val) {
-                  if (val == 'select') {
+                  if (val == 'guide') {
+                    _openRecipeGuide(context, slot);
+                  } else if (val == 'select') {
                     bleService.selectSlot(slotIdx);
                   } else if (val == 'move') {
                     _showMoveDialog(context, slotIdx);

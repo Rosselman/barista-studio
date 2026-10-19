@@ -443,7 +443,15 @@ flutter build web --release
 
 ## 7. Changelog
 
-### v1.4.1 (Latest Release)
+### v1.5.0 (In Development — Feature Complete)
+- **Direct Step-by-Step Recipe Guides in Slots Tab**:
+  - Added direct `[📖 Guide]` action buttons on every occupied rotary slot card in the Slots tab, opening the complete step-by-step preparation instructions, measurements, and ingredient lists without leaving the tab.
+  - Added `Step-by-step Guide` option to each slot's overflow menu (available both online and offline).
+  - Enhanced `StorageService.resolveRecipe` to resolve complete recipe models across presets, custom recipes, and default loadouts by UUID or recipe name, with graceful offline fallbacks for custom slots.
+  - Dynamic Brewing Guide integration: Active slot cards visually highlight brewing state with `🔄 BREWING` (cyan) and `⏸️ PAUSED` (amber) badges, giving users an immediate visual cue to view recipe steps.
+  - Added a dedicated 1-tap `[📖 Guide]` pill button directly inside the top HUD brewing timer banner across all tabs whenever a recipe is executing or paused.
+
+### v1.4.1
 - **Optimized Favorites System (Pinned to Top)**:
   - Replaced the category filter chip with intuitive priority pinning: favoriting any recipe (Preset or My Recipe) instantly floats it to the very top of the list in the Recipes tab.
   - Pinned Favorites in Slot Flashing: Favorited recipes now automatically pin to the top of the recipe picker sheet when flashing a slot on the Slots tab, decorated with a gold ★ star badge for fast 1-tap slot programming.
