@@ -444,9 +444,18 @@ flutter build web --release
 ## 7. Changelog
 
 ### v1.4.1 (Latest Release)
+- **Flatpak Single-File Bundle for Linux**:
+  - Added dedicated Flatpak packaging (`packaging/flatpak/com.baristastudio.barista_studio.yml`) using the Freedesktop 24.08 runtime.
+  - Granted sandboxed permissions (`--system-talk-name=org.bluez`, `--socket=wayland`, `--socket=x11`, `--device=dri`) allowing full Bluetooth BLE communication with the Barista machine directly from within the Flatpak sandbox.
+  - Automated `.flatpak` bundle generation (`barista-studio-linux-1.4.1.flatpak`) via `flatpak/flatpak-github-actions/flatpak-builder@v6` in GitHub Actions.
+- **Windows Setup Installer & Portable Scripts**:
+  - Added an Inno Setup installer script (`windows/installer/barista_studio_setup.iss`) that compiles into a modern Windows setup wizard (`barista-studio-windows-1.4.1-setup.exe`) with Start Menu, Desktop shortcuts, and clean uninstaller.
+  - Included 1-click PowerShell installer scripts (`windows/install.ps1` and `windows/uninstall.ps1`) inside the portable `.zip` bundle for users who prefer unzipped installations.
+- **Versioned Build Artifact Naming**:
+  - Standardized release artifact filenames across all platforms to include the app version: `barista-studio-android-1.4.1.apk`, `barista-studio-linux-1.4.1.tar.gz`, `barista-studio-linux-1.4.1.flatpak`, `barista-studio-windows-1.4.1.zip`, `barista-studio-windows-1.4.1-setup.exe`, `barista-studio-macos-1.4.1.zip`, and `barista-studio-ios-unsigned-1.4.1.ipa`.
 - **Linux Release Packaging & Desktop Integration**:
   - Added dedicated high-resolution application branding icons (`app_icon.png`, `barista_studio.png`) across all standard resolutions (16x16 to 1024x1024) into `assets/icon/` and Flutter asset manifests.
-  - Bundled freedesktop-compliant `.desktop` launcher file (`barista_studio.desktop`) and desktop installation scripts (`install.sh` / `uninstall.sh`) directly into the Linux release bundle (`barista-studio-linux-x64.tar.gz`).
+  - Bundled freedesktop-compliant `.desktop` launcher file (`barista_studio.desktop`) and desktop installation scripts (`install.sh` / `uninstall.sh`) directly into the Linux release bundle.
   - Configured GTK3 desktop runner (`my_application.cc`) to set window and taskbar icons dynamically at runtime from bundled assets, while assigning `g_set_prgname("barista_studio")` for proper WM_CLASS matching on GNOME, KDE, and modern Linux window managers.
 - **Linux Native BLE Connectivity via BlueZ**:
   - Upgraded BLE architecture to `flutter_blue_plus: ^2.3.14`, incorporating first-class Linux desktop support via `flutter_blue_plus_linux` and BlueZ D-Bus socket integration.

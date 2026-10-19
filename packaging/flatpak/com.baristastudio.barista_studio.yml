@@ -1,0 +1,38 @@
+app-id: com.baristastudio.barista_studio
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+command: barista_studio
+
+finish-args:
+  - --share=ipc
+  - --socket=x11
+  - --socket=wayland
+  - --device=dri
+  - --system-talk-name=org.bluez
+
+modules:
+  - name: barista_studio
+    buildsystem: simple
+    build-commands:
+      # Install entrypoint wrapper into /app/bin
+      - install -d /app/bin
+      - printf '#!/bin/sh\nexec /app/barista_studio "$@"\n' > /app/bin/barista_studio
+      - chmod 755 /app/bin/barista_studio
+      # Install bundle contents directly into /app
+      - cp -a barista_studio /app/
+      - cp -a lib /app/
+      - cp -a data /app/
+      # Install desktop file, icon, and appstream metainfo
+      - install -D -m 644 com.baristastudio.barista_studio.desktop /app/share/applications/com.baristastudio.barista_studio.desktop
+      - install -D -m 644 com.baristastudio.barista_studio.png /app/share/icons/hicolor/512x512/apps/com.baristastudio.barista_studio.png
+      - install -D -m 644 com.baristastudio.barista_studio.metainfo.xml /app/share/metainfo/com.baristastudio.barista_studio.metainfo.xml
+    sources:
+      - type: dir
+        path: bundle
+      - type: file
+        path: com.baristastudio.barista_studio.desktop
+      - type: file
+        path: com.baristastudio.barista_studio.png
+      - type: file
+        path: com.baristastudio.barista_studio.metainfo.xml

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Barista Studio
+GenericName=Recipe Maker & Studio
+Comment=Flashing and managing custom recipes on the Nespresso Barista Recipe Maker W545
+Exec=barista_studio %u
+Icon=com.baristastudio.barista_studio
+Terminal=false
+Categories=Utility;HardwareSettings;
+StartupWMClass=barista_studio
+Keywords=nespresso;barista;coffee;recipe;ble;bluetooth;w545;

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.baristastudio.barista_studio</id>
+  <name>Barista Studio</name>
+  <summary>Craft, sequence, and flash custom recipes on the Nespresso Barista Recipe Maker W545</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <developer_name>Rosselman</developer_name>
+  <description>
+    <p>
+      Barista Studio provides direct, cloudless, low-level control over the Nespresso Barista Recipe Maker hardware
+      without proprietary vendor applications, mandatory accounts, cloud backends, or internet connectivity.
+    </p>
+  </description>
+  <url type="homepage">https://github.com/Rosselman/barista-studio</url>
+  <url type="bugtracker">https://github.com/Rosselman/barista-studio/issues</url>
+  <launchable type="desktop-id">com.baristastudio.barista_studio.desktop</launchable>
+  <provides>
+    <binary>barista_studio</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <releases>
+    <release version="1.4.1" date="2026-10-19" />
+  </releases>
+</component>

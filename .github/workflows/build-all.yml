@@ -5,6 +5,9 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  APP_VERSION: '1.4.1'
+
 jobs:
   build-android:
     name: Build Android APK
@@ -31,11 +34,15 @@ jobs:
       - name: Build APK
         run: flutter build apk --release
 
+      - name: Rename APK
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk barista-studio-android-${{ env.APP_VERSION }}.apk
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: barista-studio-android-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: barista-studio-android-${{ env.APP_VERSION }}-apk
+          path: barista-studio-android-${{ env.APP_VERSION }}.apk
 
   build-macos:
     name: Build macOS Desktop (.zip)
@@ -59,13 +66,13 @@ jobs:
       - name: Compress App Bundle
         run: |
           cd build/macos/Build/Products/Release
-          zip -r barista-studio-macos.zip *.app
+          zip -r ../../../../barista-studio-macos-${{ env.APP_VERSION }}.zip *.app
 
       - name: Upload macOS App
         uses: actions/upload-artifact@v4
         with:
-          name: barista-studio-macos
-          path: build/macos/Build/Products/Release/barista-studio-macos.zip
+          name: barista-studio-macos-${{ env.APP_VERSION }}
+          path: barista-studio-macos-${{ env.APP_VERSION }}.zip
 
   build-ios:
     name: Build iOS App (.ipa)
@@ -90,13 +97,13 @@ jobs:
         run: |
           mkdir -p Payload
           cp -r build/ios/iphoneos/Runner.app Payload/
-          zip -r barista-studio-ios-unsigned.ipa Payload
+          zip -r barista-studio-ios-unsigned-${{ env.APP_VERSION }}.ipa Payload
 
       - name: Upload iOS IPA
         uses: actions/upload-artifact@v4
         with:
-          name: barista-studio-ios-unsigned
-          path: barista-studio-ios-unsigned.ipa
+          name: barista-studio-ios-unsigned-${{ env.APP_VERSION }}
+          path: barista-studio-ios-unsigned-${{ env.APP_VERSION }}.ipa
 
   build-linux:
     name: Build Linux Desktop (.tar.gz)
@@ -124,16 +131,56 @@ jobs:
 
       - name: Package Linux Binary
         run: |
-          tar -czvf barista-studio-linux-x64.tar.gz -C build/linux/x64/release/bundle .
+          tar -czvf barista-studio-linux-${{ env.APP_VERSION }}.tar.gz -C build/linux/x64/release/bundle .
 
       - name: Upload Linux App
         uses: actions/upload-artifact@v4
         with:
-          name: barista-studio-linux-x64
-          path: barista-studio-linux-x64.tar.gz
+          name: barista-studio-linux-${{ env.APP_VERSION }}
+          path: barista-studio-linux-${{ env.APP_VERSION }}.tar.gz
+
+      - name: Upload Raw Bundle for Flatpak
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release-bundle
+          path: build/linux/x64/release/bundle
+          retention-days: 1
+
+  build-flatpak:
+    name: Build Linux Flatpak (.flatpak)
+    needs: build-linux
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:freedesktop-24.08
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Linux Bundle Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-release-bundle
+          path: packaging/flatpak/bundle
+
+      - name: Make Executable
+        run: |
+          chmod +x packaging/flatpak/bundle/barista_studio
+
+      - name: Build Flatpak Bundle
+        uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: barista-studio-linux-${{ env.APP_VERSION }}.flatpak
+          manifest-path: packaging/flatpak/com.baristastudio.barista_studio.yml
+          cache: true
+
+      - name: Upload Flatpak Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: barista-studio-linux-${{ env.APP_VERSION }}-flatpak
+          path: barista-studio-linux-${{ env.APP_VERSION }}.flatpak
 
   build-windows:
-    name: Build Windows Desktop (.zip)
+    name: Build Windows Desktop (.zip & .exe installer)
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
@@ -160,13 +207,30 @@ jobs:
       - name: Build Windows Executable
         run: flutter build windows --release
 
-      - name: Compress Windows Bundle
+      - name: Copy Installer Scripts to Release Bundle
         shell: pwsh
         run: |
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath barista-studio-windows-x64.zip
+          Copy-Item windows/install.ps1 build/windows/x64/runner/Release/
+          Copy-Item windows/uninstall.ps1 build/windows/x64/runner/Release/
 
-      - name: Upload Windows App
+      - name: Compile Inno Setup Installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMyAppVersion=${{ env.APP_VERSION }} windows/installer/barista_studio_setup.iss
+
+      - name: Compress Windows Portable Bundle
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath barista-studio-windows-${{ env.APP_VERSION }}.zip
+
+      - name: Upload Windows Portable App
         uses: actions/upload-artifact@v4
         with:
-          name: barista-studio-windows-x64
-          path: barista-studio-windows-x64.zip
+          name: barista-studio-windows-${{ env.APP_VERSION }}
+          path: barista-studio-windows-${{ env.APP_VERSION }}.zip
+
+      - name: Upload Windows Setup Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: barista-studio-windows-${{ env.APP_VERSION }}-setup
+          path: windows/installer/barista-studio-windows-${{ env.APP_VERSION }}-setup.exe
