@@ -55,6 +55,29 @@ static void my_application_activate(GApplication* application) {
   geometry.min_height = 600;
   gtk_window_set_geometry_hints(window, nullptr, &geometry, GDK_HINT_MIN_SIZE);
 
+  // Set window and dock/taskbar icon from bundled assets
+  g_autofree gchar* exe_path = g_file_read_link("/proc/self/exe", nullptr);
+  if (exe_path != nullptr) {
+    g_autofree gchar* exe_dir = g_path_get_dirname(exe_path);
+    g_autofree gchar* icon_path = g_build_filename(exe_dir, "data", "flutter_assets", "assets", "icon", "app_icon_512.png", nullptr);
+    if (!g_file_test(icon_path, G_FILE_TEST_EXISTS)) {
+      g_free(icon_path);
+      icon_path = g_build_filename(exe_dir, "data", "barista_studio.png", nullptr);
+    }
+    if (!g_file_test(icon_path, G_FILE_TEST_EXISTS)) {
+      g_free(icon_path);
+      icon_path = g_build_filename(exe_dir, "barista_studio.png", nullptr);
+    }
+    if (g_file_test(icon_path, G_FILE_TEST_EXISTS)) {
+      gtk_window_set_icon_from_file(window, icon_path, nullptr);
+      gtk_window_set_default_icon_from_file(icon_path, nullptr);
+    } else {
+      gtk_window_set_default_icon_name("barista_studio");
+    }
+  } else {
+    gtk_window_set_default_icon_name("barista_studio");
+  }
+
   gtk_widget_show(GTK_WIDGET(window));
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
@@ -90,10 +113,7 @@ static gboolean my_application_local_command_line(GApplication* application, gch
 
 // Implements GApplication::startup.
 static void my_application_startup(GApplication* application) {
-  //MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application startup.
-
+  g_set_prgname("barista_studio");
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 

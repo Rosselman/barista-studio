@@ -443,7 +443,17 @@ flutter build web --release
 
 ## 7. Changelog
 
-### v1.4.0 (Latest Release)
+### v1.4.1 (Latest Release)
+- **Linux Release Packaging & Desktop Integration**:
+  - Added dedicated high-resolution application branding icons (`app_icon.png`, `barista_studio.png`) across all standard resolutions (16x16 to 1024x1024) into `assets/icon/` and Flutter asset manifests.
+  - Bundled freedesktop-compliant `.desktop` launcher file (`barista_studio.desktop`) and desktop installation scripts (`install.sh` / `uninstall.sh`) directly into the Linux release bundle (`barista-studio-linux-x64.tar.gz`).
+  - Configured GTK3 desktop runner (`my_application.cc`) to set window and taskbar icons dynamically at runtime from bundled assets, while assigning `g_set_prgname("barista_studio")` for proper WM_CLASS matching on GNOME, KDE, and modern Linux window managers.
+- **Linux Native BLE Connectivity via BlueZ**:
+  - Upgraded BLE architecture to `flutter_blue_plus: ^2.3.14`, incorporating first-class Linux desktop support via `flutter_blue_plus_linux` and BlueZ D-Bus socket integration.
+  - Extended system-paired peripheral discovery (`FlutterBluePlus.systemDevices`) to Linux desktop environments, resolving connection failures where physical machines already paired with BlueZ (`bluetoothd`) were missed by active scans.
+  - Added safe device name and identifier filtering on system devices to prevent unintended connections to non-Barista peripherals.
+
+### v1.4.0
 - **Saved Loadouts (Profiles) & 13-Slot Batch Flashing**:
   - **Wheel Profiles**: Users can now capture and save their entire 13-slot rotary dial arrangement as a named Loadout (e.g., *"Summer Iced Wheel"*, *"Winter Warmers"*, *"House Guests"*).
   - **Batch Flash Engine**: Re-flash all 13 slots in one automated batch operation. The engine safely issues `CMD_CLEAR` (`0x06`) to wipe physical EEPROM memory, then sequentially writes each recipe via `CMD_APPEND` (`0x01`) with CRC verification and settling delays.

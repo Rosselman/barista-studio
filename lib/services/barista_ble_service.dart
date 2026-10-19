@@ -233,15 +233,24 @@ class BaristaBleService extends ChangeNotifier {
         }
       }
 
-      // 2. Query system-paired peripherals on iOS, macOS, Android
-      if (!kIsWeb && (Platform.isIOS || Platform.isMacOS || Platform.isAndroid)) {
+      // 2. Query system-paired peripherals on iOS, macOS, Android, Linux
+      if (!kIsWeb && (Platform.isIOS || Platform.isMacOS || Platform.isAndroid || Platform.isLinux)) {
         final sysDevices = await FlutterBluePlus.systemDevices(baristaServiceGuids);
         for (final d in sysDevices) {
-          final displayName = d.platformName.isNotEmpty ? d.platformName : d.remoteId.str;
-          _log('Discovered system-paired Barista machine: $displayName');
-          stopScan();
-          connect(d);
-          return;
+          if (_isBaristaDevice(
+            name: d.platformName,
+            advName: d.advName,
+            mac: d.remoteId.str,
+            serviceUuids: const [],
+            serviceData: const {},
+            manufacturerData: const {},
+          )) {
+            final displayName = d.platformName.isNotEmpty ? d.platformName : d.remoteId.str;
+            _log('Discovered system-paired Barista machine: $displayName');
+            stopScan();
+            connect(d);
+            return;
+          }
         }
       }
     } catch (e) {
@@ -323,8 +332,10 @@ class BaristaBleService extends ChangeNotifier {
     try {
       if (!device.isConnected) {
         await device.connect(
+          license: License.nonprofit,
           timeout: const Duration(seconds: 8),
           autoConnect: false,
+          mtu: null,
         );
       } else {
         _log('Device already connected. Proceeding to service discovery...');
