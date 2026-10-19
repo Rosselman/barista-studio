@@ -417,7 +417,7 @@ class RecipeDetailDialog extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'FIRMWARE PAUSE (RECIPE_PAUSED)',
+                                      'MACHINE PAUSE: ADD INGREDIENTS',
                                       style: TextStyle(
                                         color: AppTheme.goldLight,
                                         fontSize: 11,
@@ -427,7 +427,7 @@ class RecipeDetailDialog extends StatelessWidget {
                                     ),
                                     SizedBox(height: 2),
                                     Text(
-                                      'Motor cuts & heater off. Add milk/ingredients to the jug, then press the center button on the machine dial to start Step 2.',
+                                      'The motor stops and heating pauses automatically. Add your milk or ingredients into the jug, then press the center button on the machine dial to start Step 2.',
                                       style: TextStyle(
                                         color: AppTheme.crema,
                                         fontSize: 12,

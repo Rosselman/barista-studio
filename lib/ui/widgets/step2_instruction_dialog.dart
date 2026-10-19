@@ -291,7 +291,7 @@ class Step2InstructionDialog extends StatelessWidget {
                   const Text(
                     'QUICK CHECKLIST',
                     style: TextStyle(
-                      color: AppTheme.textMuted,
+                      color: AppTheme.amberHeat,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.8,
@@ -303,7 +303,6 @@ class Step2InstructionDialog extends StatelessWidget {
                   _buildChecklistItem(
                     '2',
                     'Add Step 2 ingredients directly into the jug.',
-                    highlight: true,
                   ),
                   const SizedBox(height: 6),
                   _buildChecklistItem('3', 'Securely close the lid.'),
@@ -311,7 +310,6 @@ class Step2InstructionDialog extends StatelessWidget {
                   _buildChecklistItem(
                     '4',
                     'Press the center dial on the Barista machine to begin Step 2!',
-                    highlight: true,
                     icon: Icons.touch_app,
                   ),
 
@@ -451,14 +449,14 @@ class Step2InstructionDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildChecklistItem(String num, String text, {bool highlight = false, IconData? icon}) {
+  Widget _buildChecklistItem(String num, String text, {IconData? icon}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: highlight ? AppTheme.goldPrimary.withOpacity(0.08) : AppTheme.surfaceInput,
+        color: AppTheme.amberHeat.withOpacity(0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: highlight ? AppTheme.goldPrimary.withOpacity(0.4) : AppTheme.borderSubtle,
+          color: AppTheme.amberHeat.withOpacity(0.35),
         ),
       ),
       child: Row(
@@ -466,17 +464,17 @@ class Step2InstructionDialog extends StatelessWidget {
           Container(
             width: 20,
             height: 20,
-            decoration: BoxDecoration(
-              color: highlight ? AppTheme.goldPrimary : AppTheme.surfaceElevated,
+            decoration: const BoxDecoration(
+              color: AppTheme.amberHeat,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
             child: icon != null
-                ? Icon(icon, size: 12, color: highlight ? Colors.black : AppTheme.goldLight)
+                ? Icon(icon, size: 12, color: Colors.black)
                 : Text(
                     num,
-                    style: TextStyle(
-                      color: highlight ? Colors.black : AppTheme.crema,
+                    style: const TextStyle(
+                      color: Colors.black,
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                     ),
@@ -486,10 +484,10 @@ class Step2InstructionDialog extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                color: highlight ? AppTheme.crema : AppTheme.textSecondary,
+              style: const TextStyle(
+                color: AppTheme.crema,
                 fontSize: 12.5,
-                fontWeight: highlight ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
