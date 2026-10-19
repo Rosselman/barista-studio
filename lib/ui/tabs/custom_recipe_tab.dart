@@ -48,11 +48,19 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   late List<Phase> _step2Phases;
 
   // Guided Mode State
+  bool _guidedIsMultiStep = false;
   String _guidedTemp = 'cold'; // 'cold', 'warm', 'hot'
   String _guidedBase = 'coffee'; // 'coffee', 'chocolate', 'tea', 'neutral'
   String _guidedLiquid = 'dairy'; // 'dairy', 'oat', 'almond', 'coconut', 'cream'
   String _guidedTexture = 'dense'; // 'dense', 'latteArt', 'chantilly', 'stir'
   String _guidedInclusion = 'none'; // 'none', 'syrup', 'powder'
+
+  // Guided Multi-Step (Dual-Stage Froth & Unite) State
+  String _guidedStep1Base = 'coffee'; // 'coffee', 'chocolate', 'tea', 'nitro'
+  String _guidedStep1Temp = 'cold'; // 'cold', 'warm'
+  String _guidedStep2Liquid = 'dairy'; // 'dairy', 'oat', 'cream', 'coconut'
+  String _guidedStep2Texture = 'dense'; // 'dense', 'latteArt', 'chantilly'
+  String _guidedStep2Temp = 'cold'; // 'cold', 'hot'
   late TextEditingController _guidedNameController;
 
   @override
@@ -172,6 +180,55 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   // ===========================================================================
 
   String _deriveGuidedName() {
+    if (_guidedIsMultiStep) {
+      String b1;
+      switch (_guidedStep1Base) {
+        case 'chocolate':
+          b1 = 'CHOCO';
+          break;
+        case 'tea':
+          b1 = 'MATCHA';
+          break;
+        case 'nitro':
+          b1 = 'NITRO';
+          break;
+        case 'coffee':
+        default:
+          b1 = 'ESPR';
+          break;
+      }
+      String l2;
+      switch (_guidedStep2Liquid) {
+        case 'oat':
+          l2 = 'OAT';
+          break;
+        case 'cream':
+          l2 = 'CREAM';
+          break;
+        case 'coconut':
+          l2 = 'COCO';
+          break;
+        case 'dairy':
+        default:
+          switch (_guidedStep2Texture) {
+            case 'latteArt':
+              l2 = 'SILK';
+              break;
+            case 'chantilly':
+              l2 = 'VELVET';
+              break;
+            case 'dense':
+            default:
+              l2 = 'CLOUD';
+              break;
+          }
+          break;
+      }
+      final candidate = 'DUO $b1 $l2'.toUpperCase();
+      if (candidate.length <= 16) return candidate;
+      return candidate.substring(0, 16);
+    }
+
     final prefix = _guidedTemp == 'cold' ? 'COLD' : (_guidedTemp == 'hot' ? 'HOT' : 'WARM');
     String baseWord;
     switch (_guidedBase) {
@@ -221,6 +278,160 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   }
 
   Recipe _synthesizeGuidedRecipe() {
+    if (_guidedIsMultiStep) {
+      int s1Speed;
+      int s1Duration;
+      int s1Accel;
+      int s1Temp = _guidedStep1Temp == 'cold' ? 0 : 60;
+      List<Phase> s1Phases;
+      String s1Prompt;
+      String s1Ingredient;
+
+      switch (_guidedStep1Base) {
+        case 'chocolate':
+          s1Speed = 1600;
+          s1Duration = 25;
+          s1Accel = 500;
+          s1Temp = 65;
+          s1Phases = [
+            Phase.clamped(speed: 1600, accel: 500, temp: 60, duration: 20),
+            Phase.clamped(speed: 2400, accel: 700, temp: 65, duration: 15),
+          ];
+          s1Prompt = 'Add 20g chocolate & 60 ml milk. Froth molten ganache silk, then pour into serving glass.';
+          s1Ingredient = '20g Dark chocolate flakes + 60 ml milk';
+          break;
+        case 'tea':
+          s1Speed = 3400;
+          s1Duration = 22;
+          s1Accel = 850;
+          s1Phases = [
+            Phase.clamped(speed: s1Speed, accel: s1Accel, temp: s1Temp, duration: s1Duration),
+          ];
+          s1Prompt = 'Add 2g ceremonial matcha & 60 ml water/milk. Whisk emerald nectar, then pour into serving glass.';
+          s1Ingredient = '2g Ceremonial matcha powder + 60 ml water';
+          break;
+        case 'nitro':
+          s1Speed = 3600;
+          s1Duration = 20;
+          s1Accel = 900;
+          s1Temp = 0;
+          s1Phases = [
+            Phase.clamped(speed: s1Speed, accel: s1Accel, temp: 0, duration: s1Duration),
+          ];
+          s1Prompt = 'Add 80 ml cold brew & 1 ice cube. Hyper-shear nitro base, then pour into serving glass with ice.';
+          s1Ingredient = '80 ml Cold brew concentrate + ice cube';
+          break;
+        case 'coffee':
+        default:
+          s1Speed = 3200;
+          s1Duration = 18;
+          s1Accel = 800;
+          s1Phases = [
+            Phase.clamped(speed: s1Speed, accel: s1Accel, temp: s1Temp, duration: s1Duration),
+          ];
+          s1Prompt = 'Extract 1 espresso shot (40 ml) into jug. Whisk crema base, then pour into serving glass.';
+          s1Ingredient = '1 Nespresso Espresso capsule (40 ml)';
+          break;
+      }
+
+      int s2Temp = _guidedStep2Temp == 'cold' ? 0 : 65;
+      if (_guidedStep2Temp != 'cold') {
+        if (_guidedStep2Liquid == 'oat') s2Temp = 60;
+        if (_guidedStep2Liquid == 'coconut') s2Temp = 58;
+      }
+      int s2Speed;
+      int s2Duration;
+      int s2Accel;
+
+      switch (_guidedStep2Texture) {
+        case 'latteArt':
+          s2Speed = 2200;
+          s2Duration = 28;
+          s2Accel = 650;
+          break;
+        case 'chantilly':
+          s2Speed = 3800;
+          s2Duration = 24;
+          s2Accel = 1000;
+          break;
+        case 'dense':
+        default:
+          s2Speed = 3200;
+          s2Duration = 25;
+          s2Accel = 850;
+          break;
+      }
+
+      final s2Phases = [
+        Phase.clamped(speed: s2Speed, accel: s2Accel, temp: s2Temp, duration: s2Duration),
+      ];
+
+      String s2LiquidName;
+      switch (_guidedStep2Liquid) {
+        case 'oat':
+          s2LiquidName = 'barista oat milk';
+          break;
+        case 'cream':
+          s2LiquidName = 'heavy whipping cream';
+          break;
+        case 'coconut':
+          s2LiquidName = 'coconut milk';
+          break;
+        case 'dairy':
+        default:
+          s2LiquidName = 'fresh whole milk';
+          break;
+      }
+
+      final s2Prompt = 'Machine pauses. Add 100 ml $s2LiquidName to jug. Press dial to froth, then pour over Drink 1 to unite!';
+      final s2Ingredient = '100 ml $s2LiquidName';
+
+      final name = _guidedNameController.text.trim().isEmpty
+          ? _deriveGuidedName()
+          : _guidedNameController.text.trim();
+      final clampedName = name.length > 16 ? name.substring(0, 16) : name;
+
+      final isColdDrink = s1Temp == 0 && s2Temp == 0;
+      final category = isColdDrink ? 'Iced & Cold Coffee' : 'Specialty';
+
+      return Recipe(
+        id: _recipeId,
+        name: clampedName,
+        description: 'Guided dual-stage craft. Step 1 froths base into glass; Step 2 froths $s2LiquidName to pour and unite.',
+        category: category,
+        tags: [
+          'Multi-Step',
+          category,
+          _guidedStep2Liquid == 'dairy' || _guidedStep2Liquid == 'cream' ? 'Dairy' : 'Non-Dairy',
+          if (isColdDrink) 'Cold Foam & Textures',
+        ],
+        steps: [
+          RecipeStep(
+            name: 'STEP 1',
+            instruction: s1Prompt,
+            phases: s1Phases,
+          ),
+          RecipeStep(
+            name: 'STEP 2',
+            instruction: s2Prompt,
+            phases: s2Phases,
+          ),
+        ],
+        ingredients: [
+          s1Ingredient,
+          s2Ingredient,
+        ],
+        instructions: [
+          'Insert whisk. Add Step 1 ingredients into the Barista jug.',
+          'Start recipe: Step 1 aerates Drink 1 in the jug.',
+          'Pour the frothed Drink 1 into your serving glass. The machine enters pause mode.',
+          'Add Step 2 ingredients into the jug, close lid, and press the machine center dial.',
+          'Pour the freshly frothed top layer over Drink 1 in your glass to unite both creations.',
+        ],
+        isCustom: true,
+      );
+    }
+
     int temp = 0;
     if (_guidedTemp == 'warm') {
       switch (_guidedLiquid) {
@@ -357,15 +568,32 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     setState(() {
       _nameController.text = recipe.hardwareName;
       _descriptionController.text = recipe.description;
-      _isMultiStep = false;
+      _isMultiStep = recipe.isMultiStep;
       _activeStepIndex = 0;
+      _activePhaseIndex = 0;
+
+      final s1 = recipe.steps.isNotEmpty ? recipe.steps[0] : null;
+      _step1NameController.text = s1?.name ?? 'STEP 1';
+      _step1PromptController.text = s1?.instruction ?? '';
       _step1Phases = List.generate(3, (i) {
-        if (i < recipe.phases.length) {
-          return recipe.phases[i];
+        if (s1 != null && i < s1.phases.length) {
+          return s1.phases[i];
         }
         return Phase.clamped(duration: 0);
       });
-      _activePhaseIndex = 0;
+
+      final s2 = recipe.steps.length > 1 ? recipe.steps[1] : null;
+      _step2NameController.text = s2?.name ?? 'STEP 2';
+      _step2PromptController.text = s2?.instruction ?? '';
+      _step2Phases = List.generate(3, (i) {
+        if (s2 != null && i < s2.phases.length) {
+          return s2.phases[i];
+        }
+        return i == 0
+            ? Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 35)
+            : Phase.clamped(duration: 0);
+      });
+
       _mode = RecipeCraftMode.manual;
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -380,6 +608,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   // ===========================================================================
   // Manual Recipe State
   // ===========================================================================
+
+  Recipe get currentRecipe => _getCurrentRecipe();
 
   Recipe _getCurrentRecipe() {
     if (_mode == RecipeCraftMode.guided) {
@@ -641,43 +871,32 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Question 1: Temperature Profile
+        // Question 0: Cycle Architecture
         _buildGuidedCard(
-          question: '1. Temperature Profile',
-          subtitle: 'Determines whether induction heating triggers during the cycle',
+          question: 'Preparation Architecture',
+          subtitle: 'Choose between standard single cycle or dual-stage froth & unite',
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               _buildGuidedChoice(
-                label: '❄️ Cold Foam (0°C)',
-                selected: _guidedTemp == 'cold',
-                color: AppTheme.cyanCold,
-                onTap: () {
-                  setState(() {
-                    _guidedTemp = 'cold';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🌤️ Warm & Silky (54-64°C)',
-                selected: _guidedTemp == 'warm',
+                label: '⚡ Single-Cycle (Standard)',
+                selected: !_guidedIsMultiStep,
                 color: AppTheme.goldPrimary,
                 onTap: () {
                   setState(() {
-                    _guidedTemp = 'warm';
+                    _guidedIsMultiStep = false;
                     _guidedNameController.text = _deriveGuidedName();
                   });
                 },
               ),
               _buildGuidedChoice(
-                label: '🔥 Piping Hot (60-68°C)',
-                selected: _guidedTemp == 'hot',
+                label: '⏸️ Dual-Stage (Froth & Unite)',
+                selected: _guidedIsMultiStep,
                 color: AppTheme.amberHeat,
                 onTap: () {
                   setState(() {
-                    _guidedTemp = 'hot';
+                    _guidedIsMultiStep = true;
                     _guidedNameController.text = _deriveGuidedName();
                   });
                 },
@@ -687,201 +906,488 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         ),
         const SizedBox(height: 12),
 
-        // Question 2: Base Beverage
-        _buildGuidedCard(
-          question: '2. Flavor & Base Essence',
-          subtitle: 'Adjusts whisk acceleration and shear-thinning rate',
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildGuidedChoice(
-                label: '☕ Espresso / Coffee',
-                selected: _guidedBase == 'coffee',
-                onTap: () {
-                  setState(() {
-                    _guidedBase = 'coffee';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🍫 Rich Chocolate / Cocoa',
-                selected: _guidedBase == 'chocolate',
-                onTap: () {
-                  setState(() {
-                    _guidedBase = 'chocolate';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🍵 Matcha / Botanical Tea',
-                selected: _guidedBase == 'tea',
-                onTap: () {
-                  setState(() {
-                    _guidedBase = 'tea';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🥛 Pure Foam (No Additives)',
-                selected: _guidedBase == 'neutral',
-                onTap: () {
-                  setState(() {
-                    _guidedBase = 'neutral';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-            ],
+        if (!_guidedIsMultiStep) ...[
+          // Question 1: Temperature Profile
+          _buildGuidedCard(
+            question: '1. Temperature Profile',
+            subtitle: 'Determines whether induction heating triggers during the cycle',
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildGuidedChoice(
+                  label: '❄️ Cold Foam (0°C)',
+                  selected: _guidedTemp == 'cold',
+                  color: AppTheme.cyanCold,
+                  onTap: () {
+                    setState(() {
+                      _guidedTemp = 'cold';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🌤️ Warm & Silky (54-64°C)',
+                  selected: _guidedTemp == 'warm',
+                  color: AppTheme.goldPrimary,
+                  onTap: () {
+                    setState(() {
+                      _guidedTemp = 'warm';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🔥 Piping Hot (60-68°C)',
+                  selected: _guidedTemp == 'hot',
+                  color: AppTheme.amberHeat,
+                  onTap: () {
+                    setState(() {
+                      _guidedTemp = 'hot';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        // Question 3: Liquid Medium / Milk
-        _buildGuidedCard(
-          question: '3. Milk & Plant Liquid Medium',
-          subtitle: 'Selects denaturation temperature and protein aeration curve',
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildGuidedChoice(
-                label: '🐄 Whole / Semi Dairy Milk',
-                selected: _guidedLiquid == 'dairy',
-                onTap: () {
-                  setState(() {
-                    _guidedLiquid = 'dairy';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🌾 Barista Oat Milk',
-                selected: _guidedLiquid == 'oat',
-                onTap: () {
-                  setState(() {
-                    _guidedLiquid = 'oat';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🌰 Almond Milk',
-                selected: _guidedLiquid == 'almond',
-                onTap: () {
-                  setState(() {
-                    _guidedLiquid = 'almond';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🥥 Coconut Milk',
-                selected: _guidedLiquid == 'coconut',
-                onTap: () {
-                  setState(() {
-                    _guidedLiquid = 'coconut';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🍦 Heavy Cream / Half & Half',
-                selected: _guidedLiquid == 'cream',
-                onTap: () {
-                  setState(() {
-                    _guidedLiquid = 'cream';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-            ],
+          // Question 2: Base Beverage
+          _buildGuidedCard(
+            question: '2. Flavor & Base Essence',
+            subtitle: 'Adjusts whisk acceleration and shear-thinning rate',
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildGuidedChoice(
+                  label: '☕ Espresso / Coffee',
+                  selected: _guidedBase == 'coffee',
+                  onTap: () {
+                    setState(() {
+                      _guidedBase = 'coffee';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🍫 Rich Chocolate / Cocoa',
+                  selected: _guidedBase == 'chocolate',
+                  onTap: () {
+                    setState(() {
+                      _guidedBase = 'chocolate';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🍵 Matcha / Botanical Tea',
+                  selected: _guidedBase == 'tea',
+                  onTap: () {
+                    setState(() {
+                      _guidedBase = 'tea';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🥛 Pure Foam (No Additives)',
+                  selected: _guidedBase == 'neutral',
+                  onTap: () {
+                    setState(() {
+                      _guidedBase = 'neutral';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        // Question 4: Foam Texture
-        _buildGuidedCard(
-          question: '4. Desired Foam Texture & Density',
-          subtitle: 'Calculates RPM milestones from silky pourable to stiff peaks',
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildGuidedChoice(
-                label: '☁️ Dense Cloud Foam',
-                selected: _guidedTexture == 'dense',
-                onTap: () {
-                  setState(() {
-                    _guidedTexture = 'dense';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🌊 Silky Latte Art',
-                selected: _guidedTexture == 'latteArt',
-                onTap: () {
-                  setState(() {
-                    _guidedTexture = 'latteArt';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🍦 Soft Whipped Velvet',
-                selected: _guidedTexture == 'chantilly',
-                onTap: () {
-                  setState(() {
-                    _guidedTexture = 'chantilly';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-              _buildGuidedChoice(
-                label: '🌀 Gentle Melt & Stir',
-                selected: _guidedTexture == 'stir',
-                onTap: () {
-                  setState(() {
-                    _guidedTexture = 'stir';
-                    _guidedNameController.text = _deriveGuidedName();
-                  });
-                },
-              ),
-            ],
+          // Question 3: Liquid Medium / Milk
+          _buildGuidedCard(
+            question: '3. Milk & Plant Liquid Medium',
+            subtitle: 'Selects denaturation temperature and protein aeration curve',
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildGuidedChoice(
+                  label: '🐄 Whole / Semi Dairy Milk',
+                  selected: _guidedLiquid == 'dairy',
+                  onTap: () {
+                    setState(() {
+                      _guidedLiquid = 'dairy';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🌾 Barista Oat Milk',
+                  selected: _guidedLiquid == 'oat',
+                  onTap: () {
+                    setState(() {
+                      _guidedLiquid = 'oat';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🌰 Almond Milk',
+                  selected: _guidedLiquid == 'almond',
+                  onTap: () {
+                    setState(() {
+                      _guidedLiquid = 'almond';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🥥 Coconut Milk',
+                  selected: _guidedLiquid == 'coconut',
+                  onTap: () {
+                    setState(() {
+                      _guidedLiquid = 'coconut';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🍦 Heavy Cream / Half & Half',
+                  selected: _guidedLiquid == 'cream',
+                  onTap: () {
+                    setState(() {
+                      _guidedLiquid = 'cream';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        // Question 5: Inclusions / Add-ins
-        _buildGuidedCard(
-          question: '5. Sweetener & Inclusions',
-          subtitle: 'Adds early dispersion phases for dissolve and extraction',
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _buildGuidedChoice(
-                label: '🚫 None / Plain',
-                selected: _guidedInclusion == 'none',
-                onTap: () => setState(() => _guidedInclusion = 'none'),
-              ),
-              _buildGuidedChoice(
-                label: '🍯 Syrup / Honey / Sugar',
-                selected: _guidedInclusion == 'syrup',
-                onTap: () => setState(() => _guidedInclusion = 'syrup'),
-              ),
-              _buildGuidedChoice(
-                label: '🍫 Cocoa / Matcha Powder',
-                selected: _guidedInclusion == 'powder',
-                onTap: () => setState(() => _guidedInclusion = 'powder'),
-              ),
-            ],
+          // Question 4: Foam Texture
+          _buildGuidedCard(
+            question: '4. Desired Foam Texture & Density',
+            subtitle: 'Calculates RPM milestones from silky pourable to stiff peaks',
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildGuidedChoice(
+                  label: '☁️ Dense Cloud Foam',
+                  selected: _guidedTexture == 'dense',
+                  onTap: () {
+                    setState(() {
+                      _guidedTexture = 'dense';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🌊 Silky Latte Art',
+                  selected: _guidedTexture == 'latteArt',
+                  onTap: () {
+                    setState(() {
+                      _guidedTexture = 'latteArt';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🍦 Soft Whipped Velvet',
+                  selected: _guidedTexture == 'chantilly',
+                  onTap: () {
+                    setState(() {
+                      _guidedTexture = 'chantilly';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+                _buildGuidedChoice(
+                  label: '🌀 Gentle Melt & Stir',
+                  selected: _guidedTexture == 'stir',
+                  onTap: () {
+                    setState(() {
+                      _guidedTexture = 'stir';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(height: 12),
+
+          // Question 5: Inclusions / Add-ins
+          _buildGuidedCard(
+            question: '5. Sweetener & Inclusions',
+            subtitle: 'Adds early dispersion phases for dissolve and extraction',
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _buildGuidedChoice(
+                  label: '🚫 None / Plain',
+                  selected: _guidedInclusion == 'none',
+                  onTap: () => setState(() => _guidedInclusion = 'none'),
+                ),
+                _buildGuidedChoice(
+                  label: '🍯 Syrup / Honey / Sugar',
+                  selected: _guidedInclusion == 'syrup',
+                  onTap: () => setState(() => _guidedInclusion = 'syrup'),
+                ),
+                _buildGuidedChoice(
+                  label: '🍫 Cocoa / Matcha Powder',
+                  selected: _guidedInclusion == 'powder',
+                  onTap: () => setState(() => _guidedInclusion = 'powder'),
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          // ===================================================================
+          // DUAL-STAGE QUESTIONS: FROTH SEPARATELY & UNITE
+          // ===================================================================
+
+          // Stage 1: First Drink to Froth & Pour into Serving Glass
+          _buildGuidedCard(
+            question: 'Stage 1: First Drink to Froth & Pour to Glass',
+            subtitle: 'Whisks base beverage in Barista jug, then you pour it into your glass',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Base Beverage / Essence:',
+                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildGuidedChoice(
+                      label: '☕ Espresso Crema Whip',
+                      selected: _guidedStep1Base == 'coffee',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep1Base = 'coffee';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🍫 Dark Chocolate Melt',
+                      selected: _guidedStep1Base == 'chocolate',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep1Base = 'chocolate';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🍵 Ceremonial Matcha',
+                      selected: _guidedStep1Base == 'tea',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep1Base = 'tea';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🧊 Nitro Cold Brew',
+                      selected: _guidedStep1Base == 'nitro',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep1Base = 'nitro';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Stage 1 Temperature:',
+                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildGuidedChoice(
+                      label: '❄️ Cold Aeration (0°C)',
+                      selected: _guidedStep1Temp == 'cold',
+                      color: AppTheme.cyanCold,
+                      onTap: () {
+                        setState(() {
+                          _guidedStep1Temp = 'cold';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🔥 Warm Infusion (60-65°C)',
+                      selected: _guidedStep1Temp == 'warm',
+                      color: AppTheme.amberHeat,
+                      onTap: () {
+                        setState(() {
+                          _guidedStep1Temp = 'warm';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Stage 2: Second Drink to Froth & Unite
+          _buildGuidedCard(
+            question: 'Stage 2: Second Drink to Froth & Unite',
+            subtitle: 'Machine pauses. Add second drink to jug, press dial to froth, then pour over Drink 1',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Top Layer Medium:',
+                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildGuidedChoice(
+                      label: '🐄 Whole Dairy Milk',
+                      selected: _guidedStep2Liquid == 'dairy',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Liquid = 'dairy';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🌾 Barista Oat Milk',
+                      selected: _guidedStep2Liquid == 'oat',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Liquid = 'oat';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🍦 Heavy Cream Float',
+                      selected: _guidedStep2Liquid == 'cream',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Liquid = 'cream';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🥥 Coconut Milk',
+                      selected: _guidedStep2Liquid == 'coconut',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Liquid = 'coconut';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Desired Foam Texture:',
+                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildGuidedChoice(
+                      label: '☁️ Dense Cloud Foam',
+                      selected: _guidedStep2Texture == 'dense',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Texture = 'dense';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🌊 Silky Latte Art',
+                      selected: _guidedStep2Texture == 'latteArt',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Texture = 'latteArt';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🍦 Whipped Velvet Crown',
+                      selected: _guidedStep2Texture == 'chantilly',
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Texture = 'chantilly';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Stage 2 Temperature:',
+                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _buildGuidedChoice(
+                      label: '❄️ Cold Foam (0°C)',
+                      selected: _guidedStep2Temp == 'cold',
+                      color: AppTheme.cyanCold,
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Temp = 'cold';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                    _buildGuidedChoice(
+                      label: '🔥 Hot Microfoam (65°C)',
+                      selected: _guidedStep2Temp == 'hot',
+                      color: AppTheme.amberHeat,
+                      onTap: () {
+                        setState(() {
+                          _guidedStep2Temp = 'hot';
+                          _guidedNameController.text = _deriveGuidedName();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
 
         // Formulated Recipe Preview Card
@@ -904,13 +1410,19 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome, color: AppTheme.goldPrimary, size: 17),
+                  Icon(
+                    recipe.isMultiStep ? Icons.layers : Icons.auto_awesome,
+                    color: recipe.isMultiStep ? AppTheme.amberHeat : AppTheme.goldPrimary,
+                    size: 17,
+                  ),
                   const SizedBox(width: 8),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Formulated Recipe',
+                      recipe.isMultiStep
+                          ? 'Formulated Dual-Stage Recipe (2 Steps ⏸️)'
+                          : 'Formulated Recipe',
                       style: TextStyle(
-                        color: AppTheme.goldLight,
+                        color: recipe.isMultiStep ? AppTheme.amberHeat : AppTheme.goldLight,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -959,47 +1471,159 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
               ),
               const SizedBox(height: 10),
 
-              // Visual Phase Breakdown
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: recipe.phases.asMap().entries.map((entry) {
-                  final idx = entry.key + 1;
-                  final p = entry.value;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: AppTheme.surfaceElevated,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: AppTheme.borderSubtle),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            '$idx',
-                            style: const TextStyle(color: AppTheme.goldLight, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            '${p.duration}s  •  ${p.speed} RPM  •  ${p.temp == 0 ? "Cold (0°C)" : "${p.temp}°C"}',
-                            style: const TextStyle(
-                              color: AppTheme.crema,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              fontFamily: 'monospace',
+              if (recipe.isMultiStep && recipe.steps.length > 1) ...[
+                // Dual-Stage Visual Breakdown
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceInput,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.borderSubtle),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.goldPrimary.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'STAGE 1',
+                              style: TextStyle(color: AppTheme.goldLight, fontSize: 10, fontWeight: FontWeight.w800),
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Froth Base & Pour to Glass • ${recipe.steps[0].totalDurationSeconds}s @ ${recipe.steps[0].peakRpm} RPM (${recipe.steps[0].isCold ? "Cold" : "${recipe.steps[0].maxTemp}°C"})',
+                              style: const TextStyle(color: AppTheme.crema, fontSize: 12, fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (recipe.steps[0].instruction != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          recipe.steps[0].instruction!,
+                          style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
                         ),
                       ],
-                    ),
-                  );
-                }).toList(),
-              ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.amberHeat.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.amberHeat.withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.pause_circle_outline, color: AppTheme.amberHeat, size: 14),
+                      SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Hardware Pause: Pour Drink 1 to glass, add Drink 2 to jug, press center dial.',
+                          style: TextStyle(color: AppTheme.amberHeat, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceInput,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.borderSubtle),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppTheme.goldPrimary.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'STAGE 2',
+                              style: TextStyle(color: AppTheme.goldLight, fontSize: 10, fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Froth Layer & Pour to Unite • ${recipe.steps[1].totalDurationSeconds}s @ ${recipe.steps[1].peakRpm} RPM (${recipe.steps[1].isCold ? "Cold" : "${recipe.steps[1].maxTemp}°C"})',
+                              style: const TextStyle(color: AppTheme.crema, fontSize: 12, fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (recipe.steps[1].instruction != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          recipe.steps[1].instruction!,
+                          style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ] else ...[
+                // Single-Step Visual Phase Breakdown
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: recipe.phases.asMap().entries.map((entry) {
+                    final idx = entry.key + 1;
+                    final p = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceElevated,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AppTheme.borderSubtle),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '$idx',
+                              style: const TextStyle(color: AppTheme.goldLight, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              '${p.duration}s  •  ${p.speed} RPM  •  ${p.temp == 0 ? "Cold (0°C)" : "${p.temp}°C"}',
+                              style: const TextStyle(
+                                color: AppTheme.crema,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         ),

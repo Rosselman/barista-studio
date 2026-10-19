@@ -1900,6 +1900,187 @@ class PresetCatalog {
         'Garnish with a whole star anise pod and a dusting of cinnamon.',
       ],
     ),
+    Recipe(
+      id: '9e6d542f-2996-4709-b07d-8d30af851fcd',
+      name: 'Duo Iced Cappa',
+      description: 'Dual-frothed iced craft. Step 1 whisks espresso & ice into cold crema and pours to glass; Step 2 froths cold milk foam to unite.',
+      category: 'Iced & Cold Coffee',
+      tags: const ['Multi-Step', 'Iced & Cold Coffee', 'Cold Foam & Textures', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 1 espresso shot (40 ml) & 2 ice cubes. Froth cold crema, then pour into serving glass.',
+          phases: [
+            Phase.clamped(speed: 3200, accel: 800, temp: 0, duration: 20),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 100 ml cold whole milk into jug. Press dial to froth cold cloud foam, then pour to unite.',
+          phases: [
+            Phase.clamped(speed: 2800, accel: 750, temp: 0, duration: 25),
+          ],
+        ),
+      ],
+      ingredients: [
+        '1 Nespresso Espresso capsule (40 ml)',
+        '2 Standard ice cubes',
+        '100 ml Fresh cold whole milk',
+      ],
+      instructions: [
+        'Insert whisk. Brew 1 espresso shot directly into the Barista jug and add 2 ice cubes.',
+        'Start Step 1: The machine cold-aerates the espresso and ice into a thick, frothy crema emulsion.',
+        'When Step 1 finishes, pour the frothed coffee into your serving glass. The machine enters pause mode.',
+        'Pour 100 ml cold milk into the Barista jug, close lid, and press the center dial to start Step 2.',
+        'Slowly pour the velvety cold milk foam over the iced coffee in your glass to unite contrasting layers.',
+      ],
+    ),
+    Recipe(
+      id: 'fa4cf97e-98f3-44f3-be13-2c902fcc01e4',
+      name: 'Mocha Duo Fusion',
+      description: 'Dual-crafted mocha fusion. Step 1 aerates coffee crema into glass; Step 2 froths velvety hot chocolate to pour and unite.',
+      category: 'Specialty',
+      tags: const ['Multi-Step', 'Specialty', 'Hot Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Extract 1 espresso (40 ml) with 1 ice cube. Whisk crema base, then pour into serving glass.',
+          phases: [
+            Phase.clamped(speed: 3000, accel: 750, temp: 0, duration: 18),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 20g chocolate flakes & 100 ml milk. Press dial to froth hot cocoa, then pour to unite.',
+          phases: [
+            Phase.clamped(speed: 1800, accel: 550, temp: 65, duration: 20),
+            Phase.clamped(speed: 2600, accel: 750, temp: 68, duration: 15),
+          ],
+        ),
+      ],
+      ingredients: [
+        '1 Nespresso Espresso capsule (40 ml)',
+        '1 Standard ice cube',
+        '20g Valrhona or Lindt dark chocolate flakes',
+        '100 ml Fresh whole milk',
+      ],
+      instructions: [
+        'Insert whisk. Brew 1 espresso shot into jug and add 1 ice cube. Run Step 1 for high-speed crema whip.',
+        'Pour the aerated espresso into your glass. The machine automatically pauses.',
+        'Add 20g dark chocolate flakes and 100 ml cold milk into the jug.',
+        'Press machine center dial: Step 2 melts and textures the chocolate into steaming velvet cocoa.',
+        'Pour the hot frothed chocolate over the whipped espresso to unite bold cacao and golden crema.',
+      ],
+    ),
+    Recipe(
+      id: '37e9af13-acfe-4314-90c6-6e65e9480ded',
+      name: 'Matcha Cloud Duo',
+      description: 'Two-stage Japanese cafe fusion. Step 1 whisks ceremonial matcha into emerald nectar; Step 2 froths sweet vanilla oat foam to unite.',
+      category: 'Non-Coffee',
+      tags: const ['Multi-Step', 'Non-Coffee', 'Cold Foam & Textures', 'Non-Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 2g ceremonial matcha & 60 ml cold water. Froth emerald nectar, then pour into glass packed with ice.',
+          phases: [
+            Phase.clamped(speed: 3500, accel: 900, temp: 0, duration: 22),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 100 ml oat milk & 10 ml vanilla syrup. Press dial to froth sweet cloud, then pour over matcha to unite.',
+          phases: [
+            Phase.clamped(speed: 2600, accel: 700, temp: 0, duration: 28),
+          ],
+        ),
+      ],
+      ingredients: [
+        '2g Premium ceremonial Japanese matcha powder',
+        '60 ml Cold filtered water',
+        '100 ml Barista oat milk (chilled)',
+        '10 ml Madagascar vanilla syrup',
+        '3 Standard ice cubes for serving glass',
+      ],
+      instructions: [
+        'Insert whisk. Add matcha powder and 60 ml cold water into jug. Start Step 1 to shear into a bright green nectar.',
+        'Pour frothed matcha over ice in a tall transparent tumbler. The machine pauses.',
+        'Pour 100 ml cold barista oat milk and vanilla syrup into the Barista jug.',
+        'Press center dial to launch Step 2 for dense oat cloud aeration.',
+        'Slowly pour the sweet vanilla oat foam over the emerald matcha to watch the cascading ombre unite.',
+      ],
+    ),
+    Recipe(
+      id: '5926630a-28d2-4582-abbc-6bd2830f7e39',
+      name: 'Cortado Duo',
+      description: 'Dual-temperature signature cortado. Step 1 whips intense hot espresso crema into cup; Step 2 steams silky microfoam to unite.',
+      category: 'Hot Coffee',
+      tags: const ['Multi-Step', 'Hot Coffee', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Extract 2 espresso shots (80 ml) & 10 ml caramel. Whip hot crema, then pour into cortado cup.',
+          phases: [
+            Phase.clamped(speed: 3200, accel: 800, temp: 60, duration: 20),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 80 ml cold whole milk. Press dial to steam silky microfoam, then pour to unite.',
+          phases: [
+            Phase.clamped(speed: 2000, accel: 600, temp: 65, duration: 28),
+          ],
+        ),
+      ],
+      ingredients: [
+        '2 Nespresso Espresso capsules (80 ml total)',
+        '10 ml Salted caramel or brown sugar syrup',
+        '80 ml Fresh cold whole milk',
+      ],
+      instructions: [
+        'Insert whisk. Extract 2 espresso shots directly into jug and add caramel syrup.',
+        'Start Step 1: The machine whips the hot espresso under gentle 60°C heat into dense golden foam.',
+        'Pour the whipped espresso base into a cortado glass. Machine holds in pause mode.',
+        'Add 80 ml whole milk into the jug, close lid, and press machine dial.',
+        'Step 2 steams milk to silky 65°C latte art texture. Pour into center of espresso to unite.',
+      ],
+    ),
+    Recipe(
+      id: 'a012eedb-6599-41b8-98b8-9a8c7977f6aa',
+      name: 'Choco Cold Brew',
+      description: 'Cold brew hyper-sheared with chocolate syrup, united with a floating crown of cold cream foam frothed in Step 2.',
+      category: 'Iced & Cold Coffee',
+      tags: const ['Multi-Step', 'Iced & Cold Coffee', 'Cold Foam & Textures', 'Dairy'],
+      steps: [
+        RecipeStep(
+          name: 'STEP 1',
+          instruction: 'Add 80 ml cold brew & 15 ml chocolate syrup. Hyper-shear into micro-bubbles, then pour into serving glass with ice.',
+          phases: [
+            Phase.clamped(speed: 3600, accel: 900, temp: 0, duration: 20),
+          ],
+        ),
+        RecipeStep(
+          name: 'STEP 2',
+          instruction: 'Machine pauses. Add 60 ml heavy cream & 30 ml milk. Press dial to whip cold foam crown, then float over coffee to unite.',
+          phases: [
+            Phase.clamped(speed: 2800, accel: 750, temp: 0, duration: 22),
+          ],
+        ),
+      ],
+      ingredients: [
+        '80 ml Cold brew concentrate',
+        '15 ml Dark chocolate mocha syrup',
+        '60 ml Heavy whipping cream (chilled)',
+        '30 ml Cold whole milk',
+        'Ice cubes for serving glass',
+      ],
+      instructions: [
+        'Insert whisk into Barista jug. Add cold brew and dark chocolate syrup.',
+        'Start Step 1 for 20s ultra-high-speed cold aeration into a rich cascading mocha base.',
+        'Pour the frothed chocolate coffee over ice in your glass. The machine enters pause mode.',
+        'Add 60 ml heavy cream and 30 ml milk into the jug, close lid, and press center dial.',
+        'Step 2 whips a thick, glossy cream crown. Spoon or float gently over the cold brew to unite.',
+      ],
+    ),
   ];
 
   /// Lookup preset by 16-byte UUID (supports both hyphenated and unhyphenated representations)

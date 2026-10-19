@@ -15,6 +15,7 @@ import 'package:barista_studio/services/barista_ble_service.dart';
 import 'package:barista_studio/services/recipe_share_service.dart';
 import 'package:barista_studio/services/storage_service.dart';
 import 'package:barista_studio/theme/app_theme.dart';
+import 'package:barista_studio/ui/tabs/custom_recipe_tab.dart';
 import 'package:barista_studio/ui/widgets/flash_recipe_dialog.dart';
 import 'package:barista_studio/ui/widgets/recipe_detail_dialog.dart';
 
@@ -52,7 +53,7 @@ void main() {
 
   test('Multi-Step recipes in PresetCatalog are properly configured', () {
     final multiStep = PresetCatalog.presets.where((r) => r.isMultiStep).toList();
-    expect(multiStep.length, 19);
+    expect(multiStep.length, 24);
     for (final r in multiStep) {
       expect(r.stepCount, greaterThanOrEqualTo(2));
       expect(r.steps[0].phases.isNotEmpty, true);
@@ -681,6 +682,89 @@ void main() {
     final savedList = storage.getCustomRecipes();
     expect(savedList.any((r) => r.name == 'Shared Flat White'), isTrue);
     expect(savedCallbackTriggered, isTrue);
+  });
+
+  test('New dual-stage multi-step presets froth separately and unite at end', () {
+    final duoNames = [
+      'Duo Iced Cappa',
+      'Mocha Duo Fusion',
+      'Matcha Cloud Duo',
+      'Cortado Duo',
+      'Choco Cold Brew',
+    ];
+
+    for (final name in duoNames) {
+      final recipe = PresetCatalog.findByName(name);
+      expect(recipe, isNotNull, reason: '$name not found');
+      expect(recipe!.isMultiStep, isTrue);
+      expect(recipe.stepCount, 2);
+      expect(recipe.hardwareName.length, lessThanOrEqualTo(16));
+      expect(recipe.steps[0].phases.isNotEmpty, isTrue);
+      expect(recipe.steps[1].phases.isNotEmpty, isTrue);
+      expect(recipe.steps[0].instruction, contains('pour into'));
+      expect(recipe.steps[1].instruction, contains('unite'));
+    }
+  });
+
+  testWidgets('Guided Barista Mode formulates dual-stage multi-step recipes and transfers to manual', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final storage = StorageService(prefs);
+    final ble = BaristaBleService(storageService: storage);
+
+    final tabKey = GlobalKey<CustomRecipeTabState>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: CustomRecipeTab(
+            key: tabKey,
+            bleService: ble,
+            storageService: storage,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Default is Single-Cycle
+    expect(find.text('Preparation Architecture'), findsOneWidget);
+    expect(find.text('⚡ Single-Cycle (Standard)'), findsOneWidget);
+    expect(find.text('⏸️ Dual-Stage (Froth & Unite)'), findsOneWidget);
+
+    // Switch to Dual-Stage
+    await tester.tap(find.text('⏸️ Dual-Stage (Froth & Unite)'));
+    await tester.pumpAndSettle();
+
+    // Dual-stage questionnaire cards are displayed
+    expect(find.text('Stage 1: First Drink to Froth & Pour to Glass'), findsOneWidget);
+    expect(find.text('Stage 2: Second Drink to Froth & Unite'), findsOneWidget);
+
+    // Formulated Recipe Preview reflects dual-stage
+    expect(find.text('Formulated Dual-Stage Recipe (2 Steps ⏸️)'), findsOneWidget);
+    expect(find.text('STAGE 1'), findsOneWidget);
+    expect(find.text('STAGE 2'), findsOneWidget);
+    expect(find.textContaining('Hardware Pause'), findsOneWidget);
+
+    // Verify recipe synthesis has 2 steps
+    final state = tabKey.currentState!;
+    final synthesized = state.currentRecipe;
+    expect(synthesized.isMultiStep, isTrue);
+    expect(synthesized.stepCount, 2);
+    expect(synthesized.hardwareName.startsWith('DUO'), isTrue);
+    expect(synthesized.steps[0].instruction, contains('pour into serving glass'));
+    expect(synthesized.steps[1].instruction, contains('unite'));
+
+    // Tap "Tune in Manual" to verify transfer to manual mode
+    await tester.tap(find.text('Tune in Manual'));
+    await tester.pumpAndSettle();
+
+    // Should now be in manual mode with Step 1 and Step 2 preserved
+    expect(find.text('Manual Sequencer'), findsOneWidget);
+    expect(find.text('Multi-Step Recipe (Hardware Paused Execution)'), findsOneWidget);
+    expect(state.currentRecipe.isMultiStep, isTrue);
+    expect(state.currentRecipe.stepCount, 2);
   });
 }
 
