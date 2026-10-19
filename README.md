@@ -211,19 +211,19 @@ sequenceDiagram
     Barista->>Barista: State: RECIPE_EXECUTING (2)
     Note over Barista: Step 1 runs (e.g. Cold Froth coffee for 15s)
     Barista->>Barista: Motor stops, Heater off
-    Barista->>Barista: State: RECIPE_PAUSED (1)
+    Barista->>Barista: State: RECIPE_PAUSED (7)
     Note over Barista: OLED Screen prompts user (Arrow / Prompt)
     User->>Barista: Adds milk/ingredients & Presses Center Button
     Barista->>Barista: State: RECIPE_EXECUTING (2)
     Note over Barista: Step 2 runs (e.g. Hot Froth at 65°C for 35s)
-    Barista->>Barista: State: READY (0) (Beeps done)
+    Barista->>Barista: State: READY (1) (Beeps done)
 ```
 
 1. **Step 1 Execution**: When the user presses the center dial button on a 2-step recipe, the machine enters `MachineState.RECIPE_EXECUTING` (`2`). Step 1 phases execute sequentially.
-2. **Firmware Pause**: When Step 1 completes, the firmware shuts off whisk motor PWM and induction heating, transitioning to `MachineState.RECIPE_PAUSED` (`1` on modern hardware, `7` on legacy variants).
+2. **Firmware Pause**: When Step 1 completes, the firmware shuts off whisk motor PWM and induction heating, transitioning to `MachineState.RECIPE_PAUSED` (`7`).
 3. **Hardware Prompt**: The OLED display shows an animated arrow/prompt instructing the user to add milk or ingredients into the jug.
 4. **Step 2 Resumption**: When the user presses the center dial button, the machine transitions back to `RECIPE_EXECUTING` (`2`) to execute Step 2.
-5. **Completion**: When Step 2 completes, the machine sounds an audible chime and returns to `MachineState.READY` (`0`).
+5. **Completion**: When Step 2 completes, the machine sounds an audible chime and returns to `MachineState.READY` (`1`).
 
 ---
 
@@ -444,10 +444,10 @@ flutter build web --release
 ## 7. Changelog
 
 ### v1.3.2 (Latest Release)
-- **Hardware Telemetry State Calibration**:
-  - Resolved physical telemetry inversion where the app displayed `Standby` when the machine was ready on the counter, and `Ready` when paused between multi-step stages.
-  - Aligned state decoding with verified physical hardware firmware: Code `0` maps to `Ready`, Code `1` (and `7`) maps to `Recipe Paused`, Code `2` maps to `Recipe Executing`, and Code `8` maps to `Standby`.
-  - The connected navigation HUD now accurately displays an emerald dot with `Ready` when idle, and immediately shifts to amber with `⏸️ Paused (Press Machine Dial)` when Step 1 completes on multi-step recipes.
+- **Hardware Telemetry State Decoding Fix**:
+  - Eliminated bogus bitmask and right-shift `(byte1 & 0xFC) >> 2` that collapsed states `01` (Ready), `02` (Executing), and `03` (Settings) into `0` (Standby), and mapped `07` (Paused) into `1` (Ready).
+  - Aligned `MachineState.fromByte` with the firmware's unshifted 0..7 state index: `0x00` = Standby, `0x01` = Ready, `0x02` = Executing, `0x03` = Settings Mode, `0x04` = Error, `0x05` = Overheated, `0x06` = First Setup, and `0x07` = Paused.
+  - The connected navigation HUD now accurately displays an emerald dot with `Ready` when idle, switches live to cyan `🔄 Executing` during recipes, and immediately shifts to amber `⏸️ Paused (Press Machine Dial)` when Step 1 finishes.
 - **Affogato Cream Upgraded to Native 2-Step Recipe**:
   - Corrected `Affogato Cream` preset definition to a native 2-step dual-stage recipe with Step 1 espresso aeration (65°C) and Step 2 velvety cream froth (68°C to pour over gelato).
   - Passing `stepCount = 2` into the binary packet ensures the Barista firmware halts after Step 1, prompts the user, and executes Step 2 upon center dial press instead of returning prematurely to the rotary dial.

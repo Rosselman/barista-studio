@@ -658,12 +658,16 @@ class BaristaBleService extends ChangeNotifier {
   // ===========================================================================
 
   void _handleMachineStatus(List<int> data) {
+    debugPrint('>>> [STATUS RAW] ${data.map((b) => b.toRadixString(16).padLeft(2, "0")).join(" ")}');
+    final rawHex = data.map((b) => b.toRadixString(16).padLeft(2, "0")).join(" ");
+    _logController.add('>>> [STATUS RAW] $rawHex');
+
     if (data.length < 2) return;
     final b0 = data[0] & 0xFF;
     final b1 = data[1] & 0xFF;
 
     final pairingCode = (b0 & 0x60) >> 5;
-    // CRITICAL: Parentheses strictly required because (b1 & 0xFC) >> 2 has different precedence than b1 & 0xFC >> 2
+    // Byte 1 directly encodes the machine state enum (0=Standby, 1=Ready, 2=Executing, 3=Settings, 7=Paused)
     final state = MachineState.fromByte(b1);
 
     final pStateStr = (pairingCode < BaristaBleConstants.pairingStates.length)
