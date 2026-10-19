@@ -280,6 +280,31 @@ void main() {
     expect(notificationCount, 2);
   });
 
+  test('Favorites pinned sorting places favorited recipes at top of list', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+
+    final r1 = PresetCatalog.presets[0];
+    final r2 = PresetCatalog.presets[1];
+    final r3 = PresetCatalog.presets[2];
+
+    // Favoriting the 3rd recipe
+    await storage.toggleFavorite(r3.id);
+
+    final list = [r1, r2, r3];
+    list.sort((a, b) {
+      final aFav = storage.isFavorite(a.id);
+      final bFav = storage.isFavorite(b.id);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      return 0;
+    });
+
+    expect(list.first.id, r3.id);
+    expect(list[1].id, r1.id);
+    expect(list[2].id, r2.id);
+  });
+
   test('StorageService custom wheel loadouts persistence and defaults work', () async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();

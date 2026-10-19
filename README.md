@@ -444,6 +444,10 @@ flutter build web --release
 ## 7. Changelog
 
 ### v1.4.1 (Latest Release)
+- **Optimized Favorites System (Pinned to Top)**:
+  - Replaced the category filter chip with intuitive priority pinning: favoriting any recipe (Preset or My Recipe) instantly floats it to the very top of the list in the Recipes tab.
+  - Pinned Favorites in Slot Flashing: Favorited recipes now automatically pin to the top of the recipe picker sheet when flashing a slot on the Slots tab, decorated with a gold ★ star badge for fast 1-tap slot programming.
+  - Reactive instant sorting powered by `StorageService` notifications—tapping the star re-orders lists smoothly in real time.
 - **Hardware Memory & Slot Reading Engine Overhaul**:
   - Replaced loose async timers and decoupled GATT writes with an atomic sequential transaction engine (`_querySlotInternal`) in `GattOpQueue`. Each slot query awaits its dedicated response `Completer` before advancing, completely eliminating packet collisions, out-of-order chunk contamination, and cascading 1-slot index shifts ("populated slots showing as empty and vice versa").
   - Fixed false "Custom Recipe" readings: Uninitialized or erased EEPROM slots (all `0x00` or `0xFF` bytes) are now detected and properly recognized as Empty rather than falling back to an occupied generic "Custom Recipe".

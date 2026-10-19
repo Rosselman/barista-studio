@@ -64,17 +64,12 @@ class _RecipesTabState extends State<RecipesTab> {
     });
   }
 
-  List<String> get _categories => [
-        'All',
-        '★ Favorites',
-        ...PresetCatalog.categories.where((c) => c != 'All'),
-      ];
+  List<String> get _categories => PresetCatalog.categories;
 
   List<Recipe> get _filteredPresets {
     final query = _searchQuery.toLowerCase().trim();
-    return PresetCatalog.presets.where((r) {
+    final list = PresetCatalog.presets.where((r) {
       final matchesCategory = _selectedCategory == 'All' ||
-          (_selectedCategory == '★ Favorites' && widget.storageService.isFavorite(r.id)) ||
           r.category == _selectedCategory ||
           r.tags.contains(_selectedCategory);
       final matchesSearch = query.isEmpty ||
@@ -85,13 +80,23 @@ class _RecipesTabState extends State<RecipesTab> {
           r.ingredients.any((i) => i.toLowerCase().contains(query));
       return matchesCategory && matchesSearch;
     }).toList();
+
+    // Favorites pinned to the top of the list
+    list.sort((a, b) {
+      final aFav = widget.storageService.isFavorite(a.id);
+      final bFav = widget.storageService.isFavorite(b.id);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      return 0;
+    });
+
+    return list;
   }
 
   List<Recipe> get _filteredCustomRecipes {
     final query = _searchQuery.toLowerCase().trim();
-    return _customRecipes.where((r) {
+    final list = _customRecipes.where((r) {
       final matchesCategory = _selectedCategory == 'All' ||
-          (_selectedCategory == '★ Favorites' && widget.storageService.isFavorite(r.id)) ||
           r.category == _selectedCategory ||
           r.tags.contains(_selectedCategory);
       final matchesSearch = query.isEmpty ||
@@ -101,6 +106,17 @@ class _RecipesTabState extends State<RecipesTab> {
           r.tags.any((t) => t.toLowerCase().contains(query));
       return matchesCategory && matchesSearch;
     }).toList();
+
+    // Favorites pinned to the top of the list
+    list.sort((a, b) {
+      final aFav = widget.storageService.isFavorite(a.id);
+      final bFav = widget.storageService.isFavorite(b.id);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+      return 0;
+    });
+
+    return list;
   }
 
   @override
@@ -527,23 +543,19 @@ class _RecipesTabState extends State<RecipesTab> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _selectedCategory == '★ Favorites' ? Icons.star_border : Icons.search_off,
+                Icons.search_off,
                 size: 48,
                 color: AppTheme.goldPrimary.withOpacity(0.5),
               ),
               const SizedBox(height: 12),
-              Text(
-                _selectedCategory == '★ Favorites'
-                    ? 'No favorite presets yet'
-                    : 'No matching recipes found',
-                style: const TextStyle(color: AppTheme.crema, fontSize: 15, fontWeight: FontWeight.w700),
+              const Text(
+                'No matching recipes found',
+                style: TextStyle(color: AppTheme.crema, fontSize: 15, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
-              Text(
-                _selectedCategory == '★ Favorites'
-                    ? 'Tap the ★ star icon on any recipe card to add it to your favorites.'
-                    : 'Try refining your search term or selecting another category.',
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+              const Text(
+                'Try refining your search term or selecting another category.',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -589,23 +601,19 @@ class _RecipesTabState extends State<RecipesTab> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _selectedCategory == '★ Favorites' ? Icons.star_border : Icons.search_off,
+                Icons.search_off,
                 size: 48,
                 color: AppTheme.goldPrimary.withOpacity(0.5),
               ),
               const SizedBox(height: 12),
-              Text(
-                _selectedCategory == '★ Favorites'
-                    ? 'No favorite custom recipes'
-                    : 'No matching custom recipes found',
-                style: const TextStyle(color: AppTheme.crema, fontSize: 15, fontWeight: FontWeight.w700),
+              const Text(
+                'No matching custom recipes found',
+                style: TextStyle(color: AppTheme.crema, fontSize: 15, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 6),
-              Text(
-                _selectedCategory == '★ Favorites'
-                    ? 'Tap the ★ star icon on your custom recipes to add them to your favorites.'
-                    : 'Try refining your search term.',
-                style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+              const Text(
+                'Try refining your search term.',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
             ],

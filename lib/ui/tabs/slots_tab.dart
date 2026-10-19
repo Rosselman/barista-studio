@@ -532,6 +532,17 @@ class SlotsTab extends StatelessWidget {
               ...filteredPresets.map((r) => (recipe: r, isCustom: false)),
             ];
 
+            // Pinned favorites at the top!
+            allItems.sort((a, b) {
+              final aFav = storageService?.isFavorite(a.recipe.id) ?? false;
+              final bFav = storageService?.isFavorite(b.recipe.id) ?? false;
+              if (aFav && !bFav) return -1;
+              if (!aFav && bFav) return 1;
+              if (a.isCustom && !b.isCustom) return -1;
+              if (!a.isCustom && b.isCustom) return 1;
+              return 0;
+            });
+
             return Container(
               height: MediaQuery.of(context).size.height * 0.72,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -596,6 +607,7 @@ class SlotsTab extends StatelessWidget {
                         final item = allItems[i];
                         final recipe = item.recipe;
                         final isCustom = item.isCustom;
+                        final isFavorite = storageService?.isFavorite(recipe.id) ?? false;
 
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -613,6 +625,10 @@ class SlotsTab extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (isFavorite) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.star, size: 14, color: AppTheme.goldPrimary),
+                              ],
                               if (isCustom) ...[
                                 const SizedBox(width: 6),
                                 Container(
