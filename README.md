@@ -443,7 +443,7 @@ flutter build web --release
 
 ## 7. Changelog
 
-### v1.5.0 (In Development — Feature Complete)
+### v1.5.0 (In Development)
 - **Interactive Multi-Step Guidance & "What's Step 2?" Action System**:
   - **Live Step 2 Guidance**: When a 2-step recipe finishes Step 1 and the Barista machine enters its hardware pause state (`MachineState.recipePaused`), the top HUD banner instantly displays an animated glowing `[⚡ What's Step 2?]` button.
   - **`Step2InstructionDialog`**: Tapping the action button opens a dedicated modal specifically highlighting what to do for Step 2:

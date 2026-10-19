@@ -12,3 +12,7 @@ PRODUCT_BUNDLE_IDENTIFIER = com.baristastudio.baristaStudio
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.baristastudio. All rights reserved.
+
+// Code Signing settings for local and CI builds
+CODE_SIGN_STYLE = Manual
+CODE_SIGN_IDENTITY = -
