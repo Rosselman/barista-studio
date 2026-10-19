@@ -51,5 +51,18 @@
 	<string>Barista Studio uses Bluetooth Low Energy to connect and flash recipes to your Nespresso Barista machine.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>Barista Studio uses Bluetooth Low Energy to connect and flash recipes to your Nespresso Barista machine.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.baristastudio.barista_studio</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>baristastudio</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

@@ -1,27 +1,39 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/recipe.dart';
 import '../../services/barista_ble_service.dart';
+import '../../services/recipe_share_service.dart';
+import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import 'flash_recipe_dialog.dart';
 
 class RecipeDetailDialog extends StatelessWidget {
   final Recipe recipe;
   final BaristaBleService bleService;
+  final StorageService? storageService;
   final void Function(Recipe recipe)? onCustomize;
+  final bool isSharedImport;
+  final VoidCallback? onSavedToMyRecipes;
 
   const RecipeDetailDialog({
     super.key,
     required this.recipe,
     required this.bleService,
+    this.storageService,
     this.onCustomize,
+    this.isSharedImport = false,
+    this.onSavedToMyRecipes,
   });
 
   static void show(
     BuildContext context, {
     required Recipe recipe,
     required BaristaBleService bleService,
+    StorageService? storageService,
     void Function(Recipe recipe)? onCustomize,
+    bool isSharedImport = false,
+    VoidCallback? onSavedToMyRecipes,
   }) {
     showGeneralDialog(
       context: context,
@@ -40,7 +52,10 @@ class RecipeDetailDialog extends StatelessWidget {
             child: RecipeDetailDialog(
               recipe: recipe,
               bleService: bleService,
+              storageService: storageService,
               onCustomize: onCustomize,
+              isSharedImport: isSharedImport,
+              onSavedToMyRecipes: onSavedToMyRecipes,
             ),
           ),
         ),
@@ -97,6 +112,34 @@ class RecipeDetailDialog extends StatelessWidget {
                   ),
                 ),
                 IconButton(
+                  icon: const Icon(Icons.share, color: AppTheme.goldLight, size: 20),
+                  tooltip: 'Copy Share Code / Link',
+                  onPressed: () {
+                    final link = RecipeShareService.encodeShareUrl(recipe);
+                    Clipboard.setData(ClipboardData(text: link));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: AppTheme.surfaceCard,
+                        content: Row(
+                          children: [
+                            const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Share link copied to clipboard!\n$link',
+                                style: const TextStyle(color: AppTheme.crema, fontSize: 12),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                ),
+                IconButton(
                   icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
@@ -112,6 +155,49 @@ class RecipeDetailDialog extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (isSharedImport) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.goldPrimary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.auto_awesome, color: AppTheme.goldLight, size: 22),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'SHARED RECIPE PREVIEW',
+                                  style: TextStyle(
+                                    color: AppTheme.goldLight,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Imported from a shared link. Save it to My Recipes with 1 tap or flash it directly to your machine.',
+                                  style: TextStyle(
+                                    color: AppTheme.crema,
+                                    fontSize: 12,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // Badges / Tags Wrap
                   Wrap(
                     spacing: 8,
@@ -617,38 +703,103 @@ class RecipeDetailDialog extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
             child: Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppTheme.borderSubtle),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                if (isSharedImport && storageService != null) ...[
+                  Expanded(
+                    flex: 3,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.goldPrimary,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.bookmark_add, size: 18),
+                      label: const Text(
+                        'Save to My Recipes',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onPressed: () async {
+                        await storageService!.saveCustomRecipe(recipe);
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppTheme.surfaceCard,
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Saved "${recipe.name}" to My Recipes!',
+                                      style: const TextStyle(color: AppTheme.crema),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          onSavedToMyRecipes?.call();
+                        }
+                      },
                     ),
-                    icon: const Icon(Icons.tune, size: 16),
-                    label: const Text('Customize'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      onCustomize?.call(recipe);
-                    },
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppTheme.borderSubtle),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.flash_on, size: 16),
+                      label: const Text('Flash', maxLines: 1, overflow: TextOverflow.ellipsis),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        FlashRecipeDialog.show(
+                          context,
+                          recipe: recipe,
+                          bleService: bleService,
+                        );
+                      },
                     ),
-                    icon: const Icon(Icons.flash_on, size: 18),
-                    label: const Text('Flash to Machine'),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      FlashRecipeDialog.show(
-                        context,
-                        recipe: recipe,
-                        bleService: bleService,
-                      );
-                    },
                   ),
-                ),
+                ] else ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppTheme.borderSubtle),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.tune, size: 16),
+                      label: const Text('Customize'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        onCustomize?.call(recipe);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.flash_on, size: 18),
+                      label: const Text('Flash to Machine'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                        FlashRecipeDialog.show(
+                          context,
+                          recipe: recipe,
+                          bleService: bleService,
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

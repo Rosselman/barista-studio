@@ -81,6 +81,27 @@ class StorageService extends ChangeNotifier {
     return res;
   }
 
+  /// Bulk import custom recipes into storage
+  Future<int> importCustomRecipes(List<Recipe> imported) async {
+    if (imported.isEmpty) return 0;
+    final list = getCustomRecipes();
+    int count = 0;
+    for (final recipe in imported) {
+      final idx = list.indexWhere((r) => r.id == recipe.id);
+      if (idx >= 0) {
+        list[idx] = recipe;
+      } else {
+        list.insert(0, recipe);
+      }
+      await cacheRecipeName(recipe.id, recipe.name);
+      count++;
+    }
+    final rawList = list.map((r) => jsonEncode(r.toJson())).toList();
+    await _prefs.setStringList(_keyCustomRecipes, rawList);
+    notifyListeners();
+    return count;
+  }
+
   Future<bool> deleteCustomRecipe(String id) async {
     final list = getCustomRecipes();
     list.removeWhere((r) => r.id == id);

@@ -12,6 +12,7 @@ import 'package:barista_studio/models/wheel_loadout.dart';
 import 'package:barista_studio/protocol/crc16.dart';
 import 'package:barista_studio/protocol/recipe_packet_builder.dart';
 import 'package:barista_studio/services/barista_ble_service.dart';
+import 'package:barista_studio/services/recipe_share_service.dart';
 import 'package:barista_studio/services/storage_service.dart';
 import 'package:barista_studio/theme/app_theme.dart';
 import 'package:barista_studio/ui/widgets/flash_recipe_dialog.dart';
@@ -551,6 +552,135 @@ void main() {
     expect(find.text('Overwrite Slot 1'), findsOneWidget);
     // No layout overflow exception thrown
     expect(tester.takeException(), isNull);
+  });
+
+  test('RecipeShareService encodes and decodes baristastudio:// URI roundtrip', () {
+    final cappuccino = PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
+    final shareUrl = RecipeShareService.encodeShareUrl(cappuccino);
+
+    expect(shareUrl.startsWith('baristastudio://recipe?data='), isTrue);
+
+    final decoded = RecipeShareService.decodeShareUrl(shareUrl);
+    expect(decoded, isNotNull);
+    expect(decoded!.name, 'Cappuccino');
+    expect(decoded.isCustom, isTrue);
+    expect(decoded.phases.length, cappuccino.phases.length);
+    expect(decoded.phases[0].speed, cappuccino.phases[0].speed);
+    expect(decoded.phases[0].temp, cappuccino.phases[0].temp);
+  });
+
+  test('RecipeShareService decodes path URIs, raw base64, and raw JSON', () {
+    final original = PresetCatalog.presets.firstWhere((r) => r.name == 'Cold Shakerato');
+    final fullUrl = RecipeShareService.encodeShareUrl(original);
+    final rawData = Uri.parse(fullUrl).queryParameters['data']!;
+
+    // Path segment format: baristastudio://recipe/<payload>
+    final fromPath = RecipeShareService.decodeShareUrl('baristastudio://recipe/$rawData');
+    expect(fromPath, isNotNull);
+    expect(fromPath!.name, 'Cold Shakerato');
+
+    // Raw payload directly
+    final fromRaw = RecipeShareService.decodeShareUrl(rawData);
+    expect(fromRaw, isNotNull);
+    expect(fromRaw!.name, 'Cold Shakerato');
+
+    // Raw JSON object directly
+    const rawJson = '{"name":"Pasted JSON Recipe","phases":[{"speed":1800,"accel":500,"temp":60,"duration":30}]}';
+    final fromJson = RecipeShareService.decodeShareUrl(rawJson);
+    expect(fromJson, isNotNull);
+    expect(fromJson!.name, 'Pasted JSON Recipe');
+    expect(fromJson.phases[0].speed, 1800);
+  });
+
+  test('RecipeShareService JSON bulk export and import roundtrip', () {
+    final recipes = [
+      Recipe(
+        id: '11111111-1111-1111-1111-111111111111',
+        name: 'Custom Velvet',
+        description: 'Velvety milk test',
+        category: 'Custom',
+        phases: [Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 40)],
+        ingredients: ['150ml Whole Milk'],
+        instructions: ['Pour cold milk into jug', 'Press start'],
+      ),
+      Recipe(
+        id: '22222222-2222-2222-2222-222222222222',
+        name: 'Chilled Foam',
+        description: 'Cold foam test',
+        category: 'Cold',
+        phases: [Phase.clamped(speed: 3000, accel: 1000, temp: 0, duration: 25)],
+      ),
+    ];
+
+    final jsonStr = RecipeShareService.exportRecipesJson(recipes);
+    expect(jsonStr.contains('barista_studio_recipes_v1'), isTrue);
+    expect(jsonStr.contains('Custom Velvet'), isTrue);
+    expect(jsonStr.contains('Chilled Foam'), isTrue);
+
+    // Import from backup object format
+    final imported = RecipeShareService.importRecipesFromJson(jsonStr);
+    expect(imported.length, 2);
+    expect(imported[0].name, 'Custom Velvet');
+    expect(imported[0].ingredients.length, 1);
+    expect(imported[1].name, 'Chilled Foam');
+    expect(imported[1].isCold, isTrue);
+
+    // Import from raw array format
+    const rawArrayJson = '[{"name":"Array Recipe 1"},{"name":"Array Recipe 2"}]';
+    final fromArray = RecipeShareService.importRecipesFromJson(rawArrayJson);
+    expect(fromArray.length, 2);
+    expect(fromArray[0].name, 'Array Recipe 1');
+    expect(fromArray[1].name, 'Array Recipe 2');
+  });
+
+  testWidgets('RecipeDetailDialog presents shared recipe preview and 1-tap Save to My Recipes', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+    final ble = BaristaBleService(storageService: storage);
+
+    final sharedRecipe = Recipe(
+      id: 'shared-test-id',
+      name: 'Shared Flat White',
+      description: 'Velvety flat white from link',
+      category: 'Specialty',
+      phases: [Phase.clamped(speed: 2200, accel: 600, temp: 65, duration: 35)],
+    );
+
+    bool savedCallbackTriggered = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: RecipeDetailDialog(
+            recipe: sharedRecipe,
+            bleService: ble,
+            storageService: storage,
+            isSharedImport: true,
+            onSavedToMyRecipes: () {
+              savedCallbackTriggered = true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    // Shared recipe preview banner is displayed
+    expect(find.text('SHARED RECIPE PREVIEW'), findsOneWidget);
+    expect(find.textContaining('Imported from a shared link'), findsOneWidget);
+
+    // 1-Tap Save button is rendered
+    final saveButton = find.text('Save to My Recipes');
+    expect(saveButton, findsOneWidget);
+
+    // Tap Save to My Recipes
+    await tester.tap(saveButton);
+    await tester.pumpAndSettle();
+
+    // Verified saved in storage
+    final savedList = storage.getCustomRecipes();
+    expect(savedList.any((r) => r.name == 'Shared Flat White'), isTrue);
+    expect(savedCallbackTriggered, isTrue);
   });
 }
 

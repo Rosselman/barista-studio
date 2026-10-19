@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../data/preset_catalog.dart';
 import '../../models/recipe.dart';
 import '../../services/barista_ble_service.dart';
+import '../../services/recipe_share_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
 import '../widgets/flash_recipe_dialog.dart';
@@ -239,6 +241,334 @@ class _RecipesTabState extends State<RecipesTab> {
     );
   }
 
+  void _shareRecipe(BuildContext context, Recipe recipe) {
+    final link = RecipeShareService.encodeShareUrl(recipe);
+    Clipboard.setData(ClipboardData(text: link));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppTheme.surfaceCard,
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Share link copied to clipboard!\n$link',
+                style: const TextStyle(color: AppTheme.crema, fontSize: 12),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showImportShareLinkDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.link, color: AppTheme.goldPrimary, size: 22),
+            SizedBox(width: 10),
+            Text(
+              'Import Share Link / Code',
+              style: TextStyle(color: AppTheme.crema, fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Paste a baristastudio:// link or recipe share code below:',
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              style: const TextStyle(color: AppTheme.crema, fontSize: 12),
+              decoration: InputDecoration(
+                hintText: 'baristastudio://recipe?data=...',
+                hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                filled: true,
+                fillColor: AppTheme.surfaceInput,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppTheme.borderSubtle),
+                ),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.content_paste, color: AppTheme.goldLight, size: 18),
+                  tooltip: 'Paste from clipboard',
+                  onPressed: () async {
+                    final data = await Clipboard.getData(Clipboard.kTextPlain);
+                    if (data?.text != null) {
+                      controller.text = data!.text!.trim();
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          ElevatedButton(
+            child: const Text('Preview & Import'),
+            onPressed: () {
+              final text = controller.text.trim();
+              if (text.isEmpty) return;
+              final recipe = RecipeShareService.decodeShareUrl(text);
+              if (recipe == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppTheme.surfaceCard,
+                    content: Text(
+                      'Invalid recipe share link or code. Please check the text and try again.',
+                      style: TextStyle(color: AppTheme.rubyEmergency),
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+              Navigator.of(ctx).pop();
+              RecipeDetailDialog.show(
+                context,
+                recipe: recipe,
+                bleService: widget.bleService,
+                storageService: widget.storageService,
+                isSharedImport: true,
+                onCustomize: widget.onCustomize,
+                onSavedToMyRecipes: () {
+                  _loadCustomRecipes();
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImportJsonDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.file_download_outlined, color: AppTheme.cyanCold, size: 22),
+            SizedBox(width: 10),
+            Text(
+              'Import Recipes (JSON)',
+              style: TextStyle(color: AppTheme.crema, fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Paste custom recipes JSON (single recipe, list of recipes, or backup object):',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                maxLines: 8,
+                style: const TextStyle(color: AppTheme.crema, fontSize: 12, fontFamily: 'monospace'),
+                decoration: InputDecoration(
+                  hintText: '{\n  "recipes": [\n    {\n      "name": "My Recipe",\n      ...\n    }\n  ]\n}',
+                  hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                  filled: true,
+                  fillColor: AppTheme.surfaceInput,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: const BorderSide(color: AppTheme.borderSubtle),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.content_paste, color: AppTheme.goldLight, size: 18),
+                    tooltip: 'Paste from clipboard',
+                    onPressed: () async {
+                      final data = await Clipboard.getData(Clipboard.kTextPlain);
+                      if (data?.text != null) {
+                        controller.text = data!.text!.trim();
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          ElevatedButton(
+            child: const Text('Import Recipes'),
+            onPressed: () async {
+              final text = controller.text.trim();
+              if (text.isEmpty) return;
+              final imported = RecipeShareService.importRecipesFromJson(text);
+              if (imported.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppTheme.surfaceCard,
+                    content: Text(
+                      'No valid recipes found in JSON. Please verify the JSON structure.',
+                      style: TextStyle(color: AppTheme.rubyEmergency),
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                return;
+              }
+              final count = await widget.storageService.importCustomRecipes(imported);
+              if (ctx.mounted) {
+                Navigator.of(ctx).pop();
+                _loadCustomRecipes();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: AppTheme.surfaceCard,
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Successfully imported $count recipe(s) to My Recipes!',
+                            style: const TextStyle(color: AppTheme.crema),
+                          ),
+                        ),
+                      ],
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _exportAllCustomRecipes(BuildContext context) {
+    if (_customRecipes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppTheme.surfaceCard,
+          content: Text(
+            'No custom recipes to export. Create one in the builder first!',
+            style: TextStyle(color: AppTheme.amberHeat),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final jsonStr = RecipeShareService.exportRecipesJson(_customRecipes);
+    Clipboard.setData(ClipboardData(text: jsonStr));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceCard,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppTheme.borderSubtle),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.file_upload_outlined, color: AppTheme.amberHeat, size: 22),
+            SizedBox(width: 10),
+            Text(
+              'Exported Custom Recipes (JSON)',
+              style: TextStyle(color: AppTheme.crema, fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'JSON copied to clipboard! You can save this text as a backup or share it:',
+                style: TextStyle(color: AppTheme.emeraldSuccess, fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                height: 180,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: SingleChildScrollView(
+                  child: Text(
+                    jsonStr,
+                    style: const TextStyle(color: AppTheme.crema, fontSize: 11, fontFamily: 'monospace'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.copy, size: 16),
+            label: const Text('Copy Again'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: jsonStr));
+              Navigator.of(ctx).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  backgroundColor: AppTheme.surfaceCard,
+                  content: Text('JSON copied to clipboard!'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+          ),
+          TextButton(
+            child: const Text('Close', style: TextStyle(color: AppTheme.textMuted)),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _confirmDeleteRecipe(BuildContext context, Recipe recipe) {
     showDialog(
       context: context,
@@ -466,6 +796,60 @@ class _RecipesTabState extends State<RecipesTab> {
                         }).toList(),
                       ),
                     ),
+                  if (_modeIndex == 1)
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.surfaceElevated,
+                              foregroundColor: AppTheme.goldLight,
+                              side: const BorderSide(color: AppTheme.borderSubtle),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            icon: const Icon(Icons.link, size: 16, color: AppTheme.goldPrimary),
+                            label: const Text('Import Share Link', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            onPressed: () => _showImportShareLinkDialog(context),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.surfaceElevated,
+                              foregroundColor: AppTheme.crema,
+                              side: const BorderSide(color: AppTheme.borderSubtle),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            icon: const Icon(Icons.file_download_outlined, size: 16, color: AppTheme.cyanCold),
+                            label: const Text('Import JSON', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            onPressed: () => _showImportJsonDialog(context),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.surfaceElevated,
+                              foregroundColor: AppTheme.crema,
+                              side: const BorderSide(color: AppTheme.borderSubtle),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            icon: const Icon(Icons.file_upload_outlined, size: 16, color: AppTheme.amberHeat),
+                            label: const Text('Export JSON', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                            onPressed: () => _exportAllCustomRecipes(context),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppTheme.goldPrimary,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                            icon: const Icon(Icons.add, size: 16),
+                            label: const Text('New Recipe', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            onPressed: widget.onOpenBuilder,
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -512,7 +896,7 @@ class _RecipesTabState extends State<RecipesTab> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Design bespoke temperature, RPM, and duration profiles tailored to your exact taste in the Custom Builder.',
+                'Design bespoke temperature, RPM, and duration profiles tailored to your exact taste in the Custom Builder, or import shared recipes.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: AppTheme.textSecondary,
@@ -521,10 +905,33 @@ class _RecipesTabState extends State<RecipesTab> {
                 ),
               ),
               const SizedBox(height: 24),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Open Custom Builder'),
-                onPressed: widget.onOpenBuilder,
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Open Custom Builder'),
+                    onPressed: widget.onOpenBuilder,
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppTheme.borderSubtle),
+                    ),
+                    icon: const Icon(Icons.link, size: 18, color: AppTheme.goldPrimary),
+                    label: const Text('Import Share Link'),
+                    onPressed: () => _showImportShareLinkDialog(context),
+                  ),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppTheme.borderSubtle),
+                    ),
+                    icon: const Icon(Icons.file_download_outlined, size: 18, color: AppTheme.cyanCold),
+                    label: const Text('Import JSON'),
+                    onPressed: () => _showImportJsonDialog(context),
+                  ),
+                ],
               ),
             ],
           ),
@@ -809,6 +1216,14 @@ class _RecipesTabState extends State<RecipesTab> {
                 ),
               ),
               if (isCustom) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.share, size: 18, color: AppTheme.goldLight),
+                  tooltip: 'Share Code',
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _shareRecipe(context, recipe),
+                ),
                 const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(Icons.edit_note, size: 20, color: AppTheme.goldLight),

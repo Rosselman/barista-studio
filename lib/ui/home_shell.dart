@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import '../models/machine_telemetry.dart';
 import '../models/recipe.dart';
 import '../services/barista_ble_service.dart';
+import '../services/recipe_share_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'tabs/custom_recipe_tab.dart';
@@ -36,16 +38,59 @@ class _HomeShellState extends State<HomeShell> {
   int _currentStepNumber = 1;
   MachineState _lastMachineState = MachineState.standby;
 
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSub;
+
   @override
   void initState() {
     super.initState();
+    _initDeepLinks();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.bleService.autoConnect();
     });
   }
 
+  void _initDeepLinks() {
+    _appLinks = AppLinks();
+    _linkSub = _appLinks.uriLinkStream.listen(
+      (uri) => _handleIncomingUri(uri),
+      onError: (err) => debugPrint('Deep link stream error: $err'),
+    );
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        _handleIncomingUri(uri);
+      }
+    }).catchError((err) {
+      debugPrint('Initial deep link error: $err');
+    });
+  }
+
+  void _handleIncomingUri(Uri uri) {
+    final recipe = RecipeShareService.decodeShareUrl(uri.toString());
+    if (recipe != null && mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        RecipeDetailDialog.show(
+          context,
+          recipe: recipe,
+          bleService: widget.bleService,
+          storageService: widget.storageService,
+          isSharedImport: true,
+          onCustomize: (customRecipe) {
+            setState(() => _currentIndex = 1);
+            _customRecipeKey.currentState?.setRecipe(customRecipe);
+          },
+          onSavedToMyRecipes: () {
+            setState(() => _currentIndex = 0);
+          },
+        );
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _linkSub?.cancel();
     _brewTicker?.cancel();
     super.dispose();
   }
