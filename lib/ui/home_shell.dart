@@ -314,13 +314,14 @@ class _HomeShellState extends State<HomeShell> {
                 title: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: AppTheme.goldPrimary.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.asset(
+                        'assets/icon/app_icon.png',
+                        width: 26,
+                        height: 26,
+                        fit: BoxFit.cover,
                       ),
-                      child: const Icon(Icons.coffee, color: AppTheme.goldPrimary, size: 18),
                     ),
                     const SizedBox(width: 8),
                     const Text(

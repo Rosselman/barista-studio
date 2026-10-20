@@ -49,14 +49,14 @@ class AboutBaristaDialog extends StatelessWidget {
               // Header
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppTheme.goldPrimary.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppTheme.goldPrimary, width: 1),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      width: 48,
+                      height: 48,
+                      fit: BoxFit.cover,
                     ),
-                    child: const Icon(Icons.coffee, color: AppTheme.goldPrimary, size: 26),
                   ),
                   const SizedBox(width: 14),
                   const Expanded(
