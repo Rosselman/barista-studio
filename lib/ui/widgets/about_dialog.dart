@@ -72,7 +72,7 @@ class AboutBaristaDialog extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'v1.4.0 • Release',
+                          'v1.5.0 • Release',
                           style: TextStyle(
                             color: AppTheme.goldPrimary,
                             fontSize: 12,
@@ -166,6 +166,10 @@ class AboutBaristaDialog extends StatelessWidget {
                     _buildFeatureItem(Icons.memory, '13 Hardware EEPROM Recipe Slots'),
                     const SizedBox(height: 6),
                     _buildFeatureItem(Icons.alt_route, 'Native Multi-Step Execution & Firmware Pause'),
+                    const SizedBox(height: 6),
+                    _buildFeatureItem(Icons.auto_awesome, 'Guided Barista & Dual-Stage Formulator'),
+                    const SizedBox(height: 6),
+                    _buildFeatureItem(Icons.share, 'Deep Linking & Universal Recipe Sharing'),
                     const SizedBox(height: 6),
                     _buildFeatureItem(Icons.speed, 'Variable Whisk Motor (300 – 4000 RPM)'),
                     const SizedBox(height: 6),

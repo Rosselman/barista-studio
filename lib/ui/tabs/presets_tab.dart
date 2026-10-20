@@ -1177,11 +1177,26 @@ class _RecipesTabState extends State<RecipesTab> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                flex: isCustom ? 4 : 1,
+                child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                     side: const BorderSide(color: AppTheme.borderSubtle),
                     foregroundColor: AppTheme.crema,
+                  ),
+                  icon: Icon(
+                    isCustom ? Icons.tune : Icons.menu_book_outlined,
+                    size: 14,
+                    color: AppTheme.goldLight,
+                  ),
+                  label: Text(
+                    isCustom ? 'Edit in Builder' : 'Guide',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   onPressed: () {
                     if (isCustom) {
@@ -1195,17 +1210,22 @@ class _RecipesTabState extends State<RecipesTab> {
                       );
                     }
                   },
-                  child: Text(isCustom ? 'Edit in Builder' : 'Guide', style: const TextStyle(fontSize: 12)),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
+                flex: isCustom ? 3 : 1,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
                   ),
                   icon: const Icon(Icons.flash_on, size: 14),
-                  label: const Text('Flash', style: TextStyle(fontSize: 12)),
+                  label: const Text(
+                    'Flash',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   onPressed: () {
                     FlashRecipeDialog.show(
                       context,
@@ -1222,23 +1242,56 @@ class _RecipesTabState extends State<RecipesTab> {
                   tooltip: 'Share Code',
                   padding: const EdgeInsets.all(6),
                   constraints: const BoxConstraints(),
+                  visualDensity: VisualDensity.compact,
                   onPressed: () => _shareRecipe(context, recipe),
                 ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.edit_note, size: 20, color: AppTheme.goldLight),
-                  tooltip: 'Customize Details',
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 18, color: AppTheme.textMuted),
+                  tooltip: 'More Options',
                   padding: const EdgeInsets.all(6),
                   constraints: const BoxConstraints(),
-                  onPressed: () => _showEditRecipeDetailsDialog(context, recipe),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, size: 18, color: AppTheme.rubyEmergency),
-                  tooltip: 'Delete Recipe',
-                  padding: const EdgeInsets.all(6),
-                  constraints: const BoxConstraints(),
-                  onPressed: () => _confirmDeleteRecipe(context, recipe),
+                  color: AppTheme.surfaceCard,
+                  onSelected: (val) {
+                    if (val == 'share') {
+                      _shareRecipe(context, recipe);
+                    } else if (val == 'edit') {
+                      _showEditRecipeDetailsDialog(context, recipe);
+                    } else if (val == 'delete') {
+                      _confirmDeleteRecipe(context, recipe);
+                    }
+                  },
+                  itemBuilder: (ctx) => [
+                    const PopupMenuItem(
+                      value: 'share',
+                      child: Row(
+                        children: [
+                          Icon(Icons.share, size: 18, color: AppTheme.goldLight),
+                          SizedBox(width: 10),
+                          Text('Share Code', style: TextStyle(color: AppTheme.crema, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit_note, size: 18, color: AppTheme.goldLight),
+                          SizedBox(width: 10),
+                          Text('Customize Details', style: TextStyle(color: AppTheme.crema, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_outline, size: 18, color: AppTheme.rubyEmergency),
+                          SizedBox(width: 10),
+                          Text('Delete Recipe', style: TextStyle(color: AppTheme.rubyEmergency, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],

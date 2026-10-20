@@ -13,12 +13,13 @@ A clean, modern, open-source, standalone Flutter application for crafting, seque
 - **100% Offline & Privacy-First**: Communicates directly with the machine's local Bluetooth Low Energy (BLE) GATT profile. No telemetry collection, analytics, user registration, or cloud dependencies.
 - **Native Multi-Step Recipes (v1.3.0+)**: Hardware-sequenced multi-step recipes natively supported by the Barista firmware. Executes Step 1, automatically halts motor power and induction heating, transitions to `RECIPE_PAUSED` (`7`) with an OLED screen prompt to add milk or ingredients, and resumes seamlessly into Step 2 upon physical center dial press.
 - **Full 13-Slot EEPROM Hardware Memory Management**: Read, flash, reorder, and erase recipes across all 13 physical EEPROM slots on the machine with real-time slot occupancy tracking.
-- **Expanded Gourmet Preset Library (70+ Recipes)**: An extensive catalog of tuned presets covering **Multi-Step (18 signature dual-stage recipes)**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & High-Shear Textures**.
+- **Expanded Gourmet Preset Library (78 Recipes)**: An extensive catalog of tuned presets covering **Multi-Step (24 signature dual-stage recipes)**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & High-Shear Textures**.
 - **Dual-Mode Recipe Builder**:
-  - **Guided Formulator**: An interactive 5-question culinary questionnaire that formulates balanced recipes on the spot.
+  - **Guided Formulator**: An interactive culinary questionnaire supporting both Single-Cycle and Dual-Stage (Froth & Unite) multi-step formulations.
   - **Granular Sequencer**: Fine-tuned control over motor speed (300–4000 RPM), ramp acceleration (50–2000 RPM/s), induction heating temperature (0–70°C, with 0°C cold froth toggle), phase durations (1–240s), custom step naming, and intermediate action prompts.
 - **Targeted Telemetry & Event-Driven Dial Sync**: Proactively polls `CHAR_MACHINE_STATUS` periodically for real-time execution and pause state tracking, while rotary dial selection (`CHAR_RECIPE_SELECTION`) is synchronized via instant hardware GATT notifications.
 - **"My Recipes" Customization & Instant Sync**: Save, organize, edit descriptions, and flash custom recipes with immediate reactive UI updates.
+- **Deep Linking & Recipe Sharing (v1.5.0)**: Share custom recipes seamlessly via `baristastudio://` custom URIs and Base64 Share Codes, complete with 1-tap import preview and bulk JSON backup/restore.
 - **Dynamic BLE Auto-Discovery**: Automatically discovers nearby Barista machines (`White_*`, `Black_*`, `Barista*`, `W545*`) without hardcoded MAC addresses.
 - **Interactive Preparation Guides**: Complete step-by-step culinary preparation instructions, ingredient ratios, and temperature guidance for every recipe.
 
@@ -26,13 +27,13 @@ A clean, modern, open-source, standalone Flutter application for crafting, seque
 
 ## 2. Core Features & Presets Library
 
-### Curated Presets Catalog (70+ Recipes)
+### Curated Presets Catalog (78 Recipes)
 
-Barista Studio features 70+ professionally calibrated presets organized into intuitive categories with multi-tag filtering:
+Barista Studio features 78 professionally calibrated presets organized into intuitive categories with multi-tag filtering:
 
 | Category / Tag | Description | Sample Recipes |
 |---|---|---|
-| **Multi-Step** | Natively sequenced 2-step recipes featuring automatic firmware pause for intermediate culinary additions | *Espresso Tonic*, *Mocha Truffle*, *Pistachio Cloud*, *Irish Velvet*, *Cascara Spark*, *Biscoff Swirl*, *Salted Crown*, *Chai Ganache*, *Latte Double*, *Nitro Swt Cream*, *Viennese Choco*, *Affogato Foam*, *Matcha Cloud*, *Caramel Macch* |
+| **Multi-Step** | Natively sequenced 2-step recipes featuring automatic firmware pause for intermediate culinary additions | *Duo Iced Cappa*, *Mocha Duo Fusion*, *Matcha Cloud Duo*, *Cortado Duo*, *Choco Cold Brew*, *Espresso Tonic*, *Mocha Truffle*, *Pistachio Cloud*, *Irish Velvet*, *Cascara Spark*, *Biscoff Swirl*, *Affogato Cream* |
 | **Hot Coffee** | Traditional European espresso classics & rich textured specialties | *Cappuccino*, *Latte Macchiato*, *Flat White*, *Velvet Cortado*, *Vienna Melange*, *Spanish Latte*, *Caffè Breve*, *Mocha Viennois* |
 | **Iced & Cold Coffee** | Chilled coffee drinks utilizing high mechanical shear and zero-heat cold froth | *Iced Frappé*, *Nitro Cold Foam*, *Espresso Freddo*, *Cold Shakerato*, *Iced Caramel Macchiato*, *Brown Sugar Oat* |
 | **Non-Coffee** | Decadent warmers, artisan hot chocolates, and botanical tea infusions | *Hot Chocolate*, *Mexican Cocoa*, *White Hot Cocoa*, *Matcha Silk*, *Turmeric Elixir*, *Spiced Chai*, *London Fog*, *Babyccino*, *Vanilla Steamer*, *Rooibos Honey*, *Spiced Cider* |
@@ -42,7 +43,7 @@ Barista Studio features 70+ professionally calibrated presets organized into int
 
 ### Dual-Mode Recipe Builder
 
-- **Guided AI Formulator**: Formulates calibrated multi-phase recipes based on 5 parameters: temperature profile, beverage style, base liquid, foam density, and flavor inclusions. Provides 1-tap direct flashing, saving to My Recipes, and transfer to manual mode for granular tuning.
+- **Guided AI Formulator**: Formulates calibrated single-cycle and dual-stage (Froth & Unite) multi-phase recipes. Automatically calculates phase ramp profiles, assigns <= 16-character hardware names, configures pause sequences, and provides 1-tap direct flashing, saving to My Recipes, and hand-off to the Manual Sequencer.
 - **Granular Sequencer**: Full manual control over 1 or 2 steps, with up to 3 execution phases per step. Controls whisk motor speed (300 to 4000 RPM), acceleration (50 to 2000 RPM/s), induction coil temperature (0 to 70°C), and duration (1 to 240 seconds per phase). Includes a live packet preview with real-time CRC-16 computation.
 
 ### 13-Slot EEPROM Hardware Manager
@@ -443,22 +444,46 @@ flutter build web --release
 
 ## 7. Changelog
 
-### v1.5.0 (In Development)
+### v1.5.0
+- **Deep Linking & Universal Recipe Sharing (`baristastudio://`)**:
+  - **1-Tap Share Codes**: Added a dedicated `Share Code` action button to custom recipes in My Recipes and custom recipe detail modals. Generates compact `baristastudio://recipe/<base64>` deep links and copies them to the clipboard.
+  - **Native Platform Deep Linking**: Configured system URI scheme handling across Android (`android:scheme="baristastudio"`), iOS (`CFBundleURLSchemes`), macOS, Linux, and Windows via `app_links: ^6.4.1`.
+  - **Recipe Preview & 1-Tap Save**: Opening a shared link automatically launches or focuses the app, displays an interactive recipe preview sheet with all phases and parameters, and provides a 1-tap `Save to My Recipes` button.
+  - **Bulk JSON Backup & Restore**: Added full JSON collection export and import in the Recipes tab, enabling complete backups and cross-device library migration with non-destructive UUID collision handling.
+- **Guided Barista Mode Expansion: Dual-Stage (Froth & Unite)**:
+  - **Dual-Stage Architecture**: Added architecture toggle between `⚡ Single-Cycle (Standard)` and `⏸️ Dual-Stage (Froth & Unite)` in Guided Barista mode.
+  - **Culinary Questionnaire**: Guides users through crafting drinks where two distinct elements are frothed separately and united in the serving glass (e.g., espresso crema first, then velvety microfoam).
+  - **Hardware-Calibrated Synthesis**: Automatically computes compliant <= 16-character hardware names (e.g. `DUO ESPR CLOUD`), configures mid-cycle hardware pauses, sets "pour into glass" and "unite" preparation instructions, and provides 1-tap "Tune in Manual" hand-off to the Manual Sequencer.
+- **5 New "Froth & Unite" Multi-Step Presets**:
+  - Added signature dual-stage recipes expanding the built-in catalog to 78 recipes (24 multi-step):
+    - *Duo Iced Cappa*: Cold espresso crema whip poured to iced glass, crowned with dense cold milk foam.
+    - *Mocha Duo Fusion*: Hot espresso crema aeration united with rich dark chocolate microfoam.
+    - *Matcha Cloud Duo*: Emerald ceremonial matcha tea nectar crowned with sweet vanilla oat milk cloud.
+    - *Cortado Duo*: Hot espresso & caramel dense crema topped with silky steamed whole milk.
+    - *Choco Cold Brew*: Cold brew hyper-sheared with chocolate syrup, united with thick cold cream.
+- **Hardware Memory Full Protection & In-Place Slot Overwrite Engine**:
+  - Automatically disables "Next Available Slot" when all 13 physical EEPROM slots are occupied, preventing CRC-16 hardware errors and guiding users directly to choose a slot to overwrite.
+  - Hardened slot overwrite sequence: cleanly wipes targeted slots with `CMD_DELETE` (`0x03`) and safe settling delays before writing the new recipe via `CMD_APPEND` (`0x01`).
 - **Interactive Multi-Step Guidance & "What's Step 2?" Action System**:
   - **Live Step 2 Guidance**: When a 2-step recipe finishes Step 1 and the Barista machine enters its hardware pause state (`MachineState.recipePaused`), the top HUD banner instantly displays an animated glowing `[⚡ What's Step 2?]` button.
   - **`Step2InstructionDialog`**: Tapping the action button opens a dedicated modal specifically highlighting what to do for Step 2:
     - Exact human-readable Step 2 instruction text and measurements.
-    - 4-step actionable checklist (Open lid -> Add ingredients -> Secure lid -> Press dial).
+    - 4-step actionable checklist (Open lid -> Add ingredients -> Secure lid -> Press dial) with uniform amber styling.
     - Live machine status callout explaining that the motor has cut off and dial press is required.
     - Telemetry profile of the upcoming step (duration, temperature, RPM) and optional ingredients accordion.
   - **Step 2 Prep Preview**: While Step 1 is actively executing, the top bar displays a subtle `[Step 2 Prep]` button so users can get milk, syrups, or espresso ready in advance.
-  - **Slots Tab Step 2 Integration**: Occupied slot cards automatically switch their Guide pill to `[⚡ Step 2]` when paused, alongside a new `What's Step 2?` menu option.
+  - **Slots Tab Step 2 Integration**: Occupied slot cards automatically switch their Guide pill to `[⚡ Step 2]` when paused.
 - **Direct Step-by-Step Recipe Guides in Slots Tab**:
   - Added direct `[📖 Guide]` action buttons on every occupied rotary slot card in the Slots tab, opening the complete step-by-step preparation instructions, measurements, and ingredient lists without leaving the tab.
-  - Added `Step-by-step Guide` option to each slot's overflow menu (available both online and offline).
   - Enhanced `StorageService.resolveRecipe` to resolve complete recipe models across presets, custom recipes, and default loadouts by UUID or recipe name, with graceful offline fallbacks for custom slots.
-  - Dynamic Brewing Guide integration: Active slot cards visually highlight brewing state with `🔄 BREWING` (cyan) and `⏸️ PAUSED` (amber) badges, giving users an immediate visual cue to view recipe steps.
+  - Dynamic Brewing Guide integration: Active slot cards visually highlight brewing state with `🔄 BREWING` (cyan) and `⏸️ PAUSED` (amber) badges.
   - Added a dedicated 1-tap `[📖 Guide]` pill button directly inside the top HUD brewing timer banner across all tabs whenever a recipe is executing or paused.
+- **UI Ergonomics & Button Polish**:
+  - Restored the book icon (`Icons.menu_book_outlined`) on Guide buttons across curated preset cards.
+  - Added tuning icon (`Icons.tune`) and centered alignment to "Edit in Builder" on My Recipes cards.
+  - Removed redundant Share buttons from preset recipes, reserving sharing exclusively for custom and imported recipes.
+  - Fixed portrait layout overflows on small mobile viewports (e.g. multi-tag wraps on Affogato Cream and Overwrite Slot buttons).
+  - Streamlined hardware pause status labels across guides from raw firmware codes to user-friendly "Hardware Pause (Press Dial)".
 
 ### v1.4.1
 - **Optimized Favorites System (Pinned to Top)**:

@@ -111,34 +111,35 @@ class RecipeDetailDialog extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.share, color: AppTheme.goldLight, size: 20),
-                  tooltip: 'Copy Share Code / Link',
-                  onPressed: () {
-                    final link = RecipeShareService.encodeShareUrl(recipe);
-                    Clipboard.setData(ClipboardData(text: link));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: AppTheme.surfaceCard,
-                        content: Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Share link copied to clipboard!\n$link',
-                                style: const TextStyle(color: AppTheme.crema, fontSize: 12),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                if (recipe.isCustom || isSharedImport)
+                  IconButton(
+                    icon: const Icon(Icons.share, color: AppTheme.goldLight, size: 20),
+                    tooltip: 'Copy Share Code / Link',
+                    onPressed: () {
+                      final link = RecipeShareService.encodeShareUrl(recipe);
+                      Clipboard.setData(ClipboardData(text: link));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: AppTheme.surfaceCard,
+                          content: Row(
+                            children: [
+                              const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Share link copied to clipboard!\n$link',
+                                  style: const TextStyle(color: AppTheme.crema, fontSize: 12),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
                 IconButton(
                   icon: const Icon(Icons.close, color: AppTheme.textMuted, size: 20),
                   onPressed: () => Navigator.of(context).pop(),

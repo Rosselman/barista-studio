@@ -16,6 +16,8 @@ import 'package:barista_studio/services/recipe_share_service.dart';
 import 'package:barista_studio/services/storage_service.dart';
 import 'package:barista_studio/theme/app_theme.dart';
 import 'package:barista_studio/ui/tabs/custom_recipe_tab.dart';
+import 'package:barista_studio/ui/tabs/presets_tab.dart';
+import 'package:barista_studio/ui/widgets/about_dialog.dart';
 import 'package:barista_studio/ui/widgets/flash_recipe_dialog.dart';
 import 'package:barista_studio/ui/widgets/recipe_detail_dialog.dart';
 
@@ -766,6 +768,108 @@ void main() {
     expect(state.currentRecipe.isMultiStep, isTrue);
     expect(state.currentRecipe.stepCount, 2);
   });
+
+  testWidgets('AboutBaristaDialog displays v1.5.0 • Release', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: AboutBaristaDialog(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('BARISTA STUDIO'), findsOneWidget);
+    expect(find.text('v1.5.0 • Release'), findsOneWidget);
+    expect(find.text('Guided Barista & Dual-Stage Formulator'), findsOneWidget);
+    expect(find.text('Deep Linking & Universal Recipe Sharing'), findsOneWidget);
+  });
+
+  testWidgets('RecipeDetailDialog omits share button on presets and includes it on custom recipes', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+    final ble = BaristaBleService(storageService: storage);
+
+    final presetRecipe = PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
+    final customRecipe = Recipe(
+      id: 'custom-recipe-uuid',
+      name: 'Bespoke Latte',
+      description: 'A custom latte test recipe',
+      isCustom: true,
+      category: 'Hot Coffee',
+      phases: [Phase.clamped(speed: 2000, accel: 500, temp: 65, duration: 40)],
+    );
+
+    // 1. Preset recipe: Share icon should NOT be shown
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: RecipeDetailDialog(recipe: presetRecipe, bleService: ble),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Cappuccino'), findsOneWidget);
+    expect(find.byIcon(Icons.share), findsNothing);
+
+    // 2. Custom recipe: Share icon SHOULD be shown
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: RecipeDetailDialog(recipe: customRecipe, bleService: ble),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Bespoke Latte'), findsOneWidget);
+    expect(find.byIcon(Icons.share), findsOneWidget);
+  });
+
+  testWidgets('PresetsTab card buttons show book icon for Guide and tune icon for Edit in Builder', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+    final ble = BaristaBleService(storageService: storage);
+
+    // Save a custom recipe
+    await storage.saveCustomRecipe(Recipe(
+      id: 'custom-card-test',
+      name: 'Custom Cold Foam',
+      description: 'A cold foam test recipe',
+      isCustom: true,
+      category: 'Cold Foam & Textures',
+      phases: [Phase.clamped(speed: 3000, accel: 600, temp: 0, duration: 30)],
+    ));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                child: PresetsTab(bleService: ble, storageService: storage),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // In Curated Presets mode:
+    expect(find.text('Guide'), findsWidgets);
+    expect(find.byIcon(Icons.menu_book_outlined), findsWidgets);
+
+    // Switch to My Recipes
+    await tester.tap(find.text('My Recipes (1)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit in Builder'), findsOneWidget);
+    expect(find.byIcon(Icons.tune), findsOneWidget);
+  });
 }
+
 
 
