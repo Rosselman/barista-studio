@@ -6,6 +6,7 @@ import '../../services/barista_ble_service.dart';
 import '../../services/recipe_share_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
+import 'app_toast.dart';
 import 'flash_recipe_dialog.dart';
 
 class RecipeDetailDialog extends StatelessWidget {
@@ -118,26 +119,7 @@ class RecipeDetailDialog extends StatelessWidget {
                     onPressed: () {
                       final link = RecipeShareService.encodeShareUrl(recipe);
                       Clipboard.setData(ClipboardData(text: link));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: AppTheme.surfaceCard,
-                          content: Row(
-                            children: [
-                              const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Share link copied to clipboard!\n$link',
-                                  style: const TextStyle(color: AppTheme.crema, fontSize: 12),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                      AppToast.success(context, 'Share link copied to clipboard!');
                     },
                   ),
                 IconButton(
@@ -724,24 +706,7 @@ class RecipeDetailDialog extends StatelessWidget {
                         await storageService!.saveCustomRecipe(recipe);
                         if (context.mounted) {
                           Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: AppTheme.surfaceCard,
-                              content: Row(
-                                children: [
-                                  const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      'Saved "${recipe.name}" to My Recipes!',
-                                      style: const TextStyle(color: AppTheme.crema),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
+                          AppToast.success(context, 'Saved "${recipe.name}" to My Recipes!');
                           onSavedToMyRecipes?.call();
                         }
                       },

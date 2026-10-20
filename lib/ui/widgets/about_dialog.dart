@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/app_theme.dart';
+import 'app_toast.dart';
 
 class AboutBaristaDialog extends StatelessWidget {
   const AboutBaristaDialog({super.key});
@@ -109,10 +111,10 @@ class AboutBaristaDialog extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppTheme.borderSubtle),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    const Row(
                       children: [
                         Icon(Icons.code, size: 16, color: AppTheme.goldPrimary),
                         SizedBox(width: 8),
@@ -129,8 +131,8 @@ class AboutBaristaDialog extends StatelessWidget {
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
-                    Text(
+                    const SizedBox(height: 8),
+                    const Text(
                       'Rosselman',
                       style: TextStyle(
                         color: AppTheme.crema,
@@ -138,13 +140,48 @@ class AboutBaristaDialog extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
+                    const SizedBox(height: 4),
+                    const Text(
                       'Reconstructed SDataWay BLE protocol, proprietary 16-byte CRC-16 CCITT packet sequencer, and hardware EEPROM synchronization.',
                       style: TextStyle(
                         color: AppTheme.textMuted,
                         fontSize: 11,
                         height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    InkWell(
+                      onTap: () {
+                        Clipboard.setData(const ClipboardData(text: 'https://reddit.com/u/Rosselman'));
+                        AppToast.success(context, 'Reddit contact copied: /u/Rosselman');
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceCard,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppTheme.borderSubtle),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.forum_outlined, size: 15, color: AppTheme.goldPrimary),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Reddit: /u/Rosselman',
+                                style: TextStyle(
+                                  color: AppTheme.crema,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.copy, size: 13, color: AppTheme.textMuted),
+                          ],
+                        ),
                       ),
                     ),
                   ],

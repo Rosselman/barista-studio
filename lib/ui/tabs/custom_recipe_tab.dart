@@ -8,6 +8,7 @@ import '../../protocol/recipe_packet_builder.dart';
 import '../../services/barista_ble_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/flash_recipe_dialog.dart';
 
 enum RecipeCraftMode { guided, manual }
@@ -596,13 +597,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
       _mode = RecipeCraftMode.manual;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Guided formula transferred to Manual Sequencer.'),
-        backgroundColor: AppTheme.surfaceElevated,
-        duration: Duration(seconds: 2),
-      ),
-    );
+    AppToast.info(context, 'Guided formula transferred to Manual Sequencer.');
   }
 
   // ===========================================================================
@@ -685,12 +680,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     final recipe = _getCurrentRecipe();
     await widget.storageService.saveCustomRecipe(recipe);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Recipe "${recipe.name}" saved to My Recipes.'),
-          backgroundColor: AppTheme.surfaceElevated,
-        ),
-      );
+      AppToast.success(context, 'Recipe "${recipe.name}" saved to My Recipes.');
     }
   }
 

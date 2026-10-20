@@ -7,6 +7,7 @@ import '../../protocol/barista_ble_constants.dart';
 import '../../services/barista_ble_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
+import 'app_toast.dart';
 
 class DeveloperDialog extends StatefulWidget {
   final BaristaBleService bleService;
@@ -385,9 +386,7 @@ class _LiveLogsViewState extends State<_LiveLogsView> {
                     tooltip: 'Copy Logs',
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: _logs.join('\n')));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Logs copied to clipboard'), duration: Duration(seconds: 1)),
-                      );
+                      AppToast.success(context, 'Diagnostic logs copied to clipboard');
                     },
                   ),
                   IconButton(

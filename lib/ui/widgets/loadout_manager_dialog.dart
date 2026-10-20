@@ -3,6 +3,7 @@ import '../../models/wheel_loadout.dart';
 import '../../services/barista_ble_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
+import 'app_toast.dart';
 import 'batch_flash_dialog.dart';
 
 class LoadoutManagerDialog extends StatefulWidget {
@@ -44,12 +45,7 @@ class _LoadoutManagerDialogState extends State<LoadoutManagerDialog> {
   void _showSaveCurrentWheelDialog(BuildContext context) {
     final occupiedSlots = widget.bleService.slots.where((s) => s.isOccupied).toList();
     if (occupiedSlots.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cannot save empty wheel. Flash at least one recipe first.'),
-          backgroundColor: AppTheme.surfaceElevated,
-        ),
-      );
+      AppToast.error(context, 'Cannot save empty wheel. Flash at least one recipe first.');
       return;
     }
 
@@ -135,7 +131,6 @@ class _LoadoutManagerDialogState extends State<LoadoutManagerDialog> {
             onPressed: () async {
               final name = nameController.text.trim();
               final desc = descController.text.trim();
-              final messenger = ScaffoldMessenger.of(context);
               Navigator.of(ctx).pop();
 
               final slotEntries = <LoadoutSlotEntry>[];
@@ -159,12 +154,7 @@ class _LoadoutManagerDialogState extends State<LoadoutManagerDialog> {
               await widget.storageService.saveLoadout(newLoadout);
               if (mounted) {
                 setState(() {});
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Saved "${newLoadout.name}" to Loadouts!'),
-                    backgroundColor: AppTheme.surfaceElevated,
-                  ),
-                );
+                AppToast.success(this.context, 'Saved "${newLoadout.name}" to Loadouts!');
               }
             },
             child: const Text('Save Profile'),
@@ -199,17 +189,11 @@ class _LoadoutManagerDialogState extends State<LoadoutManagerDialog> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              final messenger = ScaffoldMessenger.of(context);
               Navigator.of(ctx).pop();
               await widget.storageService.deleteLoadout(loadout.id);
               if (mounted) {
                 setState(() {});
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Deleted "${loadout.name}"'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                AppToast.info(this.context, 'Deleted "${loadout.name}"');
               }
             },
             child: const Text('Delete'),

@@ -19,6 +19,7 @@ import 'package:barista_studio/ui/tabs/custom_recipe_tab.dart';
 import 'package:barista_studio/ui/tabs/presets_tab.dart';
 import 'package:barista_studio/ui/widgets/about_dialog.dart';
 import 'package:barista_studio/ui/widgets/flash_recipe_dialog.dart';
+import 'package:barista_studio/ui/widgets/loadout_manager_dialog.dart';
 import 'package:barista_studio/ui/widgets/recipe_detail_dialog.dart';
 
 void main() {
@@ -868,6 +869,69 @@ void main() {
 
     expect(find.text('Edit in Builder'), findsOneWidget);
     expect(find.byIcon(Icons.tune), findsOneWidget);
+  });
+
+  test('PresetCatalog popularity order places top crowd-pleasers first', () {
+    final top10 = PresetCatalog.presets.take(10).map((r) => r.name).toList();
+    expect(top10, contains('Cappuccino'));
+    expect(top10, contains('Latte Macchiato'));
+    expect(top10, contains('Flat White'));
+    expect(top10, contains('Hot Chocolate'));
+    expect(top10, contains('Iced Frappe'));
+    expect(top10, contains('Nitro Cold Foam'));
+    expect(top10, contains('Iced Caramel Mac'));
+    expect(top10, contains('Brown Sugar Oat'));
+    expect(top10, contains('Matcha Silk'));
+    expect(top10, contains('Velvet Cortado'));
+
+    // Cappuccino must be #1
+    expect(PresetCatalog.presets.first.name, 'Cappuccino');
+  });
+
+  testWidgets('AboutBaristaDialog displays Reddit contact /u/Rosselman', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: AboutBaristaDialog(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Reddit: /u/Rosselman'), findsOneWidget);
+    expect(find.byIcon(Icons.forum_outlined), findsOneWidget);
+
+    // Tap Reddit contact row to verify no exceptions
+    await tester.tap(find.text('Reddit: /u/Rosselman'));
+    await tester.pump();
+    expect(find.text('Reddit contact copied: /u/Rosselman'), findsOneWidget);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('LoadoutManagerDialog shows AppToast when trying to save empty wheel', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+    final ble = BaristaBleService(storageService: storage);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: LoadoutManagerDialog(bleService: ble, storageService: storage),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Tap Save Wheel button
+    final saveButton = find.text('Save Wheel');
+    expect(saveButton, findsOneWidget);
+    await tester.tap(saveButton);
+    await tester.pump();
+
+    // AppToast should be displayed with error message
+    expect(find.text('Cannot save empty wheel. Flash at least one recipe first.'), findsOneWidget);
+    await tester.pumpAndSettle();
   });
 }
 

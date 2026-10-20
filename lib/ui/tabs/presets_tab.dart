@@ -6,6 +6,7 @@ import '../../services/barista_ble_service.dart';
 import '../../services/recipe_share_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_theme.dart';
+import '../widgets/app_toast.dart';
 import '../widgets/flash_recipe_dialog.dart';
 import '../widgets/recipe_detail_dialog.dart';
 
@@ -83,16 +84,17 @@ class _RecipesTabState extends State<RecipesTab> {
       return matchesCategory && matchesSearch;
     }).toList();
 
-    // Favorites pinned to the top of the list
-    list.sort((a, b) {
-      final aFav = widget.storageService.isFavorite(a.id);
-      final bFav = widget.storageService.isFavorite(b.id);
-      if (aFav && !bFav) return -1;
-      if (!aFav && bFav) return 1;
-      return 0;
-    });
-
-    return list;
+    // Favorites pinned to the top of the list preserving catalog popularity order
+    final favorites = <Recipe>[];
+    final nonFavorites = <Recipe>[];
+    for (final r in list) {
+      if (widget.storageService.isFavorite(r.id)) {
+        favorites.add(r);
+      } else {
+        nonFavorites.add(r);
+      }
+    }
+    return [...favorites, ...nonFavorites];
   }
 
   List<Recipe> get _filteredCustomRecipes {
@@ -109,16 +111,17 @@ class _RecipesTabState extends State<RecipesTab> {
       return matchesCategory && matchesSearch;
     }).toList();
 
-    // Favorites pinned to the top of the list
-    list.sort((a, b) {
-      final aFav = widget.storageService.isFavorite(a.id);
-      final bFav = widget.storageService.isFavorite(b.id);
-      if (aFav && !bFav) return -1;
-      if (!aFav && bFav) return 1;
-      return 0;
-    });
-
-    return list;
+    // Favorites pinned to the top of the list preserving custom order
+    final favorites = <Recipe>[];
+    final nonFavorites = <Recipe>[];
+    for (final r in list) {
+      if (widget.storageService.isFavorite(r.id)) {
+        favorites.add(r);
+      } else {
+        nonFavorites.add(r);
+      }
+    }
+    return [...favorites, ...nonFavorites];
   }
 
   @override
@@ -225,13 +228,7 @@ class _RecipesTabState extends State<RecipesTab> {
                 description: newDesc,
               );
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Recipe details updated!'),
-                    backgroundColor: AppTheme.surfaceElevated,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                AppToast.success(context, 'Recipe details updated!');
               }
             },
             child: const Text('Save Details'),
@@ -244,27 +241,7 @@ class _RecipesTabState extends State<RecipesTab> {
   void _shareRecipe(BuildContext context, Recipe recipe) {
     final link = RecipeShareService.encodeShareUrl(recipe);
     Clipboard.setData(ClipboardData(text: link));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppTheme.surfaceCard,
-        content: Row(
-          children: [
-            const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Share link copied to clipboard!\n$link',
-                style: const TextStyle(color: AppTheme.crema, fontSize: 12),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    AppToast.success(context, 'Share link copied to clipboard!');
   }
 
   void _showImportShareLinkDialog(BuildContext context) {
@@ -335,16 +312,7 @@ class _RecipesTabState extends State<RecipesTab> {
               if (text.isEmpty) return;
               final recipe = RecipeShareService.decodeShareUrl(text);
               if (recipe == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: AppTheme.surfaceCard,
-                    content: Text(
-                      'Invalid recipe share link or code. Please check the text and try again.',
-                      style: TextStyle(color: AppTheme.rubyEmergency),
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                AppToast.error(context, 'Invalid recipe share link or code. Please check the text and try again.');
                 return;
               }
               Navigator.of(ctx).pop();
@@ -437,40 +405,14 @@ class _RecipesTabState extends State<RecipesTab> {
               if (text.isEmpty) return;
               final imported = RecipeShareService.importRecipesFromJson(text);
               if (imported.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: AppTheme.surfaceCard,
-                    content: Text(
-                      'No valid recipes found in JSON. Please verify the JSON structure.',
-                      style: TextStyle(color: AppTheme.rubyEmergency),
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                AppToast.error(context, 'No valid recipes found in JSON. Please verify the JSON structure.');
                 return;
               }
               final count = await widget.storageService.importCustomRecipes(imported);
               if (ctx.mounted) {
                 Navigator.of(ctx).pop();
                 _loadCustomRecipes();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: AppTheme.surfaceCard,
-                    content: Row(
-                      children: [
-                        const Icon(Icons.check_circle_outline, color: AppTheme.emeraldSuccess, size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Successfully imported $count recipe(s) to My Recipes!',
-                            style: const TextStyle(color: AppTheme.crema),
-                          ),
-                        ),
-                      ],
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                AppToast.success(context, 'Successfully imported $count recipe(s) to My Recipes!');
               }
             },
           ),
@@ -481,16 +423,7 @@ class _RecipesTabState extends State<RecipesTab> {
 
   void _exportAllCustomRecipes(BuildContext context) {
     if (_customRecipes.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppTheme.surfaceCard,
-          content: Text(
-            'No custom recipes to export. Create one in the builder first!',
-            style: TextStyle(color: AppTheme.amberHeat),
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppToast.info(context, 'No custom recipes to export. Create one in the builder first!');
       return;
     }
 
@@ -551,13 +484,7 @@ class _RecipesTabState extends State<RecipesTab> {
             onPressed: () {
               Clipboard.setData(ClipboardData(text: jsonStr));
               Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  backgroundColor: AppTheme.surfaceCard,
-                  content: Text('JSON copied to clipboard!'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              AppToast.success(context, 'JSON copied to clipboard!');
             },
           ),
           TextButton(
@@ -595,16 +522,10 @@ class _RecipesTabState extends State<RecipesTab> {
             ),
             onPressed: () async {
               Navigator.of(ctx).pop();
-              final messenger = ScaffoldMessenger.of(context);
               await widget.storageService.deleteCustomRecipe(recipe.id);
               if (mounted) {
                 _loadCustomRecipes();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Deleted "${recipe.name}"'),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                AppToast.info(this.context, 'Deleted "${recipe.name}"');
               }
             },
             child: const Text('Delete'),
