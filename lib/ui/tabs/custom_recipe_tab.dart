@@ -69,6 +69,11 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     super.initState();
     _loadRecipe(widget.initialRecipe);
     _guidedNameController = TextEditingController(text: _deriveGuidedName());
+    widget.storageService.addListener(_onStorageChanged);
+  }
+
+  void _onStorageChanged() {
+    if (mounted) setState(() {});
   }
 
   void _loadRecipe(Recipe? recipe) {
@@ -165,7 +170,17 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   }
 
   @override
+  void didUpdateWidget(CustomRecipeTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.storageService != widget.storageService) {
+      oldWidget.storageService.removeListener(_onStorageChanged);
+      widget.storageService.addListener(_onStorageChanged);
+    }
+  }
+
+  @override
   void dispose() {
+    widget.storageService.removeListener(_onStorageChanged);
     _nameController.dispose();
     _descriptionController.dispose();
     _step1NameController.dispose();
@@ -394,11 +409,12 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
       final isColdDrink = s1Temp == 0 && s2Temp == 0;
       final category = isColdDrink ? 'Iced & Cold Coffee' : 'Specialty';
+      final multiStepDesc = _generateMultiStepDescription(s2LiquidName, s2Temp);
 
       return Recipe(
         id: _recipeId,
         name: clampedName,
-        description: 'Guided dual-stage craft. Step 1 froths base into glass; Step 2 froths $s2LiquidName to pour and unite.',
+        description: multiStepDesc,
         category: category,
         tags: [
           'Multi-Step',
@@ -544,24 +560,189 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     final name = _guidedNameController.text.trim().isEmpty ? _deriveGuidedName() : _guidedNameController.text.trim();
     final clampedName = name.length > 16 ? name.substring(0, 16) : name;
 
+    final liquidDisplayName = _guidedLiquidDisplayName;
+    final singleStepDesc = _generateSingleStepDescription(temp);
+    final singleStepIngredients = _generateSingleStepIngredients(liquidDisplayName);
+    final singleStepInstructions = _generateSingleStepInstructions(clampedName, liquidDisplayName, temp);
+
     return Recipe(
       id: _recipeId,
       name: clampedName,
-      description: 'Formulated $_guidedTemp $_guidedBase with $_guidedLiquid and $_guidedTexture texture.',
+      description: singleStepDesc,
       category: _guidedTemp == 'cold' ? 'Iced & Cold Coffee' : 'Hot Coffee',
       tags: [
         _guidedTemp == 'cold' ? 'Iced & Cold Coffee' : 'Hot Coffee',
-        _guidedLiquid == 'dairy' ? 'Dairy' : 'Non-Dairy',
+        _guidedLiquid == 'dairy' || _guidedLiquid == 'cream' ? 'Dairy' : 'Non-Dairy',
         if (_guidedTexture == 'dense') 'Cold Foam & Textures',
       ],
       steps: [
         RecipeStep(
           name: 'STEP 1',
+          instruction: 'Execute automated single-cycle: texturing $liquidDisplayName at ${_guidedTemp == "cold" ? "Cold (0°C)" : "$temp°C"}.',
           phases: phases,
         ),
       ],
+      ingredients: singleStepIngredients,
+      instructions: singleStepInstructions,
       isCustom: true,
     );
+  }
+
+  String get _guidedLiquidDisplayName {
+    switch (_guidedLiquid) {
+      case 'oat':
+        return 'Barista Oat Milk';
+      case 'almond':
+        return 'Almond Milk';
+      case 'coconut':
+        return 'Coconut Milk';
+      case 'cream':
+        return 'Heavy Whipping Cream';
+      case 'dairy':
+      default:
+        return 'Fresh Whole Milk';
+    }
+  }
+
+  String _generateSingleStepDescription(int temp) {
+    String liquid;
+    switch (_guidedLiquid) {
+      case 'oat':
+        liquid = 'barista oat milk';
+        break;
+      case 'almond':
+        liquid = 'delicate almond milk';
+        break;
+      case 'coconut':
+        liquid = 'creamy coconut milk';
+        break;
+      case 'cream':
+        liquid = 'fresh heavy whipping cream';
+        break;
+      case 'dairy':
+      default:
+        liquid = 'fresh whole milk';
+        break;
+    }
+
+    String textureDesc;
+    switch (_guidedTexture) {
+      case 'latteArt':
+        textureDesc = 'silky, pourable microfoam tailored for latte art';
+        break;
+      case 'chantilly':
+        textureDesc = 'thick, pillowy whipped velvet cream';
+        break;
+      case 'stir':
+        textureDesc = 'a smooth, homogenous emulsion with gentle continuous stirring';
+        break;
+      case 'dense':
+      default:
+        textureDesc = 'a dense, spoonable cloud microfoam crown';
+        break;
+    }
+
+    String baseDesc;
+    switch (_guidedBase) {
+      case 'chocolate':
+        baseDesc = 'rich dark chocolate melted into $liquid';
+        break;
+      case 'tea':
+        baseDesc = 'vibrant ceremonial Japanese matcha whisked into $liquid';
+        break;
+      case 'neutral':
+        baseDesc = '$liquid textured with pure aeration';
+        break;
+      case 'coffee':
+      default:
+        baseDesc = 'aromatic espresso paired with $liquid';
+        break;
+    }
+
+    String thermalNote;
+    if (_guidedTemp == 'cold') {
+      thermalNote = 'sheared with zero induction heating for a refreshing iced beverage';
+    } else if (_guidedTemp == 'warm') {
+      if (_guidedLiquid == 'oat' || _guidedLiquid == 'almond' || _guidedLiquid == 'coconut') {
+        thermalNote = 'gently warmed and capped at $temp°C to preserve delicate plant proteins';
+      } else {
+        thermalNote = 'gently warmed to $temp°C to enhance natural sweetness and drinking comfort';
+      }
+    } else {
+      if (_guidedLiquid == 'oat' || _guidedLiquid == 'almond' || _guidedLiquid == 'coconut') {
+        thermalNote = 'carefully heated to $temp°C with plant-milk temperature protection';
+      } else {
+        thermalNote = 'heated to a comforting piping hot $temp°C for a luxurious finish';
+      }
+    }
+
+    String inclusionNote = '';
+    if (_guidedInclusion == 'syrup') {
+      inclusionNote = ', infused with sweet flavor syrup';
+    } else if (_guidedInclusion == 'powder') {
+      inclusionNote = ', enriched with fully dissolved cocoa/spice powder';
+    }
+
+    return 'Artisanal single-cycle craft: $baseDesc$inclusionNote, $thermalNote to deliver $textureDesc.';
+  }
+
+  String _generateMultiStepDescription(String s2LiquidName, int s2Temp) {
+    String s1Desc;
+    switch (_guidedStep1Base) {
+      case 'chocolate':
+        s1Desc = 'froths molten dark chocolate ganache into your serving glass';
+        break;
+      case 'tea':
+        s1Desc = 'whisks vibrant emerald ceremonial matcha into your serving glass';
+        break;
+      case 'nitro':
+        s1Desc = 'hyper-shears cold brew into a cascading nitro base';
+        break;
+      case 'coffee':
+      default:
+        s1Desc = 'aerates rich espresso crema into your serving glass';
+        break;
+    }
+
+    String s2Texture;
+    switch (_guidedStep2Texture) {
+      case 'latteArt':
+        s2Texture = 'silky pourable microfoam';
+        break;
+      case 'chantilly':
+        s2Texture = 'soft pillowy whipped cream';
+        break;
+      case 'dense':
+      default:
+        s2Texture = 'thick velvet foam';
+        break;
+    }
+
+    final s2TempStr = _guidedStep2Temp == 'cold' ? 'cold (0°C)' : 'piping hot ($s2Temp°C)';
+
+    return 'Dual-stage artisanal craft: Step 1 $s1Desc. The machine pauses, then Step 2 froths $s2LiquidName into $s2Texture ($s2TempStr) to pour over and unite in striking layers.';
+  }
+
+  List<String> _generateSingleStepIngredients(String liquidName) {
+    return [
+      '100-120 ml $liquidName',
+      if (_guidedBase == 'coffee') '1 Nespresso Espresso capsule (40 ml)',
+      if (_guidedBase == 'chocolate') '15-20g dark chocolate flakes or cocoa drops',
+      if (_guidedBase == 'tea') '2g ceremonial Japanese matcha powder',
+      if (_guidedInclusion == 'syrup') '15 ml flavored coffee syrup or honey',
+      if (_guidedInclusion == 'powder') '1 tsp cocoa or cinnamon spice powder',
+    ];
+  }
+
+  List<String> _generateSingleStepInstructions(String clampedName, String liquidName, int temp) {
+    final tempStr = _guidedTemp == 'cold' ? 'cold (0°C)' : '$temp°C';
+    return [
+      'Insert whisk into the Barista jug.',
+      'Add ingredients: pour $liquidName and selected additives up to the MIN/MAX mark.',
+      'Secure lid onto jug, place jug on the machine base, and verify "$clampedName" on display.',
+      'Start cycle: the machine executes the formulated sequence ($tempStr).',
+      'Pour the textured beverage into your serving glass or cup and enjoy.',
+    ];
   }
 
   void _applyGuidedToManual() {
@@ -687,18 +868,25 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   @override
   Widget build(BuildContext context) {
     final currentRecipe = _getCurrentRecipe();
+    final showPacketInspector = widget.storageService.isPacketInspectorEnabled();
 
-    // Compute live packet & CRC for inspector
-    final packet = RecipePacketBuilder.buildPacket(
-      isAppend: true,
-      targetPos: 1,
-      name: currentRecipe.hardwareName,
-      uuidStr: currentRecipe.id,
-      steps: currentRecipe.steps,
-      phases: currentRecipe.phases,
-    );
-    final crc = Crc16.compute(packet, 2, packet.length);
-    final packetHex = packet.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    // Compute live packet & CRC for inspector only when developer toggle is enabled
+    List<int>? packet;
+    int? crc;
+    String? packetHex;
+    if (showPacketInspector) {
+      final p = RecipePacketBuilder.buildPacket(
+        isAppend: true,
+        targetPos: 1,
+        name: currentRecipe.hardwareName,
+        uuidStr: currentRecipe.id,
+        steps: currentRecipe.steps,
+        phases: currentRecipe.phases,
+      );
+      packet = p;
+      crc = Crc16.compute(p, 2, p.length);
+      packetHex = p.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.bgDark,
@@ -746,72 +934,75 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
             const SizedBox(height: 18),
 
-            // Live Binary Inspector
-            ExpansionTile(
-              backgroundColor: AppTheme.surfaceCard,
-              collapsedBackgroundColor: AppTheme.surfaceCard,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: const BorderSide(color: AppTheme.borderSubtle),
-              ),
-              collapsedShape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-                side: const BorderSide(color: AppTheme.borderSubtle),
-              ),
-              title: const Text(
-                'Live Binary Packet Inspector (CRC-16 & Hex)',
-                style: TextStyle(
-                  color: AppTheme.goldPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+            // Live Binary Inspector (Toggled in Developer Menu)
+            if (showPacketInspector && packet != null && crc != null && packetHex != null) ...[
+              const SizedBox(height: 18),
+              ExpansionTile(
+                backgroundColor: AppTheme.surfaceCard,
+                collapsedBackgroundColor: AppTheme.surfaceCard,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: AppTheme.borderSubtle),
                 ),
-              ),
-              childrenPadding: const EdgeInsets.all(16),
-              children: [
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  runAlignment: WrapAlignment.center,
-                  spacing: 12,
-                  runSpacing: 6,
-                  children: [
-                    Text(
-                      'CRC-16 CCITT: 0x${crc.toRadixString(16).toUpperCase()}',
-                      style: const TextStyle(
-                        color: AppTheme.crema,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    Text(
-                      'Steps: ${currentRecipe.stepCount} (${currentRecipe.isMultiStep ? "Multi-Step ⏸️" : "Single-Step"})',
-                      style: const TextStyle(
-                        color: AppTheme.goldLight,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    Text(
-                      'Packet Size: ${packet.length} bytes',
-                      style: const TextStyle(
-                        color: AppTheme.textMuted,
-                        fontSize: 12,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                  ],
+                collapsedShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: const BorderSide(color: AppTheme.borderSubtle),
                 ),
-                const SizedBox(height: 10),
-                SelectableText(
-                  packetHex,
-                  style: const TextStyle(
-                    color: Color(0xFFA0C4FF),
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    height: 1.4,
+                title: const Text(
+                  'Live Binary Packet Inspector (CRC-16 & Hex)',
+                  style: TextStyle(
+                    color: AppTheme.goldPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
+                childrenPadding: const EdgeInsets.all(16),
+                children: [
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    runAlignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 6,
+                    children: [
+                      Text(
+                        'CRC-16 CCITT: 0x${crc.toRadixString(16).toUpperCase()}',
+                        style: const TextStyle(
+                          color: AppTheme.crema,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      Text(
+                        'Steps: ${currentRecipe.stepCount} (${currentRecipe.isMultiStep ? "Multi-Step ⏸️" : "Single-Step"})',
+                        style: const TextStyle(
+                          color: AppTheme.goldLight,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      Text(
+                        'Packet Size: ${packet.length} bytes',
+                        style: const TextStyle(
+                          color: AppTheme.textMuted,
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  SelectableText(
+                    packetHex,
+                    style: const TextStyle(
+                      color: Color(0xFFA0C4FF),
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 20),
 
             // Save & Flash Action Buttons
@@ -1410,7 +1601,7 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                     child: Text(
                       recipe.isMultiStep
                           ? 'Formulated Dual-Stage Recipe (2 Steps ⏸️)'
-                          : 'Formulated Recipe',
+                          : 'Formulated Single-Cycle Profile (${recipe.activePhases.length} Phases ⚡)',
                       style: TextStyle(
                         color: recipe.isMultiStep ? AppTheme.amberHeat : AppTheme.goldLight,
                         fontSize: 14,
@@ -1460,6 +1651,38 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 ],
               ),
               const SizedBox(height: 10),
+
+              // Overview Telemetry Summary Bar
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildGuidedSummaryItem(Icons.timer_outlined, '${recipe.totalDurationSeconds}s', 'Duration'),
+                    Container(width: 1, height: 20, color: AppTheme.borderSubtle),
+                    _buildGuidedSummaryItem(Icons.rotate_right, '${recipe.peakRpm} RPM', 'Peak Speed'),
+                    Container(width: 1, height: 20, color: AppTheme.borderSubtle),
+                    _buildGuidedSummaryItem(
+                      recipe.isCold ? Icons.ac_unit : Icons.local_fire_department,
+                      recipe.isCold ? 'Cold (0°C)' : '${recipe.maxTemp}°C',
+                      'Target Temp',
+                      iconColor: recipe.isCold ? AppTheme.cyanCold : AppTheme.amberHeat,
+                    ),
+                    Container(width: 1, height: 20, color: AppTheme.borderSubtle),
+                    _buildGuidedSummaryItem(
+                      recipe.isMultiStep ? Icons.alt_route : Icons.layers_outlined,
+                      recipe.isMultiStep ? '${recipe.stepCount} Steps' : '${recipe.activePhases.length} Phases',
+                      'Structure',
+                    ),
+                  ],
+                ),
+              ),
 
               if (recipe.isMultiStep && recipe.steps.length > 1) ...[
                 // Dual-Stage Visual Breakdown
@@ -1578,40 +1801,181 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                   children: recipe.phases.asMap().entries.map((entry) {
                     final idx = entry.key + 1;
                     final p = entry.value;
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceInput,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppTheme.borderSubtle),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            width: 22,
-                            height: 22,
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceElevated,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: AppTheme.borderSubtle),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              '$idx',
-                              style: const TextStyle(color: AppTheme.goldLight, fontSize: 11, fontWeight: FontWeight.bold),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.goldPrimary.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'PHASE $idx',
+                                  style: const TextStyle(
+                                    color: AppTheme.goldLight,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _getPhaseRoleTitle(idx, p),
+                                  style: const TextStyle(
+                                    color: AppTheme.crema,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                '${p.duration}s @ ${p.speed} RPM',
+                                style: const TextStyle(
+                                  color: AppTheme.textMuted,
+                                  fontSize: 11,
+                                  fontFamily: 'monospace',
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            _getPhaseDescription(idx, p),
+                            style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11,
+                              height: 1.35,
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              '${p.duration}s  •  ${p.speed} RPM  •  ${p.temp == 0 ? "Cold (0°C)" : "${p.temp}°C"}',
-                              style: const TextStyle(
-                                color: AppTheme.crema,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: 'monospace',
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              _buildPhaseChip(Icons.timer_outlined, '${p.duration}s'),
+                              _buildPhaseChip(Icons.rotate_right, '${p.speed} RPM'),
+                              _buildPhaseChip(
+                                p.temp == 0 ? Icons.ac_unit : Icons.local_fire_department,
+                                p.temp == 0 ? 'Cold (0°C)' : '${p.temp}°C',
+                                color: p.temp == 0 ? AppTheme.cyanCold : AppTheme.amberHeat,
                               ),
-                            ),
+                              _buildPhaseChip(Icons.speed, '${p.accel} RPM/s'),
+                            ],
                           ),
                         ],
                       ),
                     );
                   }).toList(),
+                ),
+              ],
+
+              // Formulated Recipe Description Card
+              Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceInput,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.borderSubtle),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.auto_awesome, color: AppTheme.goldLight, size: 13),
+                        SizedBox(width: 6),
+                        Text(
+                          'RECIPE DESCRIPTION (MY RECIPES)',
+                          style: TextStyle(
+                            color: AppTheme.goldLight,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      recipe.description,
+                      style: const TextStyle(
+                        color: AppTheme.crema,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Estimated Ingredients Summary
+              if (recipe.ingredients.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceInput,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.borderSubtle),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.inventory_2_outlined, color: AppTheme.goldLight, size: 13),
+                          SizedBox(width: 6),
+                          Text(
+                            'ESTIMATED INGREDIENTS',
+                            style: TextStyle(
+                              color: AppTheme.goldLight,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: recipe.ingredients.map((ing) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceCard,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AppTheme.borderSubtle),
+                            ),
+                            child: Text(
+                              ing,
+                              style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ],
@@ -1690,6 +2054,116 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         ),
       ),
     );
+  }
+
+  Widget _buildGuidedSummaryItem(IconData icon, String val, String label, {Color? iconColor}) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: iconColor ?? AppTheme.goldLight),
+            const SizedBox(width: 4),
+            Text(
+              val,
+              style: TextStyle(
+                color: iconColor ?? AppTheme.crema,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppTheme.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhaseChip(IconData icon, String label, {Color? color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppTheme.borderSubtle),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color ?? AppTheme.goldLight),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: color ?? AppTheme.crema,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getPhaseRoleTitle(int phaseNum, Phase phase) {
+    if (phaseNum == 1) {
+      if (_guidedInclusion == 'powder') return 'Powder Shear & Suspension';
+      if (_guidedTexture == 'stir') return 'Gentle Melt & Dissolution';
+      if (_guidedTemp == 'cold') return 'High-Shear Cold Aeration';
+      if (_guidedTexture == 'chantilly') return 'Rapid Volume Entrainment';
+      return 'Initial Microfoam Aeration';
+    } else if (phaseNum == 2) {
+      if (_guidedTexture == 'stir') return 'Thermal Emulsification Blend';
+      if (_guidedTexture == 'chantilly') return 'Velvet Peak Consolidation';
+      if (_guidedTemp == 'cold') return 'Cold Microfoam Homogenization';
+      return 'Thermal Texturing & Heating';
+    } else {
+      if (_guidedTemp == 'cold') return 'Surface Polish & Bubble Rest';
+      return 'Glossy Latte-Art Polish';
+    }
+  }
+
+  String _getPhaseDescription(int phaseNum, Phase phase) {
+    if (phaseNum == 1) {
+      if (_guidedInclusion == 'powder') {
+        return 'Applies targeted rotational shear to thoroughly dissolve dry particles and prevent clumping.';
+      } else if (_guidedTexture == 'stir') {
+        return 'Low-RPM stir melts solids and incorporates ingredients gently without introducing unwanted froth.';
+      } else if (_guidedTexture == 'chantilly') {
+        return 'Maximum rotational velocity forces air into the fat matrix to expand volume rapidly.';
+      } else if (_guidedTemp == 'cold') {
+        return 'High-speed vortex whips air into cold liquid, generating tiny micro-bubble foundations without heat.';
+      } else {
+        return 'Rapid rotation draws air through the surface vortex, creating fine microfoam bubbles.';
+      }
+    } else if (phaseNum == 2) {
+      if (_guidedTexture == 'stir') {
+        return 'Maintains smooth continuous circulation while gently holding the target temperature.';
+      } else if (_guidedTexture == 'chantilly') {
+        return 'Stabilizes whipped cream emulsion into dense, pillowy velvet peaks.';
+      } else if (_guidedTemp == 'cold') {
+        return 'Refines foam density and homogenizes texture for an ultra-creamy chilled body.';
+      } else {
+        return 'Brings liquid to ${phase.temp}°C while refining bubble size into glossy microfoam.';
+      }
+    } else {
+      if (_guidedTemp == 'cold') {
+        return 'Gentle resting rotation collapses oversized surface bubbles for a compact, velvety head.';
+      } else {
+        return 'Ultra-low RPM polish cycle removes surface turbulence, giving a mirror-smooth latte-art shine.';
+      }
+    }
   }
 
   // ===========================================================================

@@ -1318,4 +1318,16 @@ class BaristaBleService extends ChangeNotifier {
     }
     return bytes;
   }
+
+  @override
+  void dispose() {
+    _connSub?.cancel();
+    _statusSub?.cancel();
+    _recipeResponseSub?.cancel();
+    _recipeSelectionSub?.cancel();
+    _scanSub?.cancel();
+    _statusPollingTimer?.cancel();
+    _logController.close();
+    super.dispose();
+  }
 }

@@ -58,23 +58,34 @@ class Recipe {
 
   /// Highest speed across active phases in all steps
   int get peakRpm {
-    final active = activePhases;
-    if (active.isEmpty) return 3000;
-    return active.map((p) => p.speed).reduce((a, b) => a > b ? a : b);
+    int max = 0;
+    for (final s in steps) {
+      for (final p in s.activePhases) {
+        if (p.speed > max) max = p.speed;
+      }
+    }
+    return max > 0 ? max : 3000;
   }
 
   /// Target temperature of active phases across all steps (highest)
   int get maxTemp {
-    final active = activePhases;
-    if (active.isEmpty) return 0;
-    return active.map((p) => p.temp).reduce((a, b) => a > b ? a : b);
+    int max = 0;
+    for (final s in steps) {
+      for (final p in s.activePhases) {
+        if (p.temp > max) max = p.temp;
+      }
+    }
+    return max;
   }
 
   /// True if all active phases across all steps are cold (0°C)
   bool get isCold {
-    final active = activePhases;
-    if (active.isEmpty) return true;
-    return active.every((p) => p.temp == 0);
+    for (final s in steps) {
+      for (final p in s.activePhases) {
+        if (p.temp != 0) return false;
+      }
+    }
+    return true;
   }
 
   /// List of all active phases across all steps

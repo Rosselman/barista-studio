@@ -13,7 +13,7 @@ A clean, modern, open-source, standalone Flutter application for crafting, seque
 - **100% Offline & Privacy-First**: Communicates directly with the machine's local Bluetooth Low Energy (BLE) GATT profile. No telemetry collection, analytics, user registration, or cloud dependencies.
 - **Native Multi-Step Recipes (v1.3.0+)**: Hardware-sequenced multi-step recipes natively supported by the Barista firmware. Executes Step 1, automatically halts motor power and induction heating, transitions to `RECIPE_PAUSED` (`7`) with an OLED screen prompt to add milk or ingredients, and resumes seamlessly into Step 2 upon physical center dial press.
 - **Full 13-Slot EEPROM Hardware Memory Management**: Read, flash, reorder, and erase recipes across all 13 physical EEPROM slots on the machine with real-time slot occupancy tracking.
-- **Expanded Gourmet Preset Library (78 Recipes)**: An extensive catalog of tuned presets covering **Multi-Step (24 signature dual-stage recipes)**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & High-Shear Textures**.
+- **Expanded Gourmet Preset Library (90 Recipes)**: An extensive catalog of tuned presets covering **Multi-Step (24 signature dual-stage recipes)**, **Hot Coffee**, **Iced & Cold Coffee**, a dedicated **Non-Coffee** classification, **Dairy Specialties**, **Plant-Based / Non-Dairy**, and **Cold Foam & High-Shear Textures**.
 - **Dual-Mode Recipe Builder**:
   - **Guided Formulator**: An interactive culinary questionnaire supporting both Single-Cycle and Dual-Stage (Froth & Unite) multi-step formulations.
   - **Granular Sequencer**: Fine-tuned control over motor speed (300–4000 RPM), ramp acceleration (50–2000 RPM/s), induction heating temperature (0–70°C, with 0°C cold froth toggle), phase durations (1–240s), custom step naming, and intermediate action prompts.
@@ -27,9 +27,9 @@ A clean, modern, open-source, standalone Flutter application for crafting, seque
 
 ## 2. Core Features & Presets Library
 
-### Curated Presets Catalog (78 Recipes)
+### Curated Presets Catalog (90 Recipes)
 
-Barista Studio features 78 professionally calibrated presets organized into intuitive categories with multi-tag filtering:
+Barista Studio features 90 professionally calibrated presets organized into intuitive categories with multi-tag filtering:
 
 | Category / Tag | Description | Sample Recipes |
 |---|---|---|
@@ -443,6 +443,47 @@ flutter build web --release
 ---
 
 ## 7. Changelog
+
+### v1.5.1
+- **Developer Settings: Live Binary Packet Inspector Toggle**:
+  - Moved the Live Binary Packet Inspector into an opt-in toggle in the Developer menu so end users enjoy an uncluttered, streamlined recipe builder.
+  - When enabled, live 68-byte binary frame inspection and real-time CRC-16 computation are displayed; when disabled, packet synthesis overhead is completely bypassed.
+  - Setting is saved persistently in local storage and updates the builder reactively.
+- **New recipes**:
+  - Added 12 new calibrated recipes expanding the built-in catalog to 90 recipes:
+    - *Caffè Latte*: Classic warm breakfast latte with generous textured milk and velvety microfoam.
+    - *Iced Nitro*: High-shear zero-heat aerated espresso cascade with a thick velvety cold crema crown.
+    - *Caffè Salentina*: Traditional iced espresso and chilled almond milk emulsion with sweet cane syrup.
+    - *Caffè Marocchino*: Piedmontese cocoa, rich espresso, and dense hot glossy milk foam.
+    - *Espresso Con Panna*: Double espresso crowned with cold whipped cream peaks frothed to soft-serve thickness.
+    - *Iced Lungo*: Pure chilled black coffee aerated into a silky emulsion.
+    - *Café con Hielo*: Flash-chilled espresso with ice and a golden foam cap.
+    - *Hot Milk Foam*: Dense, glossy standalone hot milk microfoam.
+    - *Cold Milk Foam*: Crisp, velvety standalone cold foam for iced drinks.
+    - *Warm Milk*: Gentle low-RPM stirring up to 65°C without generating foam.
+    - *Almond Flat White*: Calibrated at 54°C to texture almond milk into silky microfoam without curdling.
+    - *Saffron Pistachio*: Specialty warm golden saffron and pistachio cream microfoam.
+- **Guided Barista Polish & Single-Cycle Formulated Preview**:
+  - **High-Fidelity Phase Cards**: Upgraded the single-cycle "Formulated Recipe" preview card from raw text into rich, beautifully styled phase cards matching the visual polish of dual-stage mode.
+  - **Contextual Phase Role Titles**: Each phase now features an intelligent culinary role title (e.g. *Initial Microfoam Aeration*, *High-Shear Cold Aeration*, *Thermal Texturing & Heating*, *Powder Shear & Suspension*, *Glossy Latte-Art Polish*).
+  - **Detailed Parameter Badges**: Dedicated visual chips for Duration (s), Motor Speed (RPM), Temperature (°C / Cold), and Acceleration (RPM/s).
+  - **Physical Mechanics Explanations**: Barista notes explaining what the surface vortex and induction coil are actively executing during each phase.
+  - **Overview Telemetry Bar**: Displays Total Duration, Peak Motor Speed, Target Temperature, and Sequence Structure at a glance.
+  - **Artisanal Recipe Descriptions for My Recipes**: All recipes synthesized via Guided Barista now generate evocative, descriptive text detailing ingredients, temperature curves, milk protein protection, and mouthfeel when saved to *My Recipes*.
+  - **Estimated Ingredients & Preparation Guidance**: Single-step guided recipes now automatically generate estimated ingredient quantities and step-by-step instructions for the Guide and Recipe Detail sheets.
+
+- **Redesigned App Branding & Hardware Silhouette Icon**:
+  - Replaced legacy logo with an elegant 2D silhouette of the Barista Recipe Maker device (carafe jug, fitted lid with center handle loop, and base station) rendered with a brushed champagne gold texture on a matte black squircle.
+  - Deployed updated high-resolution icons across all supported platforms (Android, iOS, macOS, Windows ICO, Linux desktop, Web PWA/favicon, Flatpak) and directly inside the app's top AppBar and About dialog.
+- **iOS iPad Universal Support**:
+  - Configured universal iPad support (`TARGETED_DEVICE_FAMILY = "1,2"`), full-screen execution (`UIRequiresFullScreen`), complete interface orientations, and iPad/iPad Pro asset catalog definitions.
+- **Comprehensive Codebase Polish & Performance Optimization**:
+  - **O(1) Preset Lookups**: Converted linear scans in `PresetCatalog.findByUuid` and `findByName` into instant hash lookups with lazy index maps, drastically speeding up slot decoding and search.
+  - **In-Memory Caching in Storage Service**: Added in-memory caches for custom recipes, favorites, and wheel loadouts, eliminating redundant JSON deserialization on UI rebuilds.
+  - **Zero-Allocation Model Getters**: Refactored `peakRpm`, `maxTemp`, and `isCold` in `Recipe` to direct primitive loops, eliminating garbage collection churn during rapid list scrolling.
+  - **Single-Pass UUID Formatter**: Rewrote `RecipePacketBuilder.bytesToUuid` using a direct `StringBuffer` loop.
+  - **Idle Animation Throttling**: `WhiskVisualizer` ticker now halts when the machine is idle or RPM is 0, conserving device battery and GPU power.
+  - **Lifecycle Cleanup**: Implemented `dispose()` in `BaristaBleService` and `didUpdateWidget` in `CustomRecipeTab` to ensure leak-free lifecycle management.
 
 ### v1.5.0
 - **Deep Linking & Universal Recipe Sharing (`baristastudio://`)**:

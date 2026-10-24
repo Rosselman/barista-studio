@@ -87,8 +87,9 @@ class _RecipesTabState extends State<RecipesTab> {
     // Favorites pinned to the top of the list preserving catalog popularity order
     final favorites = <Recipe>[];
     final nonFavorites = <Recipe>[];
+    final favSet = widget.storageService.getFavorites();
     for (final r in list) {
-      if (widget.storageService.isFavorite(r.id)) {
+      if (favSet.contains(r.id)) {
         favorites.add(r);
       } else {
         nonFavorites.add(r);
@@ -114,8 +115,9 @@ class _RecipesTabState extends State<RecipesTab> {
     // Favorites pinned to the top of the list preserving custom order
     final favorites = <Recipe>[];
     final nonFavorites = <Recipe>[];
+    final favSet = widget.storageService.getFavorites();
     for (final r in list) {
-      if (widget.storageService.isFavorite(r.id)) {
+      if (favSet.contains(r.id)) {
         favorites.add(r);
       } else {
         nonFavorites.add(r);

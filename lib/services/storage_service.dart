@@ -16,14 +16,29 @@ class StorageService extends ChangeNotifier {
   static const String _keyCachedSlotsPrefix = 'barista_cached_slots_';
   static const String _keyFavorites = 'barista_favorite_recipes';
   static const String _keyLoadouts = 'barista_custom_wheel_loadouts';
+  static const String _keyShowPacketInspector = 'barista_dev_show_packet_inspector';
 
   final SharedPreferences _prefs;
+  List<Recipe>? _cachedCustomRecipes;
+  Set<String>? _cachedFavorites;
+  List<WheelLoadout>? _cachedLoadouts;
 
   StorageService(this._prefs);
 
   static Future<StorageService> init() async {
     final prefs = await SharedPreferences.getInstance();
     return StorageService(prefs);
+  }
+
+  // --- Developer Preferences ---
+  bool isPacketInspectorEnabled() {
+    return _prefs.getBool(_keyShowPacketInspector) ?? false;
+  }
+
+  Future<bool> setPacketInspectorEnabled(bool enabled) async {
+    final res = await _prefs.setBool(_keyShowPacketInspector, enabled);
+    notifyListeners();
+    return res;
   }
 
   // --- CMID Authentication Key ---
@@ -49,6 +64,9 @@ class StorageService extends ChangeNotifier {
 
   // --- Custom Recipes ---
   List<Recipe> getCustomRecipes() {
+    if (_cachedCustomRecipes != null) {
+      return List.unmodifiable(_cachedCustomRecipes!);
+    }
     final rawList = _prefs.getStringList(_keyCustomRecipes) ?? [];
     final recipes = <Recipe>[];
     for (final raw in rawList) {
@@ -57,15 +75,16 @@ class StorageService extends ChangeNotifier {
         recipes.add(Recipe.fromJson(json));
       } catch (e) {
         if (kDebugMode) {
-          print('[StorageService] Error decoding custom recipe: $e');
+          debugPrint('[StorageService] Error decoding custom recipe: $e');
         }
       }
     }
-    return recipes;
+    _cachedCustomRecipes = recipes;
+    return List.unmodifiable(recipes);
   }
 
   Future<bool> saveCustomRecipe(Recipe recipe) async {
-    final list = getCustomRecipes();
+    final list = List<Recipe>.from(getCustomRecipes());
     final idx = list.indexWhere((r) => r.id == recipe.id);
     if (idx >= 0) {
       list[idx] = recipe;
@@ -77,6 +96,7 @@ class StorageService extends ChangeNotifier {
 
     final rawList = list.map((r) => jsonEncode(r.toJson())).toList();
     final res = await _prefs.setStringList(_keyCustomRecipes, rawList);
+    _cachedCustomRecipes = list;
     notifyListeners();
     return res;
   }
@@ -84,7 +104,7 @@ class StorageService extends ChangeNotifier {
   /// Bulk import custom recipes into storage
   Future<int> importCustomRecipes(List<Recipe> imported) async {
     if (imported.isEmpty) return 0;
-    final list = getCustomRecipes();
+    final list = List<Recipe>.from(getCustomRecipes());
     int count = 0;
     for (final recipe in imported) {
       final idx = list.indexWhere((r) => r.id == recipe.id);
@@ -98,15 +118,17 @@ class StorageService extends ChangeNotifier {
     }
     final rawList = list.map((r) => jsonEncode(r.toJson())).toList();
     await _prefs.setStringList(_keyCustomRecipes, rawList);
+    _cachedCustomRecipes = list;
     notifyListeners();
     return count;
   }
 
   Future<bool> deleteCustomRecipe(String id) async {
-    final list = getCustomRecipes();
+    final list = List<Recipe>.from(getCustomRecipes());
     list.removeWhere((r) => r.id == id);
     final rawList = list.map((r) => jsonEncode(r.toJson())).toList();
     final res = await _prefs.setStringList(_keyCustomRecipes, rawList);
+    _cachedCustomRecipes = list;
     notifyListeners();
     return res;
   }
@@ -118,7 +140,7 @@ class StorageService extends ChangeNotifier {
     String? description,
     List<String>? tags,
   }) async {
-    final list = getCustomRecipes();
+    final list = List<Recipe>.from(getCustomRecipes());
     final idx = list.indexWhere((r) => r.id == id);
     if (idx < 0) return false;
 
@@ -135,6 +157,7 @@ class StorageService extends ChangeNotifier {
 
     final rawList = list.map((r) => jsonEncode(r.toJson())).toList();
     final res = await _prefs.setStringList(_keyCustomRecipes, rawList);
+    _cachedCustomRecipes = list;
     notifyListeners();
     return res;
   }
@@ -269,7 +292,7 @@ class StorageService extends ChangeNotifier {
       return list;
     } catch (e) {
       if (kDebugMode) {
-        print('[StorageService] Error decoding cached slots for $macAddress: $e');
+        debugPrint('[StorageService] Error decoding cached slots for $macAddress: $e');
       }
       return null;
     }
@@ -290,28 +313,36 @@ class StorageService extends ChangeNotifier {
 
   // --- Favorite Recipes ---
   Set<String> getFavorites() {
+    if (_cachedFavorites != null) {
+      return Set.unmodifiable(_cachedFavorites!);
+    }
     final list = _prefs.getStringList(_keyFavorites) ?? [];
-    return list.toSet();
+    _cachedFavorites = list.toSet();
+    return Set.unmodifiable(_cachedFavorites!);
   }
 
   bool isFavorite(String recipeId) {
-    return getFavorites().contains(recipeId);
+    return (_cachedFavorites ?? getFavorites()).contains(recipeId);
   }
 
   Future<bool> toggleFavorite(String recipeId) async {
-    final current = getFavorites();
+    final current = Set<String>.from(getFavorites());
     if (current.contains(recipeId)) {
       current.remove(recipeId);
     } else {
       current.add(recipeId);
     }
     final res = await _prefs.setStringList(_keyFavorites, current.toList());
+    _cachedFavorites = current;
     notifyListeners();
     return res;
   }
 
   // --- Wheel Loadouts (Profiles) ---
   List<WheelLoadout> getCustomLoadouts() {
+    if (_cachedLoadouts != null) {
+      return List.unmodifiable(_cachedLoadouts!);
+    }
     final rawList = _prefs.getStringList(_keyLoadouts) ?? [];
     final loadouts = <WheelLoadout>[];
     for (final raw in rawList) {
@@ -320,11 +351,12 @@ class StorageService extends ChangeNotifier {
         loadouts.add(WheelLoadout.fromJson(json));
       } catch (e) {
         if (kDebugMode) {
-          print('[StorageService] Error decoding custom loadout: $e');
+          debugPrint('[StorageService] Error decoding custom loadout: $e');
         }
       }
     }
-    return loadouts;
+    _cachedLoadouts = loadouts;
+    return List.unmodifiable(loadouts);
   }
 
   /// Returns both built-in curated defaults and user-created custom loadouts
@@ -337,7 +369,7 @@ class StorageService extends ChangeNotifier {
   }
 
   Future<bool> saveLoadout(WheelLoadout loadout) async {
-    final list = getCustomLoadouts();
+    final list = List<WheelLoadout>.from(getCustomLoadouts());
     final idx = list.indexWhere((l) => l.id == loadout.id);
     if (idx >= 0) {
       list[idx] = loadout;
@@ -347,15 +379,17 @@ class StorageService extends ChangeNotifier {
 
     final rawList = list.map((l) => jsonEncode(l.toJson())).toList();
     final res = await _prefs.setStringList(_keyLoadouts, rawList);
+    _cachedLoadouts = list;
     notifyListeners();
     return res;
   }
 
   Future<bool> deleteLoadout(String id) async {
-    final list = getCustomLoadouts();
+    final list = List<WheelLoadout>.from(getCustomLoadouts());
     list.removeWhere((l) => l.id == id);
     final rawList = list.map((l) => jsonEncode(l.toJson())).toList();
     final res = await _prefs.setStringList(_keyLoadouts, rawList);
+    _cachedLoadouts = list;
     notifyListeners();
     return res;
   }

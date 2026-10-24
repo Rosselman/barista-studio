@@ -32,7 +32,10 @@ class _WhiskVisualizerState extends State<WhiskVisualizer>
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
-    )..repeat();
+    );
+    if (widget.isRunning && widget.rpm > 0) {
+      _controller.repeat();
+    }
 
     for (int i = 0; i < 35; i++) {
       _particles.add(_BubbleParticle(
@@ -41,6 +44,17 @@ class _WhiskVisualizerState extends State<WhiskVisualizer>
         speed: 0.02 + _rnd.nextDouble() * 0.05,
         size: 1.5 + _rnd.nextDouble() * 2.5,
       ));
+    }
+  }
+
+  @override
+  void didUpdateWidget(WhiskVisualizer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final shouldAnimate = widget.isRunning && widget.rpm > 0;
+    if (shouldAnimate && !_controller.isAnimating) {
+      _controller.repeat();
+    } else if (!shouldAnimate && _controller.isAnimating) {
+      _controller.stop();
     }
   }
 

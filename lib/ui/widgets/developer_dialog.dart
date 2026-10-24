@@ -279,6 +279,43 @@ class _DeveloperDialogState extends State<DeveloperDialog> with SingleTickerProv
               ),
             ],
           ),
+          const SizedBox(height: 16),
+
+          // Developer Settings & Studio Toggles
+          _buildSectionHeader('Developer Settings & Toggles'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceInput,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.borderSubtle),
+            ),
+            child: SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              activeColor: AppTheme.goldPrimary,
+              title: const Text(
+                'Live Binary Packet Inspector',
+                style: TextStyle(
+                  color: AppTheme.crema,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: const Text(
+                'Show raw CRC-16 & 16-byte hex packet inspector in Custom Recipe builder',
+                style: TextStyle(
+                  color: AppTheme.textMuted,
+                  fontSize: 11,
+                ),
+              ),
+              value: widget.storageService.isPacketInspectorEnabled(),
+              onChanged: (val) async {
+                await widget.storageService.setPacketInspectorEnabled(val);
+                if (mounted) setState(() {});
+              },
+            ),
+          ),
         ],
       ),
     );

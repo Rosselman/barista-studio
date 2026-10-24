@@ -30,12 +30,14 @@ class RecipePacketBuilder {
   /// Converts 16 raw bytes back to standard UUID formatted string
   static String bytesToUuid(List<int> bytes) {
     if (bytes.length < 16) return '';
-    final hex = bytes
-        .take(16)
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join()
-        .toLowerCase();
-    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
+    final sb = StringBuffer();
+    for (int i = 0; i < 16; i++) {
+      if (i == 4 || i == 6 || i == 8 || i == 10) {
+        sb.write('-');
+      }
+      sb.write(bytes[i].toRadixString(16).padLeft(2, '0'));
+    }
+    return sb.toString().toLowerCase();
   }
 
   /// Builds the exact SDataWay binary recipe packet supporting single and multi-step recipes.

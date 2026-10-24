@@ -2078,31 +2078,276 @@ class PresetCatalog {
         'Pour the silky almond cold cloud over the cascara tea for a refreshing layered drink.',
       ],
     ),
+    Recipe(
+      id: 'f101fb85-4db6-4af5-d5e9-27651ca64801',
+      name: 'Caffe Latte',
+      description: 'Classic Italian breakfast latte. Generous warm textured milk with a delicate microfoam layer over espresso.',
+      category: 'Hot Coffee & Milk',
+      tags: const ['Hot Coffee & Milk', 'Classic', 'Microfoam'],
+      phases: [
+        Phase.clamped(speed: 2100, accel: 600, temp: 65, duration: 42),
+      ],
+      ingredients: [
+        '1 Espresso or Double Espresso (40-80 ml)',
+        '150 ml Whole or semi-skimmed cold milk',
+      ],
+      instructions: [
+        'Pour 150 ml cold fresh milk into the Barista jug up to the latte indicator.',
+        'Insert the whisk, place the lid, and run the program.',
+        'Extract espresso into a large mug or glass tumbler.',
+        'Pour the warm textured milk over espresso, holding back foam with a spoon if desired, then crown with a velvety microfoam layer.',
+      ],
+    ),
+    Recipe(
+      id: 'f102fb85-4db6-4af5-d5e9-27651ca64802',
+      name: 'Iced Nitro',
+      description: 'High-velocity shear aerated chilled espresso delivering a rich cascading crema with zero dairy.',
+      category: 'Iced & Cold',
+      tags: const ['Iced & Cold', 'Cold Foam & Textures', 'Black Coffee'],
+      phases: [
+        Phase.clamped(speed: 3800, accel: 1000, temp: 0, duration: 25),
+      ],
+      ingredients: [
+        '1 Espresso or Lungo (40-110 ml)',
+        '1 Ice cube (30g)',
+        '40 ml Cold water',
+      ],
+      instructions: [
+        'Brew 1 espresso or lungo directly into the Barista jug.',
+        'Add 1 large ice cube (30g) and 40 ml cold water.',
+        'Close lid and run the Iced Nitro program.',
+        'Pour immediately into a tall glass to watch the cascading nitro head settle into a creamy velvety crown.',
+      ],
+    ),
+    Recipe(
+      id: 'f103fb85-4db6-4af5-d5e9-27651ca64803',
+      name: 'Caffe Salentina',
+      description: 'Traditional Apulian iced espresso delight emulsified with chilled almond milk and a touch of cane syrup.',
+      category: 'Iced & Cold',
+      tags: const ['Iced & Cold', 'Non-Dairy', 'Classic'],
+      phases: [
+        Phase.clamped(speed: 3100, accel: 800, temp: 0, duration: 28),
+      ],
+      ingredients: [
+        '1 Espresso extraction (40 ml)',
+        '50 ml Cold almond milk',
+        '2 Ice cubes (approx 60g)',
+        '5 ml Liquid cane sugar syrup',
+      ],
+      instructions: [
+        'Add 2 ice cubes, 50 ml cold almond milk, and 5 ml cane sugar syrup into the Barista jug.',
+        'Extract 1 espresso (40 ml) over the mixture.',
+        'Close the lid and run the program to emulsify the chilled ingredients into a smooth iced foam.',
+        'Pour into a low tumbler glass.',
+      ],
+    ),
+    Recipe(
+      id: 'f104fb85-4db6-4af5-d5e9-27651ca64804',
+      name: 'Caffe Marocchino',
+      description: 'Piedmontese classic layering rich cocoa powder, dense espresso, and warm glossy milk foam.',
+      category: 'Hot Coffee & Milk',
+      tags: const ['Hot Coffee & Milk', 'Chocolate & Sweet', 'Classic'],
+      phases: [
+        Phase.clamped(speed: 2600, accel: 700, temp: 65, duration: 38),
+      ],
+      ingredients: [
+        '1 Espresso extraction (40 ml)',
+        '100 ml Fresh cold milk',
+        '5g Bitter cocoa powder',
+        '10 ml Chocolate sauce or 1 square dark chocolate',
+      ],
+      instructions: [
+        'Drizzle chocolate sauce along the base and sides of a small transparent glass cup.',
+        'Extract 1 espresso (40 ml) into the cup and dust heavily with cocoa powder.',
+        'Pour 100 ml cold milk into the Barista jug and run the program.',
+        'Spoon the dense warm milk froth over the espresso and dust with an extra layer of cocoa.',
+      ],
+    ),
+    Recipe(
+      id: 'f105fb85-4db6-4af5-d5e9-27651ca64805',
+      name: 'Espresso Con Panna',
+      description: 'Rich hot espresso crowned with cold whipped cream peaks frothed to silky soft-serve thickness.',
+      category: 'Hot Coffee & Milk',
+      tags: const ['Hot Coffee & Milk', 'Classic', 'Cold Foam & Textures'],
+      phases: [
+        Phase.clamped(speed: 3600, accel: 900, temp: 0, duration: 24),
+      ],
+      ingredients: [
+        '1 Double espresso (80 ml)',
+        '60 ml Cold heavy whipping cream (min 30% fat)',
+        '3g Powdered sugar or vanilla sugar (optional)',
+      ],
+      instructions: [
+        'Extract double espresso into an espresso cup or small cappuccino glass.',
+        'Add 60 ml cold heavy cream and optional sugar into the Barista jug.',
+        'Close lid and run the program for chilled whipped cream.',
+        'Spoon the luscious cold whipped cream over the hot espresso and enjoy immediately.',
+      ],
+    ),
+    Recipe(
+      id: 'f106fb85-4db6-4af5-d5e9-27651ca64806',
+      name: 'Iced Lungo',
+      description: 'Refreshing aerated iced black coffee with silky smooth texture, enhanced clarity, and chilled crema.',
+      category: 'Iced & Cold',
+      tags: const ['Iced & Cold', 'Black Coffee'],
+      phases: [
+        Phase.clamped(speed: 3200, accel: 800, temp: 0, duration: 26),
+      ],
+      ingredients: [
+        '1 Lungo extraction (110 ml)',
+        '2 Large ice cubes (approx 60g)',
+      ],
+      instructions: [
+        'Extract 1 Lungo (110 ml) into the Barista jug.',
+        'Add 2 large ice cubes.',
+        'Close lid and start the program to chill and aerate the coffee into a refreshing emulsion.',
+        'Pour over fresh ice into a tall glass.',
+      ],
+    ),
+    Recipe(
+      id: 'f107fb85-4db6-4af5-d5e9-27651ca64807',
+      name: 'Cafe con Hielo',
+      description: 'Spanish summer staple. Espresso quickly chilled and emulsified with ice for an invigorating cold froth.',
+      category: 'Iced & Cold',
+      tags: const ['Iced & Cold', 'Classic', 'Black Coffee'],
+      phases: [
+        Phase.clamped(speed: 3000, accel: 750, temp: 0, duration: 22),
+      ],
+      ingredients: [
+        '1 Espresso extraction (40 ml)',
+        '2-3 Ice cubes (approx 70g)',
+        '1 Sugar cube or 5g sugar (optional)',
+      ],
+      instructions: [
+        'Brew 1 espresso capsule into the Barista jug.',
+        'Add sugar if desired and drop in 2-3 ice cubes.',
+        'Run the program to flash-chill and create a velvety golden foam cap.',
+        'Serve in a chilled glass tumbler.',
+      ],
+    ),
+    Recipe(
+      id: 'f108fb85-4db6-4af5-d5e9-27651ca64808',
+      name: 'Hot Milk Foam',
+      description: 'Pure, dense, and glossy hot milk microfoam. The universal base for macchiatos, babyccinos, or topping coffees.',
+      category: 'Hot Coffee & Milk',
+      tags: const ['Hot Coffee & Milk', 'Microfoam', 'Classic'],
+      phases: [
+        Phase.clamped(speed: 2800, accel: 700, temp: 67, duration: 40),
+      ],
+      ingredients: [
+        '100-150 ml Cold fresh milk (whole or semi-skimmed)',
+      ],
+      instructions: [
+        'Pour 100 to 150 ml cold fresh milk into the Barista jug.',
+        'Ensure whisk is attached, close the lid, and run the program.',
+        'Enjoy pure hot microfoam or spoon over freshly brewed espresso or cocoa.',
+      ],
+    ),
+    Recipe(
+      id: 'f109fb85-4db6-4af5-d5e9-27651ca64809',
+      name: 'Cold Milk Foam',
+      description: 'Crisp, velvety, and dense cold milk froth without heating. Ideal for topping iced lattes and cold brew.',
+      category: 'Cold Foam & Textures',
+      tags: const ['Cold Foam & Textures', 'Iced & Cold'],
+      phases: [
+        Phase.clamped(speed: 3200, accel: 800, temp: 0, duration: 30),
+      ],
+      ingredients: [
+        '100 ml Skimmed or semi-skimmed cold milk (4°C)',
+      ],
+      instructions: [
+        'Pour 100 ml well-chilled skimmed or semi-skimmed milk into the jug.',
+        'Close the lid and run the cold foam program.',
+        'Pour over cold brew, iced Americano, or iced fruit infusion.',
+      ],
+    ),
+    Recipe(
+      id: 'f110fb85-4db6-4af5-d5e9-27651ca64810',
+      name: 'Warm Milk',
+      description: 'Gentle heating and low-RPM stirring to warm milk evenly up to 65°C without generating foam.',
+      category: 'Hot Coffee & Milk',
+      tags: const ['Hot Coffee & Milk', 'Classic', 'Non-Coffee'],
+      phases: [
+        Phase.clamped(speed: 1200, accel: 300, temp: 65, duration: 45),
+      ],
+      ingredients: [
+        '150-250 ml Fresh milk (dairy or plant-based)',
+        '1 tsp Honey or vanilla (optional)',
+      ],
+      instructions: [
+        'Pour milk into the Barista jug up to the MAX line (250 ml).',
+        'Add optional honey or spices directly to the jug.',
+        'Run the program for evenly heated, untextured comforting warm milk.',
+        'Pour into a bedtime mug or use for cereal and baking.',
+      ],
+    ),
+    Recipe(
+      id: 'f111fb85-4db6-4af5-d5e9-27651ca64811',
+      name: 'Almond Flat White',
+      description: 'Specialized plant-based microfoam calibrated to 54°C to avoid curdling almond milk while creating silky microfoam.',
+      category: 'Hot Coffee & Milk',
+      tags: const ['Hot Coffee & Milk', 'Non-Dairy', 'Microfoam'],
+      phases: [
+        Phase.clamped(speed: 2300, accel: 600, temp: 54, duration: 38),
+      ],
+      ingredients: [
+        '1 Double espresso (80 ml)',
+        '110 ml Barista-grade almond milk',
+      ],
+      instructions: [
+        'Pour 110 ml cold barista almond milk into the jug.',
+        'Extract double espresso into a 160 ml tulip cup.',
+        'Run the Almond Flat White program for tailored 54°C heating.',
+        'Pour smoothly into the espresso starting from the center and finishing with latte art.',
+      ],
+    ),
+    Recipe(
+      id: 'f112fb85-4db6-4af5-d5e9-27651ca64812',
+      name: 'Saffron Pistachio',
+      description: 'Middle Eastern inspired specialty drink. Warm golden saffron threads and sweet pistachio crema frothed into rich milk.',
+      category: 'Hot Coffee & Milk',
+      tags: const ['Hot Coffee & Milk', 'Specialty', 'Chocolate & Sweet'],
+      phases: [
+        Phase.clamped(speed: 2500, accel: 650, temp: 68, duration: 44),
+      ],
+      ingredients: [
+        '1 Espresso extraction (40 ml)',
+        '120 ml Whole milk',
+        '15g Smooth pistachio butter or paste',
+        '3-4 Saffron threads',
+        'Crushed pistachios for garnish',
+      ],
+      instructions: [
+        'Add 120 ml milk, pistachio paste, and saffron threads to the Barista jug.',
+        'Extract 1 espresso into a ceramic cup.',
+        'Run the program to emulsify the pistachio cream and bloom the saffron.',
+        'Pour warm saffron-pistachio microfoam over the espresso and sprinkle crushed pistachios on top.',
+      ],
+    ),
   ];
 
-  /// Lookup preset by 16-byte UUID (supports both hyphenated and unhyphenated representations)
+  static Map<String, Recipe>? _uuidMap;
+  static Map<String, Recipe>? _nameMap;
+
+  static Map<String, Recipe> get _uuidIndex => _uuidMap ??= {
+        for (final p in presets) p.id.replaceAll('-', '').toLowerCase().trim(): p,
+      };
+
+  static Map<String, Recipe> get _nameIndex => _nameMap ??= {
+        for (final p in presets) p.name.toLowerCase().trim(): p,
+      };
+
+  /// Lookup preset by 16-byte UUID in O(1) time (supports both hyphenated and unhyphenated representations)
   static Recipe? findByUuid(String uuid) {
     final clean = uuid.replaceAll('-', '').toLowerCase().trim();
     if (clean.isEmpty) return null;
-    try {
-      return presets.firstWhere(
-        (p) => p.id.replaceAll('-', '').toLowerCase().trim() == clean,
-      );
-    } catch (_) {
-      return null;
-    }
+    return _uuidIndex[clean];
   }
 
-  /// Lookup preset by exact or case-insensitive name
+  /// Lookup preset by exact or case-insensitive name in O(1) time
   static Recipe? findByName(String name) {
     final clean = name.toLowerCase().trim();
     if (clean.isEmpty) return null;
-    try {
-      return presets.firstWhere(
-        (p) => p.name.toLowerCase().trim() == clean,
-      );
-    } catch (_) {
-      return null;
-    }
+    return _nameIndex[clean];
   }
 }
