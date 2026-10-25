@@ -1,8 +1,10 @@
+<img width="512" height="512" alt="app_icon" src="https://github.com/user-attachments/assets/7292a405-52e4-49cb-9ea2-1fe91a7252ee" />
 # Barista Studio
 
 A clean, modern, open-source, standalone Flutter application for crafting, sequencing, and flashing custom recipes into the **Nespresso Barista Recipe Maker (Model W545)** via native Bluetooth Low Energy.
 
-<img width="1200" height="817" alt="Barista Studio Interface" src="https://github.com/user-attachments/assets/5c78b328-0c44-4d1b-a286-b2425d121710" />
+<img width="1065" height="710" alt="Screenshot 2026-10-25 at 9 51 24 AM" src="https://github.com/user-attachments/assets/fb8550f2-9b49-45ca-9449-dd63c67f64fe" />
+
 
 ---
 
