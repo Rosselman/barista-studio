@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="128" height="128" alt="Barista Studio Icon" src="https://github.com/user-attachments/assets/7292a405-52e4-49cb-9ea2-1fe91a7252ee" />
+  <img width="128" height="128" alt="Barista Studio Icon" src="https://github.com/user-attachments/assets/b964e373-3d36-4acc-9a8a-0def914c8d95" />
 
   <h1 align="center">Barista Studio</h1>
 
