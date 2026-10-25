@@ -1,7 +1,7 @@
 name: barista_studio
 description: "A clean, public consumer app for flashing and managing custom recipes on the Nespresso Barista Recipe Maker W545."
 publish_to: 'none'
-version: 1.5.1+8
+version: 1.5.2+9
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

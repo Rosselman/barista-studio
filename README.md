@@ -8,7 +8,7 @@
   </p>
 
   <p align="center">
-    <img src="https://img.shields.io/badge/version-v1.5.1-D4AF37?style=flat-square" alt="Version" />
+    <img src="https://img.shields.io/badge/version-v1.5.2-D4AF37?style=flat-square" alt="Version" />
     <img src="https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-2A2D34?style=flat-square" alt="Platforms" />
     <img src="https://img.shields.io/badge/license-MIT-388E3C?style=flat-square" alt="License" />
   </p>
@@ -456,6 +456,26 @@ flutter build web --release
 ---
 
 ## 7. Changelog
+
+### v1.5.2
+- **Guided Barista Touch Responsiveness & Full-Surface Feedback**:
+  - Re-engineered questionnaire selection cards with `Material` and `InkWell`, resolving tap acknowledge latency and ensuring instant, reliable touch feedback across the entire surface and borders.
+- **Hardware Name & Ingredient Synthesis Accuracy**:
+  - Fixed an issue in single-step guided recipes where ingredient bases/flavors (such as Matcha) did not update the synthesized Hardware Name.
+  - Formulated hardware names now strictly preserve key flavor descriptors while honoring 16-character hardware length limits.
+  - Dynamically scaled texturing duration based on liquid viscosity and foam density.
+- **Slots Menu Optimization & Flash Slot Action**:
+  - Replaced the redundant "Select on Machine" option in the occupied slot `...` menu with a direct "Flash Slot" action.
+  - Corrected vertical alignment of the "Active" badge with the Guide button for a cleaner, unified row presentation.
+- **Turmeric Care & Staining Advisory**:
+  - Added dedicated care notices for recipes containing turmeric, advising that natural turmeric stains on plastic parts can be cleared by exposing the part to direct sunlight.
+  - Integrated `hasTurmeric` metadata into recipe models and displayed visual care alerts in recipe guides.
+- **Recipe Guide Badge Layout**:
+  - Standardized badge heights to a uniform 26px and resolved parent wrap stretching so badges sit cleanly in a compact horizontal row.
+- **Authentic Device Silhouette Branding**:
+  - Refined app icons across Android, iOS, macOS, Windows, Linux, and Web, featuring a solid brushed champagne gold machine jug silhouette while accurately retaining transparent lid contours and outline borders.
+- **About Dialog Streamlining**:
+  - Removed the redundant bottom Close button in favor of the standard top dismiss button and backdrop tap dismiss.
 
 ### v1.5.1
 - **Developer Settings: Live Binary Packet Inspector Toggle**:

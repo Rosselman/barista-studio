@@ -1302,7 +1302,7 @@ void main() {
     expect(find.text('TURMERIC CARE NOTICE'), findsNothing);
   });
 
-  testWidgets('AboutBaristaDialog displays v1.5.1 • Release', (tester) async {
+  testWidgets('AboutBaristaDialog displays v1.5.2 • Release', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -1313,7 +1313,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('BARISTA STUDIO'), findsOneWidget);
-    expect(find.text('v1.5.1 • Release'), findsOneWidget);
+    expect(find.text('v1.5.2 • Release'), findsOneWidget);
     expect(find.text('Guided Barista & Dual-Stage Formulator'), findsOneWidget);
     expect(
         find.text('Deep Linking & Universal Recipe Sharing'), findsOneWidget);

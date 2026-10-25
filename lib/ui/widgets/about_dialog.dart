@@ -74,7 +74,7 @@ class AboutBaristaDialog extends StatelessWidget {
                         ),
                         SizedBox(height: 2),
                         Text(
-                          'v1.5.1 • Release',
+                          'v1.5.2 • Release',
                           style: TextStyle(
                             color: AppTheme.goldPrimary,
                             fontSize: 12,
@@ -214,15 +214,6 @@ class AboutBaristaDialog extends StatelessWidget {
                     const SizedBox(height: 6),
                     _buildFeatureItem(Icons.sync_alt, 'Real-time Rotary Dial Telemetry'),
                   ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close', style: TextStyle(color: AppTheme.goldPrimary, fontWeight: FontWeight.w700)),
                 ),
               ),
             ],
