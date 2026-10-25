@@ -376,8 +376,7 @@ barista-studio/
 │   │       ├── about_dialog.dart    # Release info, development notes, capabilities
 │   │       ├── developer_dialog.dart # Raw GATT debug logs, manual commands, RSSI inspector
 │   │       ├── flash_recipe_dialog.dart # Target slot selector & BLE transfer progress bar
-│   │       ├── recipe_detail_dialog.dart # Ingredients, multi-step sequences & pause banners
-│   │       └── whisk_visualizer.dart # Animated rotating vortex & induction heat indicator
+│   │       └── recipe_detail_dialog.dart # Ingredients, multi-step sequences & pause banners
 │   └── main.dart                    # Application entry point & permission initialization
 ├── test/
 │   └── widget_test.dart             # Unit test suite verifying multi-step packets, CRC-16 & catalog
@@ -472,8 +471,8 @@ flutter build web --release
   - **Artisanal Recipe Descriptions for My Recipes**: All recipes synthesized via Guided Barista now generate evocative, descriptive text detailing ingredients, temperature curves, milk protein protection, and mouthfeel when saved to *My Recipes*.
   - **Estimated Ingredients & Preparation Guidance**: Single-step guided recipes now automatically generate estimated ingredient quantities and step-by-step instructions for the Guide and Recipe Detail sheets.
 
-- **Redesigned App Branding & Hardware Silhouette Icon**:
-  - Replaced legacy logo with an elegant 2D silhouette of the Barista Recipe Maker device (carafe jug, fitted lid with center handle loop, and base station) rendered with a brushed champagne gold texture on a matte black squircle.
+- **Redesigned App Branding & Authentic Hardware Silhouette Icon**:
+  - Replaced legacy logo with the accurate 2D silhouette of the Barista Recipe Maker device (conical jug body with rounded base, upper transparent collar with flat lid, signature vertical neck-mounted T-bracket handle, and front `< ○ >` display) rendered in brushed champagne gold on a matte black squircle.
   - Deployed updated high-resolution icons across all supported platforms (Android, iOS, macOS, Windows ICO, Linux desktop, Web PWA/favicon, Flatpak) and directly inside the app's top AppBar and About dialog.
 - **iOS iPad Universal Support**:
   - Configured universal iPad support (`TARGETED_DEVICE_FAMILY = "1,2"`), full-screen execution (`UIRequiresFullScreen`), complete interface orientations, and iPad/iPad Pro asset catalog definitions.
@@ -482,7 +481,7 @@ flutter build web --release
   - **In-Memory Caching in Storage Service**: Added in-memory caches for custom recipes, favorites, and wheel loadouts, eliminating redundant JSON deserialization on UI rebuilds.
   - **Zero-Allocation Model Getters**: Refactored `peakRpm`, `maxTemp`, and `isCold` in `Recipe` to direct primitive loops, eliminating garbage collection churn during rapid list scrolling.
   - **Single-Pass UUID Formatter**: Rewrote `RecipePacketBuilder.bytesToUuid` using a direct `StringBuffer` loop.
-  - **Idle Animation Throttling**: `WhiskVisualizer` ticker now halts when the machine is idle or RPM is 0, conserving device battery and GPU power.
+  - **Dead Code Elimination**: Removed unused legacy `whisk_visualizer.dart` to keep the codebase lean and minimal.
   - **Lifecycle Cleanup**: Implemented `dispose()` in `BaristaBleService` and `didUpdateWidget` in `CustomRecipeTab` to ensure leak-free lifecycle management.
 
 ### v1.5.0
