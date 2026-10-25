@@ -1,12 +1,22 @@
-<img align="left" width="88" height="88" alt="Barista Studio Icon" src="https://github.com/user-attachments/assets/7292a405-52e4-49cb-9ea2-1fe91a7252ee" />
+<div align="center">
+  <img width="128" height="128" alt="Barista Studio Icon" src="https://github.com/user-attachments/assets/7292a405-52e4-49cb-9ea2-1fe91a7252ee" />
 
-# Barista Studio
+  <h1 align="center">Barista Studio</h1>
 
-A clean, modern, open-source, standalone Flutter application for crafting, sequencing, and flashing custom recipes into the **Nespresso Barista Recipe Maker (Model W545)** via native Bluetooth Low Energy.
+  <p align="center">
+    A clean, modern, open-source, standalone Flutter application for crafting, sequencing, and flashing custom recipes into the <strong>Nespresso Barista Recipe Maker (Model W545)</strong> via native Bluetooth Low Energy.
+  </p>
 
-<br clear="left" />
+  <p align="center">
+    <img src="https://img.shields.io/badge/version-v1.5.1-D4AF37?style=flat-square" alt="Version" />
+    <img src="https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20macOS%20%7C%20Windows%20%7C%20Linux-2A2D34?style=flat-square" alt="Platforms" />
+    <img src="https://img.shields.io/badge/license-MIT-388E3C?style=flat-square" alt="License" />
+  </p>
 
-<img width="1065" height="710" alt="Barista Studio Interface" src="https://github.com/user-attachments/assets/fb8550f2-9b49-45ca-9449-dd63c67f64fe" />
+  <br />
+
+  <img width="1065" height="710" alt="Barista Studio Interface" src="https://github.com/user-attachments/assets/fb8550f2-9b49-45ca-9449-dd63c67f64fe" />
+</div>
 
 ---
 
