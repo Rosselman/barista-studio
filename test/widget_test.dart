@@ -33,19 +33,25 @@ void main() {
     expect(PresetCatalog.categories.contains('Cold Foam & Textures'), true);
   });
 
-  test('All preset recipes have unique UUIDs, unique names, and valid hardware names', () {
+  test(
+      'All preset recipes have unique UUIDs, unique names, and valid hardware names',
+      () {
     final ids = <String>{};
     final names = <String>{};
     for (final r in PresetCatalog.presets) {
-      expect(ids.contains(r.id.toLowerCase()), false, reason: 'Duplicate ID: ${r.id}');
+      expect(ids.contains(r.id.toLowerCase()), false,
+          reason: 'Duplicate ID: ${r.id}');
       ids.add(r.id.toLowerCase());
-      expect(names.contains(r.name.toLowerCase()), false, reason: 'Duplicate Recipe Name: ${r.name}');
+      expect(names.contains(r.name.toLowerCase()), false,
+          reason: 'Duplicate Recipe Name: ${r.name}');
       names.add(r.name.toLowerCase());
-      expect(r.hardwareName.length, lessThanOrEqualTo(16), reason: 'Hardware name too long: ${r.name}');
+      expect(r.hardwareName.length, lessThanOrEqualTo(16),
+          reason: 'Hardware name too long: ${r.name}');
       expect(r.hardwareName.isNotEmpty, true);
       expect(r.steps.isNotEmpty, true);
       for (final s in r.steps) {
-        expect(s.phases.length, lessThanOrEqualTo(3), reason: 'Step ${s.name} in ${r.name} has >3 phases');
+        expect(s.phases.length, lessThanOrEqualTo(3),
+            reason: 'Step ${s.name} in ${r.name} has >3 phases');
         for (final p in s.phases) {
           expect(p.speed >= 300 && p.speed <= 4000, true);
           expect(p.temp >= 0 && p.temp <= 70, true);
@@ -56,7 +62,8 @@ void main() {
   });
 
   test('Multi-Step recipes in PresetCatalog are properly configured', () {
-    final multiStep = PresetCatalog.presets.where((r) => r.isMultiStep).toList();
+    final multiStep =
+        PresetCatalog.presets.where((r) => r.isMultiStep).toList();
     expect(multiStep.length, 24);
     for (final r in multiStep) {
       expect(r.stepCount, greaterThanOrEqualTo(2));
@@ -66,20 +73,24 @@ void main() {
     }
 
     // Ensure no single-step recipes are accidentally tagged Multi-Step
-    final singleStep = PresetCatalog.presets.where((r) => !r.isMultiStep).toList();
+    final singleStep =
+        PresetCatalog.presets.where((r) => !r.isMultiStep).toList();
     for (final r in singleStep) {
-      expect(r.tags.contains('Multi-Step'), false, reason: '${r.name} tagged Multi-Step but has stepCount < 2');
+      expect(r.tags.contains('Multi-Step'), false,
+          reason: '${r.name} tagged Multi-Step but has stepCount < 2');
     }
   });
 
   test('Recipe filtering by categories and tags works correctly', () {
     final multiStep = PresetCatalog.presets
-        .where((r) => r.category == 'Multi-Step' || r.tags.contains('Multi-Step'))
+        .where(
+            (r) => r.category == 'Multi-Step' || r.tags.contains('Multi-Step'))
         .toList();
     expect(multiStep.length, greaterThanOrEqualTo(10));
 
     final nonCoffee = PresetCatalog.presets
-        .where((r) => r.category == 'Non-Coffee' || r.tags.contains('Non-Coffee'))
+        .where(
+            (r) => r.category == 'Non-Coffee' || r.tags.contains('Non-Coffee'))
         .toList();
     expect(nonCoffee.length, greaterThanOrEqualTo(10));
 
@@ -94,7 +105,9 @@ void main() {
     expect(nonDairy.length, greaterThanOrEqualTo(8));
 
     final coldFoam = PresetCatalog.presets
-        .where((r) => r.category == 'Cold Foam & Textures' || r.tags.contains('Cold Foam & Textures'))
+        .where((r) =>
+            r.category == 'Cold Foam & Textures' ||
+            r.tags.contains('Cold Foam & Textures'))
         .toList();
     expect(coldFoam.length, greaterThanOrEqualTo(10));
   });
@@ -134,7 +147,8 @@ void main() {
     expect(packetCrc, computedCrc);
   });
 
-  test('StorageService reactive notifications work on save and delete', () async {
+  test('StorageService reactive notifications work on save and delete',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final storage = StorageService(prefs);
@@ -152,7 +166,9 @@ void main() {
       steps: [
         RecipeStep(
           name: 'STEP 1',
-          phases: [Phase.clamped(speed: 3000, accel: 800, temp: 60, duration: 20)],
+          phases: [
+            Phase.clamped(speed: 3000, accel: 800, temp: 60, duration: 20)
+          ],
         ),
       ],
       isCustom: true,
@@ -217,7 +233,8 @@ void main() {
   });
 
   test('Affogato Cream is configured as a native multi-step recipe', () {
-    final affogato = PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
+    final affogato =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
     expect(affogato.isMultiStep, true);
     expect(affogato.stepCount, 2);
     expect(affogato.steps.first.name, 'STEP 1');
@@ -225,7 +242,9 @@ void main() {
     expect(affogato.tags.contains('Multi-Step'), true);
   });
 
-  test('DefaultLoadouts contains curated 13-slot profiles and resolves properly', () {
+  test(
+      'DefaultLoadouts contains curated 13-slot profiles and resolves properly',
+      () {
     expect(DefaultLoadouts.defaults.length, 3);
 
     final summer = DefaultLoadouts.summerIcedWheel;
@@ -252,8 +271,13 @@ void main() {
       name: 'Custom Party Loadout',
       description: 'Favorite party drinks',
       slots: [
-        const LoadoutSlotEntry(slotIndex: 0, recipeId: 'rec-1', recipeName: 'Drink 1'),
-        const LoadoutSlotEntry(slotIndex: 1, recipeId: 'rec-2', recipeName: 'Drink 2', isCustom: true),
+        const LoadoutSlotEntry(
+            slotIndex: 0, recipeId: 'rec-1', recipeName: 'Drink 1'),
+        const LoadoutSlotEntry(
+            slotIndex: 1,
+            recipeId: 'rec-2',
+            recipeName: 'Drink 2',
+            isCustom: true),
       ],
     );
 
@@ -268,7 +292,8 @@ void main() {
     expect(restored.slots[1].isCustom, true);
   });
 
-  test('StorageService favorites management and persistence work reactively', () async {
+  test('StorageService favorites management and persistence work reactively',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
 
@@ -291,7 +316,8 @@ void main() {
     expect(notificationCount, 2);
   });
 
-  test('Favorites pinned sorting places favorited recipes at top of list', () async {
+  test('Favorites pinned sorting places favorited recipes at top of list',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
 
@@ -316,7 +342,8 @@ void main() {
     expect(list[2].id, r2.id);
   });
 
-  test('StorageService custom wheel loadouts persistence and defaults work', () async {
+  test('StorageService custom wheel loadouts persistence and defaults work',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
 
@@ -329,7 +356,8 @@ void main() {
     final custom = WheelLoadout.create(
       name: 'My Special Wheel',
       slots: [
-        const LoadoutSlotEntry(slotIndex: 0, recipeId: 'rec-1', recipeName: 'Recipe 1'),
+        const LoadoutSlotEntry(
+            slotIndex: 0, recipeId: 'rec-1', recipeName: 'Recipe 1'),
       ],
     );
 
@@ -343,7 +371,9 @@ void main() {
     expect(storage.getAllLoadouts().length, all.length);
   });
 
-  test('PresetCatalog.findByUuid matches with and without hyphens, case-insensitively', () {
+  test(
+      'PresetCatalog.findByUuid matches with and without hyphens, case-insensitively',
+      () {
     const rawHyphen = '6450bd62-b706-44e7-8b67-7063ec64a492'; // Cappuccino
     final unhyphenated = rawHyphen.replaceAll('-', '').toUpperCase();
 
@@ -355,16 +385,20 @@ void main() {
     expect(match2, isNotNull);
     expect(match2!.name, 'Cappuccino');
 
-    final nonExistent = PresetCatalog.findByUuid('00000000-0000-0000-0000-000000000000');
+    final nonExistent =
+        PresetCatalog.findByUuid('00000000-0000-0000-0000-000000000000');
     expect(nonExistent, isNull);
   });
 
-  test('StorageService.resolveRecipeName resolves presets, custom recipes, and caches cleanly', () async {
+  test(
+      'StorageService.resolveRecipeName resolves presets, custom recipes, and caches cleanly',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
 
     // 1. Resolve preset recipe
-    final resolvedPreset = storage.resolveRecipeName('d4648f3a-7a66-4e51-bb3d-848ed1176709');
+    final resolvedPreset =
+        storage.resolveRecipeName('d4648f3a-7a66-4e51-bb3d-848ed1176709');
     expect(resolvedPreset, 'Latte Macchiato');
 
     // 2. Resolve custom recipe
@@ -378,15 +412,18 @@ void main() {
     await storage.saveCustomRecipe(customRecipe);
 
     // Resolve with unhyphenated uppercase UUID
-    final resolvedCustom = storage.resolveRecipeName('E1E2E3E4A1A2B1B2C1C2D1D2D3D4D5D6');
+    final resolvedCustom =
+        storage.resolveRecipeName('E1E2E3E4A1A2B1B2C1C2D1D2D3D4D5D6');
     expect(resolvedCustom, 'Artisan Hazelnut Cloud');
 
     // 3. Resolve unknown UUID
-    final resolvedUnknown = storage.resolveRecipeName('99999999-9999-9999-9999-999999999999');
+    final resolvedUnknown =
+        storage.resolveRecipeName('99999999-9999-9999-9999-999999999999');
     expect(resolvedUnknown, isNull);
   });
 
-  test('StorageService slot caching roundtrip preserves 13 hardware slots', () async {
+  test('StorageService slot caching roundtrip preserves 13 hardware slots',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
     const mac = '19:10:7D:71:4A:E9';
@@ -403,7 +440,10 @@ void main() {
               recipeUuid: '6450bd62-b706-44e7-8b67-7063ec64a492',
               crc: 0x1234,
             )
-          : SlotInfo(slotIndex: i, recipeName: 'Slot ${i + 1} (Empty)', isOccupied: false),
+          : SlotInfo(
+              slotIndex: i,
+              recipeName: 'Slot ${i + 1} (Empty)',
+              isOccupied: false),
     );
 
     await storage.saveCachedSlots(mac, testSlots);
@@ -419,7 +459,9 @@ void main() {
     expect(cached[12].isOccupied, false);
   });
 
-  test('PresetCatalog.findByName matches case-insensitively and returns correct Recipe', () {
+  test(
+      'PresetCatalog.findByName matches case-insensitively and returns correct Recipe',
+      () {
     final r1 = PresetCatalog.findByName('Cappuccino');
     expect(r1, isNotNull);
     expect(r1!.name, 'Cappuccino');
@@ -432,12 +474,14 @@ void main() {
     expect(r3, isNull);
   });
 
-  test('StorageService.resolveRecipe resolves full model by uuid and name', () async {
+  test('StorageService.resolveRecipe resolves full model by uuid and name',
+      () async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
 
     // 1. Resolve preset by UUID
-    final p1 = storage.resolveRecipe(uuid: '6450bd62-b706-44e7-8b67-7063ec64a492');
+    final p1 =
+        storage.resolveRecipe(uuid: '6450bd62-b706-44e7-8b67-7063ec64a492');
     expect(p1, isNotNull);
     expect(p1!.name, 'Cappuccino');
 
@@ -456,13 +500,17 @@ void main() {
     );
     await storage.saveCustomRecipe(custom);
 
-    final resolvedCustom = storage.resolveRecipe(name: 'custom cold brew delight');
+    final resolvedCustom =
+        storage.resolveRecipe(name: 'custom cold brew delight');
     expect(resolvedCustom, isNotNull);
     expect(resolvedCustom!.id, 'c0ffee00-1111-2222-3333-444455556666');
   });
 
-  test('Multi-step recipes correctly configure Step 2 with instructions and parameters', () {
-    final affogato = PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
+  test(
+      'Multi-step recipes correctly configure Step 2 with instructions and parameters',
+      () {
+    final affogato =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
     expect(affogato.isMultiStep, true);
     expect(affogato.steps.length, greaterThanOrEqualTo(2));
 
@@ -481,12 +529,15 @@ void main() {
     expect(step2.peakRpm, 2100);
   });
 
-  testWidgets('RecipeDetailDialog renders Affogato Cream without overflow on small screens', (tester) async {
+  testWidgets(
+      'RecipeDetailDialog renders Affogato Cream without overflow on small screens',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
     final ble = BaristaBleService(storageService: storage);
 
-    final affogato = PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
+    final affogato =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Affogato Cream');
 
     tester.view.physicalSize = const Size(360, 640);
     tester.view.devicePixelRatio = 1.0;
@@ -511,7 +562,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('FlashRecipeDialog handles full memory without overflow in portrait', (tester) async {
+  testWidgets(
+      'FlashRecipeDialog handles full memory without overflow in portrait',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
 
@@ -530,7 +583,8 @@ void main() {
     await storage.saveCachedSlots(testMac, fullSlots);
 
     final ble = BaristaBleService(storageService: storage);
-    final cappuccino = PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
+    final cappuccino =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
 
     // Narrow portrait phone screen (320px width)
     tester.view.physicalSize = const Size(320, 640);
@@ -559,8 +613,10 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  test('RecipeShareService encodes and decodes baristastudio:// URI roundtrip', () {
-    final cappuccino = PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
+  test('RecipeShareService encodes and decodes baristastudio:// URI roundtrip',
+      () {
+    final cappuccino =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
     final shareUrl = RecipeShareService.encodeShareUrl(cappuccino);
 
     expect(shareUrl.startsWith('baristastudio://recipe?data='), isTrue);
@@ -575,12 +631,14 @@ void main() {
   });
 
   test('RecipeShareService decodes path URIs, raw base64, and raw JSON', () {
-    final original = PresetCatalog.presets.firstWhere((r) => r.name == 'Cold Shakerato');
+    final original =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Cold Shakerato');
     final fullUrl = RecipeShareService.encodeShareUrl(original);
     final rawData = Uri.parse(fullUrl).queryParameters['data']!;
 
     // Path segment format: baristastudio://recipe/<payload>
-    final fromPath = RecipeShareService.decodeShareUrl('baristastudio://recipe/$rawData');
+    final fromPath =
+        RecipeShareService.decodeShareUrl('baristastudio://recipe/$rawData');
     expect(fromPath, isNotNull);
     expect(fromPath!.name, 'Cold Shakerato');
 
@@ -590,7 +648,8 @@ void main() {
     expect(fromRaw!.name, 'Cold Shakerato');
 
     // Raw JSON object directly
-    const rawJson = '{"name":"Pasted JSON Recipe","phases":[{"speed":1800,"accel":500,"temp":60,"duration":30}]}';
+    const rawJson =
+        '{"name":"Pasted JSON Recipe","phases":[{"speed":1800,"accel":500,"temp":60,"duration":30}]}';
     final fromJson = RecipeShareService.decodeShareUrl(rawJson);
     expect(fromJson, isNotNull);
     expect(fromJson!.name, 'Pasted JSON Recipe');
@@ -604,7 +663,9 @@ void main() {
         name: 'Custom Velvet',
         description: 'Velvety milk test',
         category: 'Custom',
-        phases: [Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 40)],
+        phases: [
+          Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 40)
+        ],
         ingredients: ['150ml Whole Milk'],
         instructions: ['Pour cold milk into jug', 'Press start'],
       ),
@@ -613,7 +674,9 @@ void main() {
         name: 'Chilled Foam',
         description: 'Cold foam test',
         category: 'Cold',
-        phases: [Phase.clamped(speed: 3000, accel: 1000, temp: 0, duration: 25)],
+        phases: [
+          Phase.clamped(speed: 3000, accel: 1000, temp: 0, duration: 25)
+        ],
       ),
     ];
 
@@ -631,14 +694,17 @@ void main() {
     expect(imported[1].isCold, isTrue);
 
     // Import from raw array format
-    const rawArrayJson = '[{"name":"Array Recipe 1"},{"name":"Array Recipe 2"}]';
+    const rawArrayJson =
+        '[{"name":"Array Recipe 1"},{"name":"Array Recipe 2"}]';
     final fromArray = RecipeShareService.importRecipesFromJson(rawArrayJson);
     expect(fromArray.length, 2);
     expect(fromArray[0].name, 'Array Recipe 1');
     expect(fromArray[1].name, 'Array Recipe 2');
   });
 
-  testWidgets('RecipeDetailDialog presents shared recipe preview and 1-tap Save to My Recipes', (tester) async {
+  testWidgets(
+      'RecipeDetailDialog presents shared recipe preview and 1-tap Save to My Recipes',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
     final ble = BaristaBleService(storageService: storage);
@@ -688,7 +754,8 @@ void main() {
     expect(savedCallbackTriggered, isTrue);
   });
 
-  test('New dual-stage multi-step presets froth separately and unite at end', () {
+  test('New dual-stage multi-step presets froth separately and unite at end',
+      () {
     final duoNames = [
       'Duo Iced Cappa',
       'Mocha Duo Fusion',
@@ -710,7 +777,9 @@ void main() {
     }
   });
 
-  testWidgets('Guided Barista Mode formulates dual-stage multi-step recipes and transfers to manual', (tester) async {
+  testWidgets(
+      'Guided Barista Mode formulates dual-stage multi-step recipes and transfers to manual',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final storage = StorageService(prefs);
@@ -742,11 +811,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // Dual-stage questionnaire cards are displayed
-    expect(find.text('Stage 1: First Drink to Froth & Pour to Glass'), findsOneWidget);
+    expect(find.text('Stage 1: First Drink to Froth & Pour to Glass'),
+        findsOneWidget);
     expect(find.text('Stage 2: Second Drink to Froth & Unite'), findsOneWidget);
 
     // Formulated Recipe Preview reflects dual-stage
-    expect(find.text('Formulated Dual-Stage Recipe (2 Steps ⏸️)'), findsOneWidget);
+    expect(
+        find.text('Formulated Dual-Stage Recipe (2 Steps ⏸️)'), findsOneWidget);
     expect(find.text('STAGE 1'), findsOneWidget);
     expect(find.text('STAGE 2'), findsOneWidget);
     expect(find.textContaining('Hardware Pause'), findsOneWidget);
@@ -757,7 +828,8 @@ void main() {
     expect(synthesized.isMultiStep, isTrue);
     expect(synthesized.stepCount, 2);
     expect(synthesized.hardwareName.startsWith('DUO'), isTrue);
-    expect(synthesized.steps[0].instruction, contains('pour into serving glass'));
+    expect(
+        synthesized.steps[0].instruction, contains('pour into serving glass'));
     expect(synthesized.steps[1].instruction, contains('unite'));
 
     // Tap "Tune in Manual" to verify transfer to manual mode
@@ -766,12 +838,15 @@ void main() {
 
     // Should now be in manual mode with Step 1 and Step 2 preserved
     expect(find.text('Manual Sequencer'), findsOneWidget);
-    expect(find.text('Multi-Step Recipe (Hardware Paused Execution)'), findsOneWidget);
+    expect(find.text('Multi-Step Recipe (Hardware Paused Execution)'),
+        findsOneWidget);
     expect(state.currentRecipe.isMultiStep, isTrue);
     expect(state.currentRecipe.stepCount, 2);
   });
 
-  testWidgets('Guided Barista Mode single-cycle Formulated Recipe displays polished phase cards and rich description', (tester) async {
+  testWidgets(
+      'Guided Barista Mode single-cycle Formulated Recipe displays polished phase cards and rich description',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await SharedPreferences.getInstance();
     final storage = StorageService(prefs);
@@ -798,7 +873,8 @@ void main() {
     expect(find.text('⚡ Single-Cycle (Standard)'), findsOneWidget);
 
     // Formulated Recipe Header displays phase count
-    expect(find.textContaining('Formulated Single-Cycle Profile'), findsOneWidget);
+    expect(
+        find.textContaining('Formulated Single-Cycle Profile'), findsOneWidget);
 
     // Overview Telemetry Bar items
     expect(find.text('Duration'), findsWidgets);
@@ -848,6 +924,69 @@ void main() {
     expect(oatRecipe.maxTemp, 60);
   });
 
+  testWidgets(
+      'Guided Barista questionnaire buttons are responsive to full-surface and edge taps',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final storage = StorageService(prefs);
+    final ble = BaristaBleService(storageService: storage);
+
+    final tabKey = GlobalKey<CustomRecipeTabState>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: CustomRecipeTab(
+            key: tabKey,
+            bleService: ble,
+            storageService: storage,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final state = tabKey.currentState!;
+
+    // Initial state: Cold foam is selected
+    expect(state.currentRecipe.isCold, isTrue);
+
+    // Find the InkWell for the Hot button
+    final hotInkWellFinder = find.ancestor(
+      of: find.text('🔥 Piping Hot (60-68°C)'),
+      matching: find.byType(InkWell),
+    );
+    expect(hotInkWellFinder, findsOneWidget);
+
+    // Tap at the extreme corner / padding offset of the chip (Offset(3, 3) from top-left)
+    final hotTopLeft = tester.getTopLeft(hotInkWellFinder);
+    await tester.tapAt(hotTopLeft + const Offset(3, 3));
+    await tester.pumpAndSettle();
+
+    // Verify it acknowledged the edge tap and switched to hot
+    expect(state.currentRecipe.isCold, isFalse);
+    expect(state.currentRecipe.maxTemp, greaterThan(50));
+
+    // Tap edge of Chocolate base
+    final chocoFinder = find.ancestor(
+      of: find.text('🍫 Rich Chocolate / Cocoa'),
+      matching: find.byType(InkWell),
+    );
+    expect(chocoFinder, findsOneWidget);
+    final chocoTopLeft = tester.getTopLeft(chocoFinder);
+    await tester.tapAt(chocoTopLeft + const Offset(4, 4));
+    await tester.pumpAndSettle();
+
+    expect(state.currentRecipe.name, contains('CHOCO'));
+
+    // Tap already selected button - no error or unresponsiveness
+    await tester.tap(chocoFinder);
+    await tester.pumpAndSettle();
+    expect(state.currentRecipe.name, contains('CHOCO'));
+  });
+
   testWidgets('AboutBaristaDialog displays v1.5.1 • Release', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
@@ -861,15 +1000,19 @@ void main() {
     expect(find.text('BARISTA STUDIO'), findsOneWidget);
     expect(find.text('v1.5.1 • Release'), findsOneWidget);
     expect(find.text('Guided Barista & Dual-Stage Formulator'), findsOneWidget);
-    expect(find.text('Deep Linking & Universal Recipe Sharing'), findsOneWidget);
+    expect(
+        find.text('Deep Linking & Universal Recipe Sharing'), findsOneWidget);
   });
 
-  testWidgets('RecipeDetailDialog omits share button on presets and includes it on custom recipes', (tester) async {
+  testWidgets(
+      'RecipeDetailDialog omits share button on presets and includes it on custom recipes',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
     final ble = BaristaBleService(storageService: storage);
 
-    final presetRecipe = PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
+    final presetRecipe =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
     final customRecipe = Recipe(
       id: 'custom-recipe-uuid',
       name: 'Bespoke Latte',
@@ -906,7 +1049,9 @@ void main() {
     expect(find.byIcon(Icons.share), findsOneWidget);
   });
 
-  testWidgets('PresetsTab card buttons show book icon for Guide and tune icon for Edit in Builder', (tester) async {
+  testWidgets(
+      'PresetsTab card buttons show book icon for Guide and tune icon for Edit in Builder',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
     final ble = BaristaBleService(storageService: storage);
@@ -966,7 +1111,8 @@ void main() {
     expect(PresetCatalog.presets.first.name, 'Cappuccino');
   });
 
-  testWidgets('AboutBaristaDialog displays Reddit contact /u/Rosselman', (tester) async {
+  testWidgets('AboutBaristaDialog displays Reddit contact /u/Rosselman',
+      (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
@@ -986,7 +1132,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('LoadoutManagerDialog shows AppToast when trying to save empty wheel', (tester) async {
+  testWidgets(
+      'LoadoutManagerDialog shows AppToast when trying to save empty wheel',
+      (tester) async {
     SharedPreferences.setMockInitialValues({});
     final storage = await StorageService.init();
     final ble = BaristaBleService(storageService: storage);
@@ -1008,11 +1156,14 @@ void main() {
     await tester.pump();
 
     // AppToast should be displayed with error message
-    expect(find.text('Cannot save empty wheel. Flash at least one recipe first.'), findsOneWidget);
+    expect(
+        find.text('Cannot save empty wheel. Flash at least one recipe first.'),
+        findsOneWidget);
     await tester.pumpAndSettle();
   });
 
-  test('PresetCatalog includes all 12 scoured recipes and has 90 total presets', () {
+  test('PresetCatalog includes all 12 scoured recipes and has 90 total presets',
+      () {
     expect(PresetCatalog.presets.length, 90);
 
     final expectedNames = [
@@ -1035,14 +1186,19 @@ void main() {
         (r) => r.name.toLowerCase() == name.toLowerCase(),
         orElse: () => throw Exception('Missing recipe: $name'),
       );
-      expect(recipe.ingredients.isNotEmpty, true, reason: '$name has no ingredients');
-      expect(recipe.instructions.isNotEmpty, true, reason: '$name has no instructions');
-      expect(recipe.hardwareName.length, lessThanOrEqualTo(16), reason: '$name hardware name exceeds 16 chars');
+      expect(recipe.ingredients.isNotEmpty, true,
+          reason: '$name has no ingredients');
+      expect(recipe.instructions.isNotEmpty, true,
+          reason: '$name has no instructions');
+      expect(recipe.hardwareName.length, lessThanOrEqualTo(16),
+          reason: '$name hardware name exceeds 16 chars');
       expect(recipe.phases.isNotEmpty, true, reason: '$name has no phases');
     }
   });
 
-  testWidgets('Developer toggle controls Live Binary Packet Inspector visibility in CustomRecipeTab', (tester) async {
+  testWidgets(
+      'Developer toggle controls Live Binary Packet Inspector visibility in CustomRecipeTab',
+      (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -1075,23 +1231,28 @@ void main() {
     }
 
     // Packet inspector should NOT be in the widget tree when toggle is disabled
-    expect(find.text('Live Binary Packet Inspector (CRC-16 & Hex)'), findsNothing);
+    expect(
+        find.text('Live Binary Packet Inspector (CRC-16 & Hex)'), findsNothing);
 
     // Enable the packet inspector toggle via storage service
     await storage.setPacketInspectorEnabled(true);
     await tester.pumpAndSettle();
 
     // Packet inspector should now be visible
-    expect(find.text('Live Binary Packet Inspector (CRC-16 & Hex)'), findsOneWidget);
+    expect(find.text('Live Binary Packet Inspector (CRC-16 & Hex)'),
+        findsOneWidget);
 
     // Disable it again
     await storage.setPacketInspectorEnabled(false);
     await tester.pumpAndSettle();
 
-    expect(find.text('Live Binary Packet Inspector (CRC-16 & Hex)'), findsNothing);
+    expect(
+        find.text('Live Binary Packet Inspector (CRC-16 & Hex)'), findsNothing);
   });
 
-  testWidgets('DeveloperDialog contains Packet Inspector switch and toggles storage', (tester) async {
+  testWidgets(
+      'DeveloperDialog contains Packet Inspector switch and toggles storage',
+      (tester) async {
     tester.view.physicalSize = const Size(1200, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -1113,7 +1274,10 @@ void main() {
 
     // Verify switch tile title and subtitle
     expect(find.text('Live Binary Packet Inspector'), findsOneWidget);
-    expect(find.text('Show raw CRC-16 & 16-byte hex packet inspector in Custom Recipe builder'), findsOneWidget);
+    expect(
+        find.text(
+            'Show raw CRC-16 & 16-byte hex packet inspector in Custom Recipe builder'),
+        findsOneWidget);
 
     final switchFinder = find.byType(Switch);
     expect(switchFinder, findsOneWidget);
@@ -1127,6 +1291,3 @@ void main() {
     expect(storage.isPacketInspectorEnabled(), true);
   });
 }
-
-
-

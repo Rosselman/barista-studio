@@ -52,7 +52,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   bool _guidedIsMultiStep = false;
   String _guidedTemp = 'cold'; // 'cold', 'warm', 'hot'
   String _guidedBase = 'coffee'; // 'coffee', 'chocolate', 'tea', 'neutral'
-  String _guidedLiquid = 'dairy'; // 'dairy', 'oat', 'almond', 'coconut', 'cream'
+  String _guidedLiquid =
+      'dairy'; // 'dairy', 'oat', 'almond', 'coconut', 'cream'
   String _guidedTexture = 'dense'; // 'dense', 'latteArt', 'chantilly', 'stir'
   String _guidedInclusion = 'none'; // 'none', 'syrup', 'powder'
 
@@ -88,7 +89,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
       final s1 = recipe.steps.isNotEmpty ? recipe.steps[0] : null;
       _step1NameController = TextEditingController(text: s1?.name ?? 'STEP 1');
-      _step1PromptController = TextEditingController(text: s1?.instruction ?? '');
+      _step1PromptController =
+          TextEditingController(text: s1?.instruction ?? '');
       _step1Phases = List.generate(3, (i) {
         if (s1 != null && i < s1.phases.length) {
           return s1.phases[i];
@@ -98,7 +100,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
       final s2 = recipe.steps.length > 1 ? recipe.steps[1] : null;
       _step2NameController = TextEditingController(text: s2?.name ?? 'STEP 2');
-      _step2PromptController = TextEditingController(text: s2?.instruction ?? '');
+      _step2PromptController =
+          TextEditingController(text: s2?.instruction ?? '');
       _step2Phases = List.generate(3, (i) {
         if (s2 != null && i < s2.phases.length) {
           return s2.phases[i];
@@ -117,7 +120,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
       _activePhaseIndex = 0;
 
       _step1NameController = TextEditingController(text: 'STEP 1');
-      _step1PromptController = TextEditingController(text: 'Add coffee & ingredients');
+      _step1PromptController =
+          TextEditingController(text: 'Add coffee & ingredients');
       _step1Phases = [
         Phase.clamped(speed: 3200, accel: 800, temp: 45, duration: 25),
         Phase.clamped(speed: 1200, accel: 600, temp: 65, duration: 15),
@@ -245,7 +249,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
       return candidate.substring(0, 16);
     }
 
-    final prefix = _guidedTemp == 'cold' ? 'COLD' : (_guidedTemp == 'hot' ? 'HOT' : 'WARM');
+    final prefix = _guidedTemp == 'cold'
+        ? 'COLD'
+        : (_guidedTemp == 'hot' ? 'HOT' : 'WARM');
     String baseWord;
     switch (_guidedBase) {
       case 'chocolate':
@@ -259,7 +265,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
             ? 'OAT'
             : (_guidedLiquid == 'almond'
                 ? 'ALMOND'
-                : (_guidedLiquid == 'coconut' ? 'COCO' : (_guidedLiquid == 'cream' ? 'CREAM' : 'MILK')));
+                : (_guidedLiquid == 'coconut'
+                    ? 'COCO'
+                    : (_guidedLiquid == 'cream' ? 'CREAM' : 'MILK')));
         break;
       case 'coffee':
       default:
@@ -313,7 +321,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
             Phase.clamped(speed: 1600, accel: 500, temp: 60, duration: 20),
             Phase.clamped(speed: 2400, accel: 700, temp: 65, duration: 15),
           ];
-          s1Prompt = 'Add 20g chocolate & 60 ml milk. Froth molten ganache silk, then pour into serving glass.';
+          s1Prompt =
+              'Add 20g chocolate & 60 ml milk. Froth molten ganache silk, then pour into serving glass.';
           s1Ingredient = '20g Dark chocolate flakes + 60 ml milk';
           break;
         case 'tea':
@@ -321,9 +330,14 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           s1Duration = 22;
           s1Accel = 850;
           s1Phases = [
-            Phase.clamped(speed: s1Speed, accel: s1Accel, temp: s1Temp, duration: s1Duration),
+            Phase.clamped(
+                speed: s1Speed,
+                accel: s1Accel,
+                temp: s1Temp,
+                duration: s1Duration),
           ];
-          s1Prompt = 'Add 2g ceremonial matcha & 60 ml water/milk. Whisk emerald nectar, then pour into serving glass.';
+          s1Prompt =
+              'Add 2g ceremonial matcha & 60 ml water/milk. Whisk emerald nectar, then pour into serving glass.';
           s1Ingredient = '2g Ceremonial matcha powder + 60 ml water';
           break;
         case 'nitro':
@@ -332,9 +346,11 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           s1Accel = 900;
           s1Temp = 0;
           s1Phases = [
-            Phase.clamped(speed: s1Speed, accel: s1Accel, temp: 0, duration: s1Duration),
+            Phase.clamped(
+                speed: s1Speed, accel: s1Accel, temp: 0, duration: s1Duration),
           ];
-          s1Prompt = 'Add 80 ml cold brew & 1 ice cube. Hyper-shear nitro base, then pour into serving glass with ice.';
+          s1Prompt =
+              'Add 80 ml cold brew & 1 ice cube. Hyper-shear nitro base, then pour into serving glass with ice.';
           s1Ingredient = '80 ml Cold brew concentrate + ice cube';
           break;
         case 'coffee':
@@ -343,9 +359,14 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           s1Duration = 18;
           s1Accel = 800;
           s1Phases = [
-            Phase.clamped(speed: s1Speed, accel: s1Accel, temp: s1Temp, duration: s1Duration),
+            Phase.clamped(
+                speed: s1Speed,
+                accel: s1Accel,
+                temp: s1Temp,
+                duration: s1Duration),
           ];
-          s1Prompt = 'Extract 1 espresso shot (40 ml) into jug. Whisk crema base, then pour into serving glass.';
+          s1Prompt =
+              'Extract 1 espresso shot (40 ml) into jug. Whisk crema base, then pour into serving glass.';
           s1Ingredient = '1 Nespresso Espresso capsule (40 ml)';
           break;
       }
@@ -379,7 +400,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
       }
 
       final s2Phases = [
-        Phase.clamped(speed: s2Speed, accel: s2Accel, temp: s2Temp, duration: s2Duration),
+        Phase.clamped(
+            speed: s2Speed, accel: s2Accel, temp: s2Temp, duration: s2Duration),
       ];
 
       String s2LiquidName;
@@ -399,7 +421,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           break;
       }
 
-      final s2Prompt = 'Machine pauses. Add 100 ml $s2LiquidName to jug. Press dial to froth, then pour over Drink 1 to unite!';
+      final s2Prompt =
+          'Machine pauses. Add 100 ml $s2LiquidName to jug. Press dial to froth, then pour over Drink 1 to unite!';
       final s2Ingredient = '100 ml $s2LiquidName';
 
       final name = _guidedNameController.text.trim().isEmpty
@@ -419,7 +442,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         tags: [
           'Multi-Step',
           category,
-          _guidedStep2Liquid == 'dairy' || _guidedStep2Liquid == 'cream' ? 'Dairy' : 'Non-Dairy',
+          _guidedStep2Liquid == 'dairy' || _guidedStep2Liquid == 'cream'
+              ? 'Dairy'
+              : 'Non-Dairy',
           if (isColdDrink) 'Cold Foam & Textures',
         ],
         steps: [
@@ -550,20 +575,30 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     }
 
     final phases = <Phase>[
-      Phase.clamped(speed: p1Speed, accel: p1Accel, temp: temp > 0 ? (temp - 10).clamp(0, 70) : 0, duration: p1Duration),
-      Phase.clamped(speed: p2Speed, accel: p2Accel, temp: temp, duration: p2Duration),
+      Phase.clamped(
+          speed: p1Speed,
+          accel: p1Accel,
+          temp: temp > 0 ? (temp - 10).clamp(0, 70) : 0,
+          duration: p1Duration),
+      Phase.clamped(
+          speed: p2Speed, accel: p2Accel, temp: temp, duration: p2Duration),
     ];
     if (p3Duration > 0) {
-      phases.add(Phase.clamped(speed: p3Speed, accel: p3Accel, temp: temp, duration: p3Duration));
+      phases.add(Phase.clamped(
+          speed: p3Speed, accel: p3Accel, temp: temp, duration: p3Duration));
     }
 
-    final name = _guidedNameController.text.trim().isEmpty ? _deriveGuidedName() : _guidedNameController.text.trim();
+    final name = _guidedNameController.text.trim().isEmpty
+        ? _deriveGuidedName()
+        : _guidedNameController.text.trim();
     final clampedName = name.length > 16 ? name.substring(0, 16) : name;
 
     final liquidDisplayName = _guidedLiquidDisplayName;
     final singleStepDesc = _generateSingleStepDescription(temp);
-    final singleStepIngredients = _generateSingleStepIngredients(liquidDisplayName);
-    final singleStepInstructions = _generateSingleStepInstructions(clampedName, liquidDisplayName, temp);
+    final singleStepIngredients =
+        _generateSingleStepIngredients(liquidDisplayName);
+    final singleStepInstructions =
+        _generateSingleStepInstructions(clampedName, liquidDisplayName, temp);
 
     return Recipe(
       id: _recipeId,
@@ -572,13 +607,16 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
       category: _guidedTemp == 'cold' ? 'Iced & Cold Coffee' : 'Hot Coffee',
       tags: [
         _guidedTemp == 'cold' ? 'Iced & Cold Coffee' : 'Hot Coffee',
-        _guidedLiquid == 'dairy' || _guidedLiquid == 'cream' ? 'Dairy' : 'Non-Dairy',
+        _guidedLiquid == 'dairy' || _guidedLiquid == 'cream'
+            ? 'Dairy'
+            : 'Non-Dairy',
         if (_guidedTexture == 'dense') 'Cold Foam & Textures',
       ],
       steps: [
         RecipeStep(
           name: 'STEP 1',
-          instruction: 'Execute automated single-cycle: texturing $liquidDisplayName at ${_guidedTemp == "cold" ? "Cold (0°C)" : "$temp°C"}.',
+          instruction:
+              'Execute automated single-cycle: texturing $liquidDisplayName at ${_guidedTemp == "cold" ? "Cold (0°C)" : "$temp°C"}.',
           phases: phases,
         ),
       ],
@@ -634,7 +672,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         textureDesc = 'thick, pillowy whipped velvet cream';
         break;
       case 'stir':
-        textureDesc = 'a smooth, homogenous emulsion with gentle continuous stirring';
+        textureDesc =
+            'a smooth, homogenous emulsion with gentle continuous stirring';
         break;
       case 'dense':
       default:
@@ -661,18 +700,27 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
     String thermalNote;
     if (_guidedTemp == 'cold') {
-      thermalNote = 'sheared with zero induction heating for a refreshing iced beverage';
+      thermalNote =
+          'sheared with zero induction heating for a refreshing iced beverage';
     } else if (_guidedTemp == 'warm') {
-      if (_guidedLiquid == 'oat' || _guidedLiquid == 'almond' || _guidedLiquid == 'coconut') {
-        thermalNote = 'gently warmed and capped at $temp°C to preserve delicate plant proteins';
+      if (_guidedLiquid == 'oat' ||
+          _guidedLiquid == 'almond' ||
+          _guidedLiquid == 'coconut') {
+        thermalNote =
+            'gently warmed and capped at $temp°C to preserve delicate plant proteins';
       } else {
-        thermalNote = 'gently warmed to $temp°C to enhance natural sweetness and drinking comfort';
+        thermalNote =
+            'gently warmed to $temp°C to enhance natural sweetness and drinking comfort';
       }
     } else {
-      if (_guidedLiquid == 'oat' || _guidedLiquid == 'almond' || _guidedLiquid == 'coconut') {
-        thermalNote = 'carefully heated to $temp°C with plant-milk temperature protection';
+      if (_guidedLiquid == 'oat' ||
+          _guidedLiquid == 'almond' ||
+          _guidedLiquid == 'coconut') {
+        thermalNote =
+            'carefully heated to $temp°C with plant-milk temperature protection';
       } else {
-        thermalNote = 'heated to a comforting piping hot $temp°C for a luxurious finish';
+        thermalNote =
+            'heated to a comforting piping hot $temp°C for a luxurious finish';
       }
     }
 
@@ -693,7 +741,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         s1Desc = 'froths molten dark chocolate ganache into your serving glass';
         break;
       case 'tea':
-        s1Desc = 'whisks vibrant emerald ceremonial matcha into your serving glass';
+        s1Desc =
+            'whisks vibrant emerald ceremonial matcha into your serving glass';
         break;
       case 'nitro':
         s1Desc = 'hyper-shears cold brew into a cascading nitro base';
@@ -718,7 +767,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         break;
     }
 
-    final s2TempStr = _guidedStep2Temp == 'cold' ? 'cold (0°C)' : 'piping hot ($s2Temp°C)';
+    final s2TempStr =
+        _guidedStep2Temp == 'cold' ? 'cold (0°C)' : 'piping hot ($s2Temp°C)';
 
     return 'Dual-stage artisanal craft: Step 1 $s1Desc. The machine pauses, then Step 2 froths $s2LiquidName into $s2Texture ($s2TempStr) to pour over and unite in striking layers.';
   }
@@ -727,14 +777,16 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     return [
       '100-120 ml $liquidName',
       if (_guidedBase == 'coffee') '1 Nespresso Espresso capsule (40 ml)',
-      if (_guidedBase == 'chocolate') '15-20g dark chocolate flakes or cocoa drops',
+      if (_guidedBase == 'chocolate')
+        '15-20g dark chocolate flakes or cocoa drops',
       if (_guidedBase == 'tea') '2g ceremonial Japanese matcha powder',
       if (_guidedInclusion == 'syrup') '15 ml flavored coffee syrup or honey',
       if (_guidedInclusion == 'powder') '1 tsp cocoa or cinnamon spice powder',
     ];
   }
 
-  List<String> _generateSingleStepInstructions(String clampedName, String liquidName, int temp) {
+  List<String> _generateSingleStepInstructions(
+      String clampedName, String liquidName, int temp) {
     final tempStr = _guidedTemp == 'cold' ? 'cold (0°C)' : '$temp°C';
     return [
       'Insert whisk into the Barista jug.',
@@ -791,7 +843,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     if (_mode == RecipeCraftMode.guided) {
       return _synthesizeGuidedRecipe();
     }
-    final name = _nameController.text.trim().isEmpty ? 'Custom Froth' : _nameController.text.trim();
+    final name = _nameController.text.trim().isEmpty
+        ? 'Custom Froth'
+        : _nameController.text.trim();
     final desc = _descriptionController.text.trim().isEmpty
         ? (_isMultiStep
             ? 'Custom multi-step Barista recipe with hardware pause.'
@@ -810,18 +864,32 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         tags: const ['Multi-Step', 'Specialty'],
         steps: [
           RecipeStep(
-            name: _step1NameController.text.trim().isEmpty ? 'STEP 1' : _step1NameController.text.trim(),
+            name: _step1NameController.text.trim().isEmpty
+                ? 'STEP 1'
+                : _step1NameController.text.trim(),
             phases: s1Active.isEmpty
-                ? [Phase.clamped(speed: 3000, accel: 800, temp: 0, duration: 15)]
+                ? [
+                    Phase.clamped(
+                        speed: 3000, accel: 800, temp: 0, duration: 15)
+                  ]
                 : s1Active,
-            instruction: _step1PromptController.text.trim().isEmpty ? null : _step1PromptController.text.trim(),
+            instruction: _step1PromptController.text.trim().isEmpty
+                ? null
+                : _step1PromptController.text.trim(),
           ),
           RecipeStep(
-            name: _step2NameController.text.trim().isEmpty ? 'STEP 2' : _step2NameController.text.trim(),
+            name: _step2NameController.text.trim().isEmpty
+                ? 'STEP 2'
+                : _step2NameController.text.trim(),
             phases: s2Active.isEmpty
-                ? [Phase.clamped(speed: 2400, accel: 800, temp: 65, duration: 35)]
+                ? [
+                    Phase.clamped(
+                        speed: 2400, accel: 800, temp: 65, duration: 35)
+                  ]
                 : s2Active,
-            instruction: _step2PromptController.text.trim().isEmpty ? null : _step2PromptController.text.trim(),
+            instruction: _step2PromptController.text.trim().isEmpty
+                ? null
+                : _step2PromptController.text.trim(),
           ),
         ],
         isCustom: true,
@@ -836,11 +904,15 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
       category: 'Specialty',
       steps: [
         RecipeStep(
-          name: _step1NameController.text.trim().isEmpty ? 'STEP 1' : _step1NameController.text.trim(),
+          name: _step1NameController.text.trim().isEmpty
+              ? 'STEP 1'
+              : _step1NameController.text.trim(),
           phases: s1Active.isEmpty
               ? [Phase.clamped(speed: 3000, accel: 800, temp: 65, duration: 30)]
               : s1Active,
-          instruction: _step1PromptController.text.trim().isEmpty ? null : _step1PromptController.text.trim(),
+          instruction: _step1PromptController.text.trim().isEmpty
+              ? null
+              : _step1PromptController.text.trim(),
         ),
       ],
       isCustom: true,
@@ -868,7 +940,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   @override
   Widget build(BuildContext context) {
     final currentRecipe = _getCurrentRecipe();
-    final showPacketInspector = widget.storageService.isPacketInspectorEnabled();
+    final showPacketInspector =
+        widget.storageService.isPacketInspectorEnabled();
 
     // Compute live packet & CRC for inspector only when developer toggle is enabled
     List<int>? packet;
@@ -935,7 +1008,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
             const SizedBox(height: 18),
 
             // Live Binary Inspector (Toggled in Developer Menu)
-            if (showPacketInspector && packet != null && crc != null && packetHex != null) ...[
+            if (showPacketInspector &&
+                packet != null &&
+                crc != null &&
+                packetHex != null) ...[
               const SizedBox(height: 18),
               ExpansionTile(
                 backgroundColor: AppTheme.surfaceCard,
@@ -1055,7 +1131,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         // Question 0: Cycle Architecture
         _buildGuidedCard(
           question: 'Preparation Architecture',
-          subtitle: 'Choose between standard single cycle or dual-stage froth & unite',
+          subtitle:
+              'Choose between standard single cycle or dual-stage froth & unite',
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1091,7 +1168,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           // Question 1: Temperature Profile
           _buildGuidedCard(
             question: '1. Temperature Profile',
-            subtitle: 'Determines whether induction heating triggers during the cycle',
+            subtitle:
+                'Determines whether induction heating triggers during the cycle',
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1190,7 +1268,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           // Question 3: Liquid Medium / Milk
           _buildGuidedCard(
             question: '3. Milk & Plant Liquid Medium',
-            subtitle: 'Selects denaturation temperature and protein aeration curve',
+            subtitle:
+                'Selects denaturation temperature and protein aeration curve',
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1253,7 +1332,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           // Question 4: Foam Texture
           _buildGuidedCard(
             question: '4. Desired Foam Texture & Density',
-            subtitle: 'Calculates RPM milestones from silky pourable to stiff peaks',
+            subtitle:
+                'Calculates RPM milestones from silky pourable to stiff peaks',
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1306,7 +1386,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           // Question 5: Inclusions / Add-ins
           _buildGuidedCard(
             question: '5. Sweetener & Inclusions',
-            subtitle: 'Adds early dispersion phases for dissolve and extraction',
+            subtitle:
+                'Adds early dispersion phases for dissolve and extraction',
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1337,13 +1418,17 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           // Stage 1: First Drink to Froth & Pour into Serving Glass
           _buildGuidedCard(
             question: 'Stage 1: First Drink to Froth & Pour to Glass',
-            subtitle: 'Whisks base beverage in Barista jug, then you pour it into your glass',
+            subtitle:
+                'Whisks base beverage in Barista jug, then you pour it into your glass',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Base Beverage / Essence:',
-                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: AppTheme.goldLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -1395,7 +1480,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 const SizedBox(height: 12),
                 const Text(
                   'Stage 1 Temperature:',
-                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: AppTheme.goldLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -1434,13 +1522,17 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
           // Stage 2: Second Drink to Froth & Unite
           _buildGuidedCard(
             question: 'Stage 2: Second Drink to Froth & Unite',
-            subtitle: 'Machine pauses. Add second drink to jug, press dial to froth, then pour over Drink 1',
+            subtitle:
+                'Machine pauses. Add second drink to jug, press dial to froth, then pour over Drink 1',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Top Layer Medium:',
-                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: AppTheme.goldLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -1492,7 +1584,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 const SizedBox(height: 12),
                 const Text(
                   'Desired Foam Texture:',
-                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: AppTheme.goldLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -1534,7 +1629,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 const SizedBox(height: 12),
                 const Text(
                   'Stage 2 Temperature:',
-                  style: TextStyle(color: AppTheme.goldLight, fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: AppTheme.goldLight,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -1593,7 +1691,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 children: [
                   Icon(
                     recipe.isMultiStep ? Icons.layers : Icons.auto_awesome,
-                    color: recipe.isMultiStep ? AppTheme.amberHeat : AppTheme.goldPrimary,
+                    color: recipe.isMultiStep
+                        ? AppTheme.amberHeat
+                        : AppTheme.goldPrimary,
                     size: 17,
                   ),
                   const SizedBox(width: 8),
@@ -1603,7 +1703,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                           ? 'Formulated Dual-Stage Recipe (2 Steps ⏸️)'
                           : 'Formulated Single-Cycle Profile (${recipe.activePhases.length} Phases ⚡)',
                       style: TextStyle(
-                        color: recipe.isMultiStep ? AppTheme.amberHeat : AppTheme.goldLight,
+                        color: recipe.isMultiStep
+                            ? AppTheme.amberHeat
+                            : AppTheme.goldLight,
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
@@ -1612,13 +1714,18 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                   ),
                   TextButton.icon(
                     style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
                       visualDensity: VisualDensity.compact,
                     ),
-                    icon: const Icon(Icons.tune, size: 13, color: AppTheme.goldPrimary),
+                    icon: const Icon(Icons.tune,
+                        size: 13, color: AppTheme.goldPrimary),
                     label: const Text(
                       'Tune in Manual',
-                      style: TextStyle(color: AppTheme.goldPrimary, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          color: AppTheme.goldPrimary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600),
                     ),
                     onPressed: _applyGuidedToManual,
                   ),
@@ -1628,7 +1735,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
               Row(
                 children: [
-                  const Text('Hardware Name: ', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  const Text('Hardware Name: ',
+                      style:
+                          TextStyle(color: AppTheme.textMuted, fontSize: 12)),
                   Expanded(
                     child: TextField(
                       controller: _guidedNameController,
@@ -1641,7 +1750,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                       ),
                       decoration: const InputDecoration(
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                         counterText: '',
                         border: InputBorder.none,
                       ),
@@ -1655,7 +1765,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
               // Overview Telemetry Summary Bar
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceInput,
                   borderRadius: BorderRadius.circular(10),
@@ -1664,20 +1775,33 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildGuidedSummaryItem(Icons.timer_outlined, '${recipe.totalDurationSeconds}s', 'Duration'),
-                    Container(width: 1, height: 20, color: AppTheme.borderSubtle),
-                    _buildGuidedSummaryItem(Icons.rotate_right, '${recipe.peakRpm} RPM', 'Peak Speed'),
-                    Container(width: 1, height: 20, color: AppTheme.borderSubtle),
+                    _buildGuidedSummaryItem(Icons.timer_outlined,
+                        '${recipe.totalDurationSeconds}s', 'Duration'),
+                    Container(
+                        width: 1, height: 20, color: AppTheme.borderSubtle),
+                    _buildGuidedSummaryItem(Icons.rotate_right,
+                        '${recipe.peakRpm} RPM', 'Peak Speed'),
+                    Container(
+                        width: 1, height: 20, color: AppTheme.borderSubtle),
                     _buildGuidedSummaryItem(
-                      recipe.isCold ? Icons.ac_unit : Icons.local_fire_department,
+                      recipe.isCold
+                          ? Icons.ac_unit
+                          : Icons.local_fire_department,
                       recipe.isCold ? 'Cold (0°C)' : '${recipe.maxTemp}°C',
                       'Target Temp',
-                      iconColor: recipe.isCold ? AppTheme.cyanCold : AppTheme.amberHeat,
+                      iconColor: recipe.isCold
+                          ? AppTheme.cyanCold
+                          : AppTheme.amberHeat,
                     ),
-                    Container(width: 1, height: 20, color: AppTheme.borderSubtle),
+                    Container(
+                        width: 1, height: 20, color: AppTheme.borderSubtle),
                     _buildGuidedSummaryItem(
-                      recipe.isMultiStep ? Icons.alt_route : Icons.layers_outlined,
-                      recipe.isMultiStep ? '${recipe.stepCount} Steps' : '${recipe.activePhases.length} Phases',
+                      recipe.isMultiStep
+                          ? Icons.alt_route
+                          : Icons.layers_outlined,
+                      recipe.isMultiStep
+                          ? '${recipe.stepCount} Steps'
+                          : '${recipe.activePhases.length} Phases',
                       'Structure',
                     ),
                   ],
@@ -1699,21 +1823,28 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: AppTheme.goldPrimary.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'STAGE 1',
-                              style: TextStyle(color: AppTheme.goldLight, fontSize: 10, fontWeight: FontWeight.w800),
+                              style: TextStyle(
+                                  color: AppTheme.goldLight,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Froth Base & Pour to Glass • ${recipe.steps[0].totalDurationSeconds}s @ ${recipe.steps[0].peakRpm} RPM (${recipe.steps[0].isCold ? "Cold" : "${recipe.steps[0].maxTemp}°C"})',
-                              style: const TextStyle(color: AppTheme.crema, fontSize: 12, fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                  color: AppTheme.crema,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1723,7 +1854,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                         const SizedBox(height: 4),
                         Text(
                           recipe.steps[0].instruction!,
-                          style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                          style: const TextStyle(
+                              color: AppTheme.textMuted, fontSize: 11),
                         ),
                       ],
                     ],
@@ -1731,20 +1863,26 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppTheme.amberHeat.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.amberHeat.withOpacity(0.3)),
+                    border:
+                        Border.all(color: AppTheme.amberHeat.withOpacity(0.3)),
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.pause_circle_outline, color: AppTheme.amberHeat, size: 14),
+                      Icon(Icons.pause_circle_outline,
+                          color: AppTheme.amberHeat, size: 14),
                       SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           'Hardware Pause: Pour Drink 1 to glass, add Drink 2 to jug, press center dial.',
-                          style: TextStyle(color: AppTheme.amberHeat, fontSize: 11, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              color: AppTheme.amberHeat,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -1764,21 +1902,28 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: AppTheme.goldPrimary.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'STAGE 2',
-                              style: TextStyle(color: AppTheme.goldLight, fontSize: 10, fontWeight: FontWeight.w800),
+                              style: TextStyle(
+                                  color: AppTheme.goldLight,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Froth Layer & Pour to Unite • ${recipe.steps[1].totalDurationSeconds}s @ ${recipe.steps[1].peakRpm} RPM (${recipe.steps[1].isCold ? "Cold" : "${recipe.steps[1].maxTemp}°C"})',
-                              style: const TextStyle(color: AppTheme.crema, fontSize: 12, fontWeight: FontWeight.w600),
+                              style: const TextStyle(
+                                  color: AppTheme.crema,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
@@ -1788,7 +1933,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                         const SizedBox(height: 4),
                         Text(
                           recipe.steps[1].instruction!,
-                          style: const TextStyle(color: AppTheme.textMuted, fontSize: 11),
+                          style: const TextStyle(
+                              color: AppTheme.textMuted, fontSize: 11),
                         ),
                       ],
                     ],
@@ -1815,7 +1961,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: AppTheme.goldPrimary.withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(4),
@@ -1866,12 +2013,18 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                             spacing: 6,
                             runSpacing: 6,
                             children: [
-                              _buildPhaseChip(Icons.timer_outlined, '${p.duration}s'),
-                              _buildPhaseChip(Icons.rotate_right, '${p.speed} RPM'),
                               _buildPhaseChip(
-                                p.temp == 0 ? Icons.ac_unit : Icons.local_fire_department,
+                                  Icons.timer_outlined, '${p.duration}s'),
+                              _buildPhaseChip(
+                                  Icons.rotate_right, '${p.speed} RPM'),
+                              _buildPhaseChip(
+                                p.temp == 0
+                                    ? Icons.ac_unit
+                                    : Icons.local_fire_department,
                                 p.temp == 0 ? 'Cold (0°C)' : '${p.temp}°C',
-                                color: p.temp == 0 ? AppTheme.cyanCold : AppTheme.amberHeat,
+                                color: p.temp == 0
+                                    ? AppTheme.cyanCold
+                                    : AppTheme.amberHeat,
                               ),
                               _buildPhaseChip(Icons.speed, '${p.accel} RPM/s'),
                             ],
@@ -1897,7 +2050,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                   children: [
                     const Row(
                       children: [
-                        Icon(Icons.auto_awesome, color: AppTheme.goldLight, size: 13),
+                        Icon(Icons.auto_awesome,
+                            color: AppTheme.goldLight, size: 13),
                         SizedBox(width: 6),
                         Text(
                           'RECIPE DESCRIPTION (MY RECIPES)',
@@ -1938,7 +2092,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                     children: [
                       const Row(
                         children: [
-                          Icon(Icons.inventory_2_outlined, color: AppTheme.goldLight, size: 13),
+                          Icon(Icons.inventory_2_outlined,
+                              color: AppTheme.goldLight, size: 13),
                           SizedBox(width: 6),
                           Text(
                             'ESTIMATED INGREDIENTS',
@@ -1957,7 +2112,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                         runSpacing: 6,
                         children: recipe.ingredients.map((ing) {
                           return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
                               color: AppTheme.surfaceCard,
                               borderRadius: BorderRadius.circular(6),
@@ -2031,32 +2187,46 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     Color? color,
   }) {
     final activeColor = color ?? AppTheme.goldPrimary;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? activeColor.withOpacity(0.18) : AppTheme.surfaceInput,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? activeColor : AppTheme.borderSubtle,
-            width: selected ? 1.4 : 1,
-          ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      decoration: BoxDecoration(
+        color: selected ? activeColor.withOpacity(0.18) : AppTheme.surfaceInput,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: selected ? activeColor : AppTheme.borderSubtle,
+          width: selected ? 1.4 : 1,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? (color ?? AppTheme.goldLight) : AppTheme.textSecondary,
-            fontSize: 12.5,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          splashColor: activeColor.withOpacity(0.2),
+          highlightColor: activeColor.withOpacity(0.1),
+          onTap: () {
+            if (selected) return;
+            onTap();
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected
+                    ? (color ?? AppTheme.goldLight)
+                    : AppTheme.textSecondary,
+                fontSize: 12.5,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildGuidedSummaryItem(IconData icon, String val, String label, {Color? iconColor}) {
+  Widget _buildGuidedSummaryItem(IconData icon, String val, String label,
+      {Color? iconColor}) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2171,7 +2341,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
   // ===========================================================================
 
   Widget _buildManualView() {
-    final currentPhases = (_isMultiStep && _activeStepIndex == 1) ? _step2Phases : _step1Phases;
+    final currentPhases =
+        (_isMultiStep && _activeStepIndex == 1) ? _step2Phases : _step1Phases;
     final activePhase = currentPhases[_activePhaseIndex];
 
     return Column(
@@ -2248,7 +2419,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
               ),
               const SizedBox(height: 6),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
                   color: AppTheme.surfaceInput,
                   borderRadius: BorderRadius.circular(12),
@@ -2265,8 +2437,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                   decoration: const InputDecoration(
                     counterText: '',
                     border: InputBorder.none,
-                    hintText: 'Describe taste, milk ratio, or prep instructions...',
-                    hintStyle: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                    hintText:
+                        'Describe taste, milk ratio, or prep instructions...',
+                    hintStyle:
+                        TextStyle(color: AppTheme.textMuted, fontSize: 12),
                   ),
                   onChanged: (val) => setState(() {}),
                 ),
@@ -2280,10 +2454,14 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: _isMultiStep ? AppTheme.goldPrimary.withOpacity(0.10) : AppTheme.surfaceCard,
+            color: _isMultiStep
+                ? AppTheme.goldPrimary.withOpacity(0.10)
+                : AppTheme.surfaceCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: _isMultiStep ? AppTheme.goldPrimary.withOpacity(0.6) : AppTheme.borderSubtle,
+              color: _isMultiStep
+                  ? AppTheme.goldPrimary.withOpacity(0.6)
+                  : AppTheme.borderSubtle,
               width: 1.2,
             ),
           ),
@@ -2295,12 +2473,16 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: _isMultiStep ? AppTheme.goldPrimary.withOpacity(0.25) : AppTheme.surfaceElevated,
+                      color: _isMultiStep
+                          ? AppTheme.goldPrimary.withOpacity(0.25)
+                          : AppTheme.surfaceElevated,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.alt_route,
-                      color: _isMultiStep ? AppTheme.goldLight : AppTheme.textMuted,
+                      color: _isMultiStep
+                          ? AppTheme.goldLight
+                          : AppTheme.textMuted,
                       size: 20,
                     ),
                   ),
@@ -2366,7 +2548,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                         children: [
                           Text(
                             'Step ${_activeStepIndex + 1} Name',
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 4),
                           Container(
@@ -2377,12 +2562,18 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                               border: Border.all(color: AppTheme.borderSubtle),
                             ),
                             child: TextField(
-                              controller: _activeStepIndex == 0 ? _step1NameController : _step2NameController,
+                              controller: _activeStepIndex == 0
+                                  ? _step1NameController
+                                  : _step2NameController,
                               maxLength: 16,
-                              style: const TextStyle(color: AppTheme.crema, fontSize: 13, fontWeight: FontWeight.w700),
+                              style: const TextStyle(
+                                  color: AppTheme.crema,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700),
                               decoration: const InputDecoration(
                                 isDense: true,
-                                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 8),
                                 counterText: '',
                                 border: InputBorder.none,
                               ),
@@ -2400,7 +2591,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                         children: [
                           Text(
                             'Step ${_activeStepIndex + 1} User Prompt / Action',
-                            style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                            style: const TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600),
                           ),
                           const SizedBox(height: 4),
                           Container(
@@ -2411,14 +2605,21 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                               border: Border.all(color: AppTheme.borderSubtle),
                             ),
                             child: TextField(
-                              controller: _activeStepIndex == 0 ? _step1PromptController : _step2PromptController,
-                              style: const TextStyle(color: AppTheme.crema, fontSize: 12),
+                              controller: _activeStepIndex == 0
+                                  ? _step1PromptController
+                                  : _step2PromptController,
+                              style: const TextStyle(
+                                  color: AppTheme.crema, fontSize: 12),
                               decoration: InputDecoration(
                                 isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                                contentPadding:
+                                    const EdgeInsets.symmetric(vertical: 8),
                                 border: InputBorder.none,
-                                hintText: _activeStepIndex == 0 ? 'e.g. Add coffee & ice' : 'e.g. Add milk & press dial',
-                                hintStyle: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                                hintText: _activeStepIndex == 0
+                                    ? 'e.g. Add coffee & ice'
+                                    : 'e.g. Add milk & press dial',
+                                hintStyle: const TextStyle(
+                                    color: AppTheme.textMuted, fontSize: 12),
                               ),
                               onChanged: (val) => setState(() {}),
                             ),
@@ -2473,7 +2674,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                   );
 
                   final badgeWidget = Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: activePhase.duration == 0
                           ? AppTheme.surfaceElevated
@@ -2538,10 +2740,20 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildChipRow([
-                _PresetChip('Slow (800)', () => _updateActivePhase(activePhase.copyWith(speed: 800))),
-                _PresetChip('Med (1800)', () => _updateActivePhase(activePhase.copyWith(speed: 1800))),
-                _PresetChip('Dense (3200)', () => _updateActivePhase(activePhase.copyWith(speed: 3200))),
-                _PresetChip('Max (4000)', () => _updateActivePhase(activePhase.copyWith(speed: 4000))),
+                _PresetChip('Slow (800)',
+                    () => _updateActivePhase(activePhase.copyWith(speed: 800))),
+                _PresetChip(
+                    'Med (1800)',
+                    () =>
+                        _updateActivePhase(activePhase.copyWith(speed: 1800))),
+                _PresetChip(
+                    'Dense (3200)',
+                    () =>
+                        _updateActivePhase(activePhase.copyWith(speed: 3200))),
+                _PresetChip(
+                    'Max (4000)',
+                    () =>
+                        _updateActivePhase(activePhase.copyWith(speed: 4000))),
               ]),
               const SizedBox(height: 18),
 
@@ -2561,16 +2773,23 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 },
               ),
               _buildChipRow([
-                _PresetChip('Gentle (200)', () => _updateActivePhase(activePhase.copyWith(accel: 200))),
-                _PresetChip('Standard (800)', () => _updateActivePhase(activePhase.copyWith(accel: 800))),
-                _PresetChip('Aggressive (1500)', () => _updateActivePhase(activePhase.copyWith(accel: 1500))),
+                _PresetChip('Gentle (200)',
+                    () => _updateActivePhase(activePhase.copyWith(accel: 200))),
+                _PresetChip('Standard (800)',
+                    () => _updateActivePhase(activePhase.copyWith(accel: 800))),
+                _PresetChip(
+                    'Aggressive (1500)',
+                    () =>
+                        _updateActivePhase(activePhase.copyWith(accel: 1500))),
               ]),
               const SizedBox(height: 18),
 
               // 3. Temperature Slider
               _buildSliderHeader(
                 'Induction Heater Temperature',
-                activePhase.temp == 0 ? 'Cold (Heater Off)' : '${activePhase.temp}°C',
+                activePhase.temp == 0
+                    ? 'Cold (Heater Off)'
+                    : '${activePhase.temp}°C',
                 activePhase.temp == 0 ? AppTheme.cyanCold : AppTheme.amberHeat,
               ),
               Slider(
@@ -2578,24 +2797,37 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 min: 0,
                 max: 70,
                 divisions: 70,
-                activeColor: activePhase.temp == 0 ? AppTheme.cyanCold : AppTheme.amberHeat,
+                activeColor: activePhase.temp == 0
+                    ? AppTheme.cyanCold
+                    : AppTheme.amberHeat,
                 onChanged: (val) {
                   _updateActivePhase(activePhase.copyWith(temp: val.round()));
                 },
               ),
               _buildChipRow([
-                _PresetChip('Cold Froth (0°C)', () => _updateActivePhase(activePhase.copyWith(temp: 0)), color: AppTheme.cyanCold),
-                _PresetChip('Warm (55°C)', () => _updateActivePhase(activePhase.copyWith(temp: 55))),
-                _PresetChip('Hot (65°C)', () => _updateActivePhase(activePhase.copyWith(temp: 65)), color: AppTheme.amberHeat),
-                _PresetChip('Max (70°C)', () => _updateActivePhase(activePhase.copyWith(temp: 70)), color: AppTheme.rubyEmergency),
+                _PresetChip('Cold Froth (0°C)',
+                    () => _updateActivePhase(activePhase.copyWith(temp: 0)),
+                    color: AppTheme.cyanCold),
+                _PresetChip('Warm (55°C)',
+                    () => _updateActivePhase(activePhase.copyWith(temp: 55))),
+                _PresetChip('Hot (65°C)',
+                    () => _updateActivePhase(activePhase.copyWith(temp: 65)),
+                    color: AppTheme.amberHeat),
+                _PresetChip('Max (70°C)',
+                    () => _updateActivePhase(activePhase.copyWith(temp: 70)),
+                    color: AppTheme.rubyEmergency),
               ]),
               const SizedBox(height: 18),
 
               // 4. Duration Slider
               _buildSliderHeader(
                 'Phase Duration',
-                activePhase.duration == 0 ? '0s (Phase Inactive)' : '${activePhase.duration} seconds',
-                activePhase.duration == 0 ? AppTheme.textMuted : AppTheme.goldLight,
+                activePhase.duration == 0
+                    ? '0s (Phase Inactive)'
+                    : '${activePhase.duration} seconds',
+                activePhase.duration == 0
+                    ? AppTheme.textMuted
+                    : AppTheme.goldLight,
               ),
               Slider(
                 value: activePhase.duration.toDouble(),
@@ -2603,14 +2835,26 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 max: 120,
                 divisions: 120,
                 onChanged: (val) {
-                  _updateActivePhase(activePhase.copyWith(duration: val.round()));
+                  _updateActivePhase(
+                      activePhase.copyWith(duration: val.round()));
                 },
               ),
               _buildChipRow([
-                _PresetChip('Skip (0s)', () => _updateActivePhase(activePhase.copyWith(duration: 0)), color: AppTheme.textMuted),
-                _PresetChip('Flash (10s)', () => _updateActivePhase(activePhase.copyWith(duration: 10))),
-                _PresetChip('Standard (25s)', () => _updateActivePhase(activePhase.copyWith(duration: 25))),
-                _PresetChip('Long (45s)', () => _updateActivePhase(activePhase.copyWith(duration: 45))),
+                _PresetChip('Skip (0s)',
+                    () => _updateActivePhase(activePhase.copyWith(duration: 0)),
+                    color: AppTheme.textMuted),
+                _PresetChip(
+                    'Flash (10s)',
+                    () =>
+                        _updateActivePhase(activePhase.copyWith(duration: 10))),
+                _PresetChip(
+                    'Standard (25s)',
+                    () =>
+                        _updateActivePhase(activePhase.copyWith(duration: 25))),
+                _PresetChip(
+                    'Long (45s)',
+                    () =>
+                        _updateActivePhase(activePhase.copyWith(duration: 45))),
               ]),
             ],
           ),
@@ -2640,14 +2884,18 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                     ),
                   );
                   final badgeText = Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceElevated,
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.35)),
+                      border: Border.all(
+                          color: AppTheme.goldPrimary.withOpacity(0.35)),
                     ),
                     child: Text(
-                      _isMultiStep ? '2 Stages • Dual Whisk' : '1 Stage • Single Cycle',
+                      _isMultiStep
+                          ? '2 Stages • Dual Whisk'
+                          : '1 Stage • Single Cycle',
                       style: const TextStyle(
                         color: AppTheme.goldLight,
                         fontSize: 10.5,
@@ -2681,7 +2929,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
               // Step 1 Phases
               _buildStepSummaryRow(
-                stepName: _step1NameController.text.isEmpty ? 'STEP 1' : _step1NameController.text,
+                stepName: _step1NameController.text.isEmpty
+                    ? 'STEP 1'
+                    : _step1NameController.text,
                 phases: _step1Phases,
                 instruction: _step1PromptController.text,
               ),
@@ -2690,20 +2940,26 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 // Pause Marker
                 Container(
                   margin: const EdgeInsets.symmetric(vertical: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppTheme.goldPrimary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.35)),
+                    border: Border.all(
+                        color: AppTheme.goldPrimary.withOpacity(0.35)),
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.pause_circle_outline, color: AppTheme.goldLight, size: 16),
+                      Icon(Icons.pause_circle_outline,
+                          color: AppTheme.goldLight, size: 16),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           '⏸️ Machine Firmware Pauses: Add milk/ingredients & press center button to resume',
-                          style: TextStyle(color: AppTheme.goldLight, fontSize: 11, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              color: AppTheme.goldLight,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -2712,7 +2968,9 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
                 // Step 2 Phases
                 _buildStepSummaryRow(
-                  stepName: _step2NameController.text.isEmpty ? 'STEP 2' : _step2NameController.text,
+                  stepName: _step2NameController.text.isEmpty
+                      ? 'STEP 2'
+                      : _step2NameController.text,
                   phases: _step2Phases,
                   instruction: _step2PromptController.text,
                 ),
@@ -2728,67 +2986,84 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     final isSelected = _activeStepIndex == index;
     final phases = index == 0 ? _step1Phases : _step2Phases;
     final activeCount = phases.where((p) => p.duration > 0).length;
-    final totalDur = phases.where((p) => p.duration > 0).fold(0, (acc, p) => acc + p.duration);
+    final totalDur = phases
+        .where((p) => p.duration > 0)
+        .fold(0, (acc, p) => acc + p.duration);
 
     return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() {
-          _activeStepIndex = index;
-          _activePhaseIndex = 0;
-        }),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? AppTheme.goldPrimary.withOpacity(0.18) : AppTheme.surfaceCard,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? AppTheme.goldPrimary : AppTheme.borderSubtle,
-              width: isSelected ? 1.5 : 1,
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.goldPrimary.withOpacity(0.18)
+              : AppTheme.surfaceCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppTheme.goldPrimary : AppTheme.borderSubtle,
+            width: isSelected ? 1.5 : 1,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            splashColor: AppTheme.goldPrimary.withOpacity(0.2),
+            highlightColor: AppTheme.goldPrimary.withOpacity(0.1),
+            onTap: () {
+              if (isSelected) return;
+              setState(() {
+                _activeStepIndex = index;
+                _activePhaseIndex = 0;
+              });
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: isSelected ? AppTheme.goldLight : AppTheme.crema,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceElevated,
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Text(
-                      '${totalDur}s',
-                      style: const TextStyle(
-                        color: AppTheme.goldLight,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'monospace',
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color:
+                              isSelected ? AppTheme.goldLight : AppTheme.crema,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1.5),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceElevated,
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                        child: Text(
+                          '${totalDur}s',
+                          style: const TextStyle(
+                            color: AppTheme.goldLight,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '$activeCount active phase${activeCount == 1 ? "" : "s"} • $subtitle',
+                    style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 10.5,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
-              const SizedBox(height: 3),
-              Text(
-                '$activeCount active phase${activeCount == 1 ? "" : "s"} • $subtitle',
-                style: const TextStyle(
-                  color: AppTheme.textMuted,
-                  fontSize: 10.5,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -2819,7 +3094,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
               Expanded(
                 child: Text(
                   '($instruction)',
-                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 11, fontStyle: FontStyle.italic),
+                  style: const TextStyle(
+                      color: AppTheme.textMuted,
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -2829,7 +3107,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
         ),
         const SizedBox(height: 4),
         if (active.isEmpty)
-          const Text('No active phases', style: TextStyle(color: AppTheme.textMuted, fontSize: 11))
+          const Text('No active phases',
+              style: TextStyle(color: AppTheme.textMuted, fontSize: 11))
         else
           Wrap(
             spacing: 6,
@@ -2846,7 +3125,10 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 ),
                 child: Text(
                   'P$idx: ${p.duration}s @ ${p.speed} RPM (${p.temp == 0 ? "Cold" : "${p.temp}°C"})',
-                  style: const TextStyle(color: AppTheme.crema, fontSize: 10.5, fontFamily: 'monospace'),
+                  style: const TextStyle(
+                      color: AppTheme.crema,
+                      fontSize: 10.5,
+                      fontFamily: 'monospace'),
                 ),
               );
             }).toList(),
@@ -2862,51 +3144,65 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
     required String subtitle,
   }) {
     final isSelected = _mode == mode;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => setState(() => _mode = mode),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.goldPrimary.withOpacity(0.18) : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
-            width: 1.2,
-          ),
+    return Container(
+      decoration: BoxDecoration(
+        color: isSelected
+            ? AppTheme.goldPrimary.withOpacity(0.18)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isSelected ? AppTheme.goldPrimary : Colors.transparent,
+          width: 1.2,
         ),
-        alignment: Alignment.center,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          splashColor: AppTheme.goldPrimary.withOpacity(0.2),
+          highlightColor: AppTheme.goldPrimary.withOpacity(0.1),
+          onTap: () {
+            if (isSelected) return;
+            setState(() => _mode = mode);
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Column(
               children: [
-                Icon(
-                  icon,
-                  size: 16,
-                  color: isSelected ? AppTheme.goldLight : AppTheme.textSecondary,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 16,
+                      color: isSelected
+                          ? AppTheme.goldLight
+                          : AppTheme.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: isSelected
+                            ? AppTheme.goldLight
+                            : AppTheme.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(height: 2),
                 Text(
-                  title,
+                  subtitle,
                   style: TextStyle(
-                    color: isSelected ? AppTheme.goldLight : AppTheme.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    color: isSelected ? AppTheme.crema : AppTheme.textMuted,
+                    fontSize: 9.5,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: isSelected ? AppTheme.crema : AppTheme.textMuted,
-                fontSize: 9.5,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -2914,49 +3210,66 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
 
   Widget _buildPhaseTab(int index, String title, String subtitle) {
     final isActive = _activePhaseIndex == index;
-    final currentPhases = (_isMultiStep && _activeStepIndex == 1) ? _step2Phases : _step1Phases;
+    final currentPhases =
+        (_isMultiStep && _activeStepIndex == 1) ? _step2Phases : _step1Phases;
     final isConfigured = currentPhases[index].duration > 0;
 
     return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _activePhaseIndex = index),
-        child: Container(
-          height: 58,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          decoration: BoxDecoration(
-            color: isActive ? AppTheme.goldPrimary.withOpacity(0.18) : AppTheme.surfaceCard,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isActive ? AppTheme.goldPrimary : AppTheme.borderSubtle,
-              width: isActive ? 1.5 : 1,
-            ),
+      child: Container(
+        height: 58,
+        decoration: BoxDecoration(
+          color: isActive
+              ? AppTheme.goldPrimary.withOpacity(0.18)
+              : AppTheme.surfaceCard,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isActive ? AppTheme.goldPrimary : AppTheme.borderSubtle,
+            width: isActive ? 1.5 : 1,
           ),
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: isActive ? AppTheme.goldLight : AppTheme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            splashColor: AppTheme.goldPrimary.withOpacity(0.2),
+            highlightColor: AppTheme.goldPrimary.withOpacity(0.1),
+            onTap: () {
+              if (isActive) return;
+              setState(() => _activePhaseIndex = index);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: isActive
+                          ? AppTheme.goldLight
+                          : AppTheme.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    isConfigured
+                        ? '${currentPhases[index].duration}s ($subtitle)'
+                        : 'Off ($subtitle)',
+                    style: TextStyle(
+                      color: isConfigured ? AppTheme.crema : AppTheme.textMuted,
+                      fontSize: 10,
+                      fontFamily: 'monospace',
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              const SizedBox(height: 2),
-              Text(
-                isConfigured ? '${currentPhases[index].duration}s ($subtitle)' : 'Off ($subtitle)',
-                style: TextStyle(
-                  color: isConfigured ? AppTheme.crema : AppTheme.textMuted,
-                  fontSize: 10,
-                  fontFamily: 'monospace',
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+            ),
           ),
         ),
       ),
