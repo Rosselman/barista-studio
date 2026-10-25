@@ -583,6 +583,12 @@ void main() {
     expect(tester.getSize(tempContainer).height, 26.0);
     expect(tester.getSize(multiStepContainer).height, 26.0);
     expect(tester.getSize(tagContainer).height, 26.0);
+
+    // Badges must lay out horizontally in a row rather than expanding to full dialog width
+    expect(tester.getTopLeft(categoryContainer).dy,
+        tester.getTopLeft(tempContainer).dy);
+    expect(tester.getSize(categoryContainer).width, lessThan(200.0));
+    expect(tester.getSize(tempContainer).width, lessThan(200.0));
     expect(tester.takeException(), isNull);
   });
 
@@ -1226,6 +1232,10 @@ void main() {
 
     expect(tester.getSize(categoryFinder).height, 26.0);
     expect(tester.getSize(tempFinder).height, 26.0);
+    expect(tester.getTopLeft(categoryFinder).dy,
+        tester.getTopLeft(tempFinder).dy);
+    expect(tester.getSize(categoryFinder).width, lessThan(300.0));
+    expect(tester.getSize(tempFinder).width, lessThan(200.0));
   });
 
   testWidgets(

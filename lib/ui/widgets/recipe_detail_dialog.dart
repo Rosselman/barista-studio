@@ -849,13 +849,15 @@ class RecipeDetailDialog extends StatelessWidget {
     return Container(
       height: 26,
       padding: const EdgeInsets.symmetric(horizontal: 10),
-      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borderColor),
       ),
-      child: child,
+      child: Center(
+        widthFactor: 1.0,
+        child: child,
+      ),
     );
   }
 }
