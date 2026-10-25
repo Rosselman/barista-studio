@@ -307,6 +307,53 @@ class RecipeDetailDialog extends StatelessWidget {
                   ),
                   const SizedBox(height: 22),
 
+                  // Turmeric Staining Disclaimer
+                  if (recipe.hasTurmeric) ...[
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 22),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.amberHeat.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: AppTheme.amberHeat.withOpacity(0.4)),
+                      ),
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.wb_sunny_outlined,
+                              color: AppTheme.amberHeat, size: 20),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'TURMERIC CARE NOTICE',
+                                  style: TextStyle(
+                                    color: AppTheme.amberHeat,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.6,
+                                  ),
+                                ),
+                                SizedBox(height: 3),
+                                Text(
+                                  'Turmeric stains plastic pieces (such as the whisk or lid). Any stain can easily be removed by leaving the cleaned part exposed to direct sunlight.',
+                                  style: TextStyle(
+                                    color: AppTheme.crema,
+                                    fontSize: 12,
+                                    height: 1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // Ingredients
                   if (recipe.ingredients.isNotEmpty) ...[
                     const Row(

@@ -988,6 +988,7 @@ class PresetCatalog {
         'Add milk, spices, and maple syrup to the jug.',
         'Run Turmeric Elixir on your Barista.',
         'Pour the glowing golden warm tonic into a mug and dust with cinnamon.',
+        'Disclaimer: Turmeric stains plastic pieces (whisk and lid). The stain can easily be removed by leaving the cleaned part exposed to direct sunlight.',
       ],
     ),
     Recipe(
@@ -1366,6 +1367,7 @@ class PresetCatalog {
         'Add plant milk, spices, and honey into the jug.',
         'Run Golden Chai Foam cycle.',
         'Spoon the vibrant golden foam over iced black tea, cold brew, or iced chai.',
+        'Disclaimer: Turmeric stains plastic pieces (whisk and lid). The stain can easily be removed by leaving the cleaned part exposed to direct sunlight.',
       ],
     ),
 
@@ -1860,6 +1862,7 @@ class PresetCatalog {
         'At the pause prompt, add 120 ml cold almond milk and honey.',
         'Press machine dial: Step 2 whisks at 3100 RPM to craft an aromatic golden microfoam crown.',
         'Pour into a mug and dust with fresh nutmeg.',
+        'Disclaimer: Turmeric stains plastic pieces (whisk and lid). The stain can easily be removed by leaving the cleaned part exposed to direct sunlight.',
       ],
     ),
     Recipe(

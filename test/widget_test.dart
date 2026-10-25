@@ -1164,6 +1164,70 @@ void main() {
     expect(tester.getSize(tempFinder).height, 26.0);
   });
 
+  testWidgets(
+      'Turmeric recipes display staining and sun removal disclaimer in RecipeDetailDialog',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+    final ble = BaristaBleService(storageService: storage);
+
+    final turmericPresets =
+        PresetCatalog.presets.where((r) => r.hasTurmeric).toList();
+
+    expect(turmericPresets.length, greaterThanOrEqualTo(3));
+    for (final recipe in turmericPresets) {
+      expect(
+        recipe.instructions.any((ins) =>
+            ins.toLowerCase().contains('turmeric') &&
+            ins.toLowerCase().contains('stain') &&
+            ins.toLowerCase().contains('sun')),
+        isTrue,
+        reason:
+            '${recipe.name} missing turmeric sunlight disclaimer in instructions',
+      );
+    }
+
+    final turmericRecipe =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Turmeric Elixir');
+    final cappuccino =
+        PresetCatalog.presets.firstWhere((r) => r.name == 'Cappuccino');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: RecipeDetailDialog(
+            recipe: turmericRecipe,
+            bleService: ble,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('TURMERIC CARE NOTICE'), findsOneWidget);
+    expect(
+      find.textContaining(
+          'leaving the cleaned part exposed to direct sunlight'),
+      findsNWidgets(2),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: RecipeDetailDialog(
+            recipe: cappuccino,
+            bleService: ble,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('TURMERIC CARE NOTICE'), findsNothing);
+  });
+
   testWidgets('AboutBaristaDialog displays v1.5.1 • Release', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(

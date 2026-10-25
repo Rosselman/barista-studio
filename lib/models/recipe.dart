@@ -91,6 +91,26 @@ class Recipe {
   /// List of all active phases across all steps
   List<Phase> get activePhases => steps.expand((s) => s.activePhases).toList();
 
+  /// True if the recipe involves turmeric in name, description, ingredients, or instructions.
+  bool get hasTurmeric {
+    if (name.toLowerCase().contains('turmeric')) return true;
+    if (description.toLowerCase().contains('turmeric')) return true;
+    for (final ing in ingredients) {
+      if (ing.toLowerCase().contains('turmeric')) return true;
+    }
+    for (final ins in instructions) {
+      if (ins.toLowerCase().contains('turmeric')) return true;
+    }
+    for (final s in steps) {
+      if (s.name.toLowerCase().contains('turmeric')) return true;
+      if (s.instruction != null &&
+          s.instruction!.toLowerCase().contains('turmeric')) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   Recipe copyWith({
     String? id,
     String? name,
