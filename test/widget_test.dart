@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:barista_studio/data/default_loadouts.dart';
 import 'package:barista_studio/data/preset_catalog.dart';
-import 'package:barista_studio/models/machine_state.dart';
+import 'package:barista_studio/models/machine_telemetry.dart';
 import 'package:barista_studio/models/phase.dart';
 import 'package:barista_studio/models/recipe.dart';
 import 'package:barista_studio/models/recipe_step.dart';
@@ -17,6 +17,7 @@ import 'package:barista_studio/services/storage_service.dart';
 import 'package:barista_studio/theme/app_theme.dart';
 import 'package:barista_studio/ui/tabs/custom_recipe_tab.dart';
 import 'package:barista_studio/ui/tabs/presets_tab.dart';
+import 'package:barista_studio/ui/tabs/slots_tab.dart';
 import 'package:barista_studio/ui/widgets/about_dialog.dart';
 import 'package:barista_studio/ui/widgets/developer_dialog.dart';
 import 'package:barista_studio/ui/widgets/flash_recipe_dialog.dart';
@@ -1055,6 +1056,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(state.currentRecipe.hardwareName, contains('DUO MATCHA'));
     expect(state.currentRecipe.hardwareName.length, lessThanOrEqualTo(16));
+  });
+
+  testWidgets('SlotsTab aligns ACTIVE badge vertically with Guide button',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final storage = StorageService(prefs);
+    const testMac = 'AA:BB:CC:DD:EE:FF';
+    await storage.setLastConnectedMac(testMac);
+    final slots = List.generate(
+      13,
+      (i) => i == 0
+          ? const SlotInfo(
+              slotIndex: 0,
+              isOccupied: true,
+              recipeName: 'CAPPUCCINO',
+              recipeUuid: 'test-uuid-12345678',
+              crc: 0xABCD,
+            )
+          : SlotInfo(slotIndex: i, recipeName: 'Slot ${i + 1}'),
+    );
+    await storage.saveCachedSlots(testMac, slots);
+
+    final ble = BaristaBleService(storageService: storage);
+    ble.updateTelemetryForTesting(
+      const MachineTelemetry(isConnected: true, selectedSlot: 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: SlotsTab(
+            bleService: ble,
+            storageService: storage,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final activeFinder = find.text('ACTIVE');
+    final guideFinder = find.text('Guide');
+    expect(activeFinder, findsOneWidget);
+    expect(guideFinder, findsOneWidget);
+
+    final activeCenter = tester.getCenter(activeFinder);
+    final guideCenter = tester.getCenter(guideFinder);
+    expect((activeCenter.dy - guideCenter.dy).abs(), lessThanOrEqualTo(2.0));
   });
 
   testWidgets('AboutBaristaDialog displays v1.5.1 • Release', (tester) async {

@@ -1286,6 +1286,11 @@ class BaristaBleService extends ChangeNotifier {
     notifyListeners();
   }
 
+  @visibleForTesting
+  void updateTelemetryForTesting(MachineTelemetry newTelemetry) {
+    _updateTelemetry(newTelemetry);
+  }
+
   static List<int> deriveCmidFromSeed(String seedHex) {
     var seed = seedHex.replaceAll(' ', '').trim();
     if (seed.isEmpty) {
