@@ -15,7 +15,7 @@
 
   <br />
 
-  <img width="1065" height="710" alt="Barista Studio Interface" src="https://github.com/user-attachments/assets/fb8550f2-9b49-45ca-9449-dd63c67f64fe" />
+  <img width="1065" height="710" alt="Barista Studio Interface" src="https://github.com/user-attachments/assets/9cb7e444-79f2-4642-98d1-56d330443f26" />
 </div>
 
 ---
