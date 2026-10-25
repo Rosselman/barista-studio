@@ -235,7 +235,8 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
               l2 = 'SILK';
               break;
             case 'chantilly':
-              l2 = 'VELVET';
+              // If DUO (4) + b1 + space (1) + VELVET (6) > 16, use WHIP (4)
+              l2 = (b1.length + 11 > 16) ? 'WHIP' : 'VELVET';
               break;
             case 'dense':
             default:
@@ -246,12 +247,15 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
       }
       final candidate = 'DUO $b1 $l2'.toUpperCase();
       if (candidate.length <= 16) return candidate;
-      return candidate.substring(0, 16);
+      final fallback = 'DUO $b1'.toUpperCase();
+      if (fallback.length <= 16) return fallback;
+      return fallback.substring(0, 16);
     }
 
     final prefix = _guidedTemp == 'cold'
         ? 'COLD'
         : (_guidedTemp == 'hot' ? 'HOT' : 'WARM');
+
     String baseWord;
     switch (_guidedBase) {
       case 'chocolate':
@@ -275,30 +279,41 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
             ? 'CREMA'
             : (_guidedLiquid == 'oat'
                 ? 'OAT'
-                : (_guidedLiquid == 'coconut' ? 'COCO' : 'ESPR'));
+                : (_guidedLiquid == 'almond'
+                    ? 'ALMOND'
+                    : (_guidedLiquid == 'coconut' ? 'COCO' : 'ESPR')));
         break;
     }
 
+    // Determine texture descriptor, adapting when length exceeds 16 to always preserve baseWord
     String textureWord;
     switch (_guidedTexture) {
       case 'latteArt':
         textureWord = 'SILK';
         break;
       case 'chantilly':
-        textureWord = 'VELVET';
+        // If prefix (4) + space (1) + baseWord + space (1) + VELVET (6) > 16, adapt to WHIP (4)
+        textureWord =
+            (prefix.length + baseWord.length + 8 > 16) ? 'WHIP' : 'VELVET';
         break;
       case 'stir':
         textureWord = 'MELT';
         break;
       case 'dense':
       default:
-        textureWord = 'CLOUD';
+        // If prefix (4) + space (1) + baseWord + space (1) + CLOUD (5) > 16, adapt to FOAM (4)
+        textureWord =
+            (prefix.length + baseWord.length + 7 > 16) ? 'FOAM' : 'CLOUD';
         break;
     }
 
     final candidate = '$prefix $baseWord $textureWord'.toUpperCase();
     if (candidate.length <= 16) return candidate;
-    return '$prefix $textureWord'.toUpperCase().substring(0, 16);
+
+    // Safety fallback: ALWAYS preserve the essential baseWord and prefix!
+    final fallback = '$prefix $baseWord'.toUpperCase();
+    if (fallback.length <= 16) return fallback;
+    return fallback.substring(0, 16);
   }
 
   Recipe _synthesizeGuidedRecipe() {
@@ -1395,17 +1410,32 @@ class CustomRecipeTabState extends State<CustomRecipeTab> {
                 _buildGuidedChoice(
                   label: '🚫 None / Plain',
                   selected: _guidedInclusion == 'none',
-                  onTap: () => setState(() => _guidedInclusion = 'none'),
+                  onTap: () {
+                    setState(() {
+                      _guidedInclusion = 'none';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
                 ),
                 _buildGuidedChoice(
                   label: '🍯 Syrup / Honey / Sugar',
                   selected: _guidedInclusion == 'syrup',
-                  onTap: () => setState(() => _guidedInclusion = 'syrup'),
+                  onTap: () {
+                    setState(() {
+                      _guidedInclusion = 'syrup';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
                 ),
                 _buildGuidedChoice(
                   label: '🍫 Cocoa / Matcha Powder',
                   selected: _guidedInclusion == 'powder',
-                  onTap: () => setState(() => _guidedInclusion = 'powder'),
+                  onTap: () {
+                    setState(() {
+                      _guidedInclusion = 'powder';
+                      _guidedNameController.text = _deriveGuidedName();
+                    });
+                  },
                 ),
               ],
             ),

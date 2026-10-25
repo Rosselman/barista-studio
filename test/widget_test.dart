@@ -987,6 +987,76 @@ void main() {
     expect(state.currentRecipe.name, contains('CHOCO'));
   });
 
+  testWidgets(
+      'Guided Barista updates Hardware Name for Matcha and all combinations without omission',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final storage = StorageService(prefs);
+    final ble = BaristaBleService(storageService: storage);
+
+    final tabKey = GlobalKey<CustomRecipeTabState>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: CustomRecipeTab(
+            key: tabKey,
+            bleService: ble,
+            storageService: storage,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final state = tabKey.currentState!;
+
+    // Initial state is COLD ESPR CLOUD
+    expect(state.currentRecipe.hardwareName, 'COLD ESPR CLOUD');
+
+    // Selecting Matcha in single step updates the Hardware Name to COLD MATCHA FOAM
+    await tester.tap(find.text('🍵 Matcha / Botanical Tea'));
+    await tester.pumpAndSettle();
+
+    expect(state.currentRecipe.hardwareName, contains('MATCHA'));
+    expect(state.currentRecipe.hardwareName, 'COLD MATCHA FOAM');
+    expect(state.currentRecipe.hardwareName.length, lessThanOrEqualTo(16));
+
+    // Switching to Warm preserves MATCHA
+    await tester.tap(find.text('🌤️ Warm & Silky (54-64°C)'));
+    await tester.pumpAndSettle();
+    expect(state.currentRecipe.hardwareName, 'WARM MATCHA FOAM');
+    expect(state.currentRecipe.hardwareName.length, lessThanOrEqualTo(16));
+
+    // Switching to Hot adapts to CLOUD since HOT is 3 chars: "HOT MATCHA CLOUD" (16 chars)
+    await tester.tap(find.text('🔥 Piping Hot (60-68°C)'));
+    await tester.pumpAndSettle();
+    expect(state.currentRecipe.hardwareName, 'HOT MATCHA CLOUD');
+    expect(state.currentRecipe.hardwareName.length, lessThanOrEqualTo(16));
+
+    // Switching to Silky Latte Art produces "HOT MATCHA SILK"
+    await tester.tap(find.text('🌊 Silky Latte Art'));
+    await tester.pumpAndSettle();
+    expect(state.currentRecipe.hardwareName, 'HOT MATCHA SILK');
+    expect(state.currentRecipe.hardwareName.length, lessThanOrEqualTo(16));
+
+    // Switching to Whipped Velvet produces "HOT MATCHA WHIP"
+    await tester.tap(find.text('🍦 Soft Whipped Velvet'));
+    await tester.pumpAndSettle();
+    expect(state.currentRecipe.hardwareName, 'HOT MATCHA WHIP');
+    expect(state.currentRecipe.hardwareName.length, lessThanOrEqualTo(16));
+
+    // Test dual-stage Matcha
+    await tester.tap(find.text('⏸️ Dual-Stage (Froth & Unite)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('🍵 Ceremonial Matcha'));
+    await tester.pumpAndSettle();
+    expect(state.currentRecipe.hardwareName, contains('DUO MATCHA'));
+    expect(state.currentRecipe.hardwareName.length, lessThanOrEqualTo(16));
+  });
+
   testWidgets('AboutBaristaDialog displays v1.5.1 • Release', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(
