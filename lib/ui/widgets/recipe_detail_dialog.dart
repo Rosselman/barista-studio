@@ -185,14 +185,11 @@ class RecipeDetailDialog extends StatelessWidget {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.goldPrimary.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppTheme.goldPrimary.withOpacity(0.4)),
-                        ),
+                      _buildBadge(
+                        backgroundColor: AppTheme.goldPrimary.withOpacity(0.15),
+                        borderColor: AppTheme.goldPrimary.withOpacity(0.4),
                         child: Text(
                           recipe.category,
                           style: const TextStyle(
@@ -202,47 +199,50 @@ class RecipeDetailDialog extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isCold
-                              ? AppTheme.cyanCold.withOpacity(0.15)
-                              : AppTheme.amberHeat.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isCold ? AppTheme.cyanCold : AppTheme.amberHeat,
-                          ),
-                        ),
+                      _buildBadge(
+                        backgroundColor: isCold
+                            ? AppTheme.cyanCold.withOpacity(0.15)
+                            : AppTheme.amberHeat.withOpacity(0.15),
+                        borderColor:
+                            isCold ? AppTheme.cyanCold : AppTheme.amberHeat,
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             Icon(
-                              isCold ? Icons.ac_unit : Icons.local_fire_department,
+                              isCold
+                                  ? Icons.ac_unit
+                                  : Icons.local_fire_department,
                               size: 13,
-                              color: isCold ? AppTheme.cyanCold : AppTheme.amberHeat,
+                              color: isCold
+                                  ? AppTheme.cyanCold
+                                  : AppTheme.amberHeat,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               isCold ? 'Cold Foam' : '${recipe.maxTemp}°C Hot',
                               style: TextStyle(
-                                color: isCold ? AppTheme.cyanCold : AppTheme.amberHeat,
+                                color: isCold
+                                    ? AppTheme.cyanCold
+                                    : AppTheme.amberHeat,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
                           ],
                         ),
                       ),
                       if (recipe.isMultiStep)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.goldPrimary.withOpacity(0.18),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppTheme.goldPrimary),
-                          ),
+                        _buildBadge(
+                          backgroundColor:
+                              AppTheme.goldPrimary.withOpacity(0.18),
+                          borderColor: AppTheme.goldPrimary,
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              const Icon(Icons.alt_route, size: 13, color: AppTheme.goldLight),
+                              const Icon(Icons.alt_route,
+                                  size: 13, color: AppTheme.goldLight),
                               const SizedBox(width: 4),
                               Text(
                                 'Multi-Step (${recipe.stepCount} Steps)',
@@ -259,13 +259,9 @@ class RecipeDetailDialog extends StatelessWidget {
                         if (tag != recipe.category &&
                             tag != 'Multi-Step' &&
                             !tag.toLowerCase().contains('step'))
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceInput,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppTheme.borderSubtle),
-                            ),
+                          _buildBadge(
+                            backgroundColor: AppTheme.surfaceInput,
+                            borderColor: AppTheme.borderSubtle,
                             child: Text(
                               tag,
                               style: const TextStyle(
@@ -795,6 +791,24 @@ class RecipeDetailDialog extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildBadge({
+    required Widget child,
+    required Color backgroundColor,
+    required Color borderColor,
+  }) {
+    return Container(
+      height: 26,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+      ),
+      child: child,
     );
   }
 }

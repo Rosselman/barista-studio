@@ -560,6 +560,29 @@ void main() {
     expect(find.text('Multi-Step (2 Steps)'), findsOneWidget);
     expect(find.text('Hot Coffee'), findsOneWidget);
     expect(find.text('Dairy'), findsOneWidget);
+    expect(find.text('${affogato.maxTemp}°C Hot'), findsOneWidget);
+
+    final categoryContainer = find
+        .ancestor(of: find.text('Hot Coffee'), matching: find.byType(Container))
+        .first;
+    final tempContainer = find
+        .ancestor(
+            of: find.text('${affogato.maxTemp}°C Hot'),
+            matching: find.byType(Container))
+        .first;
+    final multiStepContainer = find
+        .ancestor(
+            of: find.text('Multi-Step (2 Steps)'),
+            matching: find.byType(Container))
+        .first;
+    final tagContainer = find
+        .ancestor(of: find.text('Dairy'), matching: find.byType(Container))
+        .first;
+
+    expect(tester.getSize(categoryContainer).height, 26.0);
+    expect(tester.getSize(tempContainer).height, 26.0);
+    expect(tester.getSize(multiStepContainer).height, 26.0);
+    expect(tester.getSize(tagContainer).height, 26.0);
     expect(tester.takeException(), isNull);
   });
 
@@ -1105,6 +1128,40 @@ void main() {
     final activeCenter = tester.getCenter(activeFinder);
     final guideCenter = tester.getCenter(guideFinder);
     expect((activeCenter.dy - guideCenter.dy).abs(), lessThanOrEqualTo(2.0));
+  });
+
+  testWidgets(
+      'RecipeDetailDialog badges have consistent uniform height in cold recipes',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await StorageService.init();
+    final ble = BaristaBleService(storageService: storage);
+
+    final coldRecipe =
+        PresetCatalog.presets.firstWhere((r) => r.isCold);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: RecipeDetailDialog(
+            recipe: coldRecipe,
+            bleService: ble,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final categoryFinder = find
+        .ancestor(of: find.text(coldRecipe.category), matching: find.byType(Container))
+        .first;
+    final tempFinder = find
+        .ancestor(of: find.text('Cold Foam'), matching: find.byType(Container))
+        .first;
+
+    expect(tester.getSize(categoryFinder).height, 26.0);
+    expect(tester.getSize(tempFinder).height, 26.0);
   });
 
   testWidgets('AboutBaristaDialog displays v1.5.1 • Release', (tester) async {
