@@ -640,13 +640,13 @@ class SlotsTab extends StatelessWidget {
                     itemBuilder: (ctx) => [
                       if (bleService.isConnected) ...[
                         const PopupMenuItem(
-                          value: 'select',
+                          value: 'flash',
                           child: Row(
                             children: [
-                              Icon(Icons.touch_app,
+                              Icon(Icons.flash_on,
                                   size: 16, color: AppTheme.goldPrimary),
                               SizedBox(width: 10),
-                              Text('Select on Machine',
+                              Text('Flash Slot',
                                   style: TextStyle(
                                       color: AppTheme.crema,
                                       fontSize: 13,
@@ -687,8 +687,8 @@ class SlotsTab extends StatelessWidget {
                       ],
                     ],
                     onSelected: (val) {
-                      if (val == 'select') {
-                        bleService.selectSlot(slotIdx);
+                      if (val == 'flash') {
+                        _showRecipePickerForSlot(context, slotIdx);
                       } else if (val == 'move') {
                         _showMoveDialog(context, slotIdx);
                       } else if (val == 'delete') {

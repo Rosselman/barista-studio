@@ -1131,6 +1131,70 @@ void main() {
   });
 
   testWidgets(
+      'SlotsTab occupied slot options menu offers Flash Slot and omits Select on Machine',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final storage = StorageService(prefs);
+    const testMac = 'AA:BB:CC:DD:EE:FF';
+    await storage.setLastConnectedMac(testMac);
+    final slots = List.generate(
+      13,
+      (i) => i == 0
+          ? const SlotInfo(
+              slotIndex: 0,
+              isOccupied: true,
+              recipeName: 'CAPPUCCINO',
+              recipeUuid: 'test-uuid-12345678',
+              crc: 0xABCD,
+            )
+          : SlotInfo(
+              slotIndex: i, isOccupied: false, recipeName: 'Slot ${i + 1}'),
+    );
+    await storage.saveCachedSlots(testMac, slots);
+
+    final ble = BaristaBleService(storageService: storage);
+    ble.updateTelemetryForTesting(
+      const MachineTelemetry(isConnected: true, selectedSlot: 0),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: Scaffold(
+          body: SlotsTab(
+            bleService: ble,
+            storageService: storage,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify only occupied slot has the more_vert overflow button
+    final moreVertFinders = find.byIcon(Icons.more_vert);
+    expect(moreVertFinders, findsOneWidget);
+
+    // Empty slots show Flash button directly, without a ... menu
+    expect(find.text('Flash'), findsWidgets);
+
+    // Open options menu on occupied slot 0
+    await tester.tap(moreVertFinders.first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Flash Slot'), findsOneWidget);
+    expect(find.text('Select on Machine'), findsNothing);
+    expect(find.text('Move Position'), findsOneWidget);
+    expect(find.text('Delete Recipe'), findsOneWidget);
+
+    // Tapping Flash Slot opens recipe picker for Slot 1
+    await tester.tap(find.text('Flash Slot'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Select Recipe for Slot 1'), findsOneWidget);
+  });
+
+  testWidgets(
       'RecipeDetailDialog badges have consistent uniform height in cold recipes',
       (tester) async {
     SharedPreferences.setMockInitialValues({});
